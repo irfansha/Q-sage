@@ -7,6 +7,7 @@ TODOS: XXX
 import os
 import time
 import argparse, textwrap
+import q_encodings.encoder as ge
 from parse.parser import Parse as ps
 import subprocess
 import datetime
@@ -27,7 +28,7 @@ if __name__ == '__main__':
                                Three levels of execution:
                                0 = only generate encoding
                                1 = existence of winning strategy'''),default = 0)
-  parser.add_argument("--encoding_format", type=int, help="Encoding format: [1 = QCIR14 2 = QDIMACS], default 2",default = 2)
+  parser.add_argument("--encoding_format", type=int, help="Encoding format: [1 = QCIR14 2 = QDIMACS], default 1",default = 1)
   parser.add_argument("--encoding_out", help="output encoding file",default = 'intermediate_files/encoding')
   parser.add_argument("--intermediate_encoding_out", help="output intermediate encoding file",default = 'intermediate_files/intermediate_encoding')
   parser.add_argument("--solver", type=int, help=textwrap.dedent('''
@@ -64,14 +65,15 @@ if __name__ == '__main__':
 
   parsed_instance = ps(args)
 
-  '''
-  if (args.e == 's-UE'):
+
+  if (args.e == 'gg'):
     # Generating simple transition function:
     encoding = ge.generate_encoding(parsed_instance)
 
 
   encoding_time = time.perf_counter() - start_encoding_time
   print("Encoding time: " + str(encoding_time))
+  '''
   # ----------------------------------------------------------------------------------------------------
 
   if (args.run >= 1):
