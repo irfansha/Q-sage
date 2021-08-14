@@ -48,12 +48,89 @@ class GroundedGoalEncoding:
 
     # Finally predicate variables for each time step:
     self.quantifier_block.append(['# Predicate variables: '])
-    for i in range(self.parsed.depth):
+    for i in range(self.parsed.depth+1):
       self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.predicate_variables[i]) + ')'])
 
-  def generate_k_transitions(self):
+  def generate_black_transition(self, time_step):
+    self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
+    # Time variable less than constraint t < time_step + 1:
+    self.encoding.append(['# Less than constraint for time :'])
+    lsc.add_circuit(self.gates_generator, self.time_variables, time_step + 1)
+    time_output_gate = self.gates_generator.output_gate
+
+    # Move equality constraint with position variables:
+    self.encoding.append(['# Equality gate for move and forall positional variables:'])
+    self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
+    equality_output_gate = self.gates_generator.output_gate
+
+    # conjuction for time and equality constraint:
+    self.encoding.append(['# Conjuction for time and equality constraints:'])
+    self.gates_generator.and_gate([time_output_gate,equality_output_gate])
+    conditional_and_output_gate = self.gates_generator.output_gate
+
+    # constraints choosing black position:
+    self.encoding.append(['# Choosing black position constraints:'])
+    self.encoding.append(['# In time step i, occupied must be false:'])
+    self.encoding.append(['# In time step i+1, occupied must be true and color must be black (i.e., 0):'])
+    self.gates_generator.and_gate([-self.predicate_variables[time_step][0], self.predicate_variables[time_step + 1][0], -self.predicate_variables[time_step + 1][1]])
+
+    # Now if condition:
+    self.encoding.append(['# If time and equality constraints hold then choosing black constraints must be true:'])
+    self.gates_generator.if_then_gate(conditional_and_output_gate, self.gates_generator.output_gate)
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Finally propogation constraints:
+    self.encoding.append(['# propagation constraints:'])
+    self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
+    self.encoding.append(['# If the time and equality constraints does not hold predicates are propagated:'])
+    self.gates_generator.or_gate([conditional_and_output_gate, self.gates_generator.output_gate])
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+
+  def generate_white_transition(self, time_step):
+    self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
+    # Time variable less than constraint t < time_step + 1:
+    self.encoding.append(['# Less than constraint for time :'])
+    lsc.add_circuit(self.gates_generator, self.time_variables, time_step + 1)
+    time_output_gate = self.gates_generator.output_gate
+
+    # Move equality constraint with position variables:
+    self.encoding.append(['# Equality gate for move and forall positional variables:'])
+    self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
+    equality_output_gate = self.gates_generator.output_gate
+
+    # conjuction for time and equality constraint:
+    self.encoding.append(['# Conjuction for time and equality constraints:'])
+    self.gates_generator.and_gate([time_output_gate,equality_output_gate])
+    conditional_and_output_gate = self.gates_generator.output_gate
+
+    # constraints choosing black position:
+    self.encoding.append(['# Choosing white position constraints:'])
+    self.encoding.append(['# In time step i, occupied must be false:'])
+    self.encoding.append(['# In time step i+1, occupied must be true and color must be white (i.e., 1):'])
+    self.gates_generator.and_gate([-self.predicate_variables[time_step][0], self.predicate_variables[time_step + 1][0], self.predicate_variables[time_step + 1][1]])
+
+    # Now if condition:
+    self.encoding.append(['# If time and equality constraints hold then choosing white constraints must be true:'])
+    self.gates_generator.if_then_gate(conditional_and_output_gate, self.gates_generator.output_gate)
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Finally propogation constraints:
+    self.encoding.append(['# propagation constraints:'])
+    self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
+    self.encoding.append(['# If the time and equality constraints does not hold predicates are propagated:'])
+    self.gates_generator.or_gate([conditional_and_output_gate, self.gates_generator.output_gate])
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+  def generate_d_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Transitions: '])
+    for i in range(self.parsed.depth):
+      if (i%2 == 0):
+        self.generate_black_transition(i)
+      else:
+        self.generate_white_transition(i)
+
 
 
   # TODO: Testing is needed
@@ -124,7 +201,7 @@ class GroundedGoalEncoding:
     # Allocating predicate variables, two variables are used one is occupied and
     # other color (but implicitly) for each time step:
     self.predicate_variables = []
-    for i in range(parsed.depth):
+    for i in range(parsed.depth+1):
       self.predicate_variables.append(self.encoding_variables.get_vars(2))
 
     if (parsed.args.debug == 1):
@@ -139,10 +216,13 @@ class GroundedGoalEncoding:
 
     # Generating quantifer blocks:
     self.generate_quantifier_blocks()
-    # Generating k steps i.e., plan length number of transitions:
-    self.generate_k_transitions()
 
     self.gates_generator = ggen(self.encoding_variables, self.encoding)
+
+    # Generating d steps i.e., which includes black and white constraints:
+    self.generate_d_transitions()
+
+    print(self.transition_step_output_gates)
 
     self.generate_initial_gate()
 
