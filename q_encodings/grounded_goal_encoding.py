@@ -149,6 +149,9 @@ class GroundedGoalEncoding:
       else:
         self.generate_white_transition(i)
 
+    self.encoding.append(['# Final transition gate: '])
+    self.gates_generator.and_gate(self.transition_step_output_gates)
+    self.transition_output_gate = self.gates_generator.output_gate
 
 
   # TODO: Testing is needed
@@ -240,24 +243,60 @@ class GroundedGoalEncoding:
 
     goal_step_output_gates.append(self.gates_generator.output_gate)
 
+    # Final goal gate:
+    self.encoding.append(['# Final and gate for goal constraints: '])
+    self.gates_generator.and_gate(goal_step_output_gates)
+    self.goal_output_gate = self.gates_generator.output_gate
+
   def generate_restricted_black_moves(self):
+
+    step_restricted_black_output_gates = []
 
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Restricted black moves: '])
 
+    for i in range(self.parsed.depth):
+      if (i%2 == 0):
+        lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_positions)
+        step_restricted_black_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# And gate for all restricted black move clauses: '])
+    self.gates_generator.and_gate(step_restricted_black_output_gates)
+    self.restricted_black_gate = self.gates_generator.output_gate
 
 
   def generate_restricted_white_moves(self):
 
+    step_restricted_white_output_gates = []
+
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Restricted white moves: '])
 
+    for i in range(self.parsed.depth):
+      if (i%2 == 1):
+        lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_positions)
+        step_restricted_white_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# And gate for all restricted white move clauses: '])
+    self.gates_generator.and_gate(step_restricted_white_output_gates)
+    self.restricted_white_gate = self.gates_generator.output_gate
 
 
   # Final output gate is an and-gate with inital, goal and transition gates:
   def generate_final_gate(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Final gate: '])
+
+    self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
+    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+
+    self.encoding.append(['# If legal white move then all contraints hold : '])
+    self.gates_generator.if_then_gate(self.restricted_white_gate, self.gates_generator.output_gate)
+
+    self.encoding.append(['# Final gate is conjunction of restricted black gate and above if then gate output : '])
+    self.gates_generator.and_gate([self.restricted_black_gate, self.gates_generator.output_gate])
+
+    self.final_output_gate = self.gates_generator.output_gate
 
   def __init__(self, parsed):
     self.parsed = parsed
@@ -267,7 +306,9 @@ class GroundedGoalEncoding:
     self.initial_output_gate = 0 # initial output gate can never be 0
     self.goal_output_gate = 0 # goal output gate can never be 0
     self.transition_step_output_gates = []
-    self.conditional_final_output_gate = 0 # Can never be 0
+    self.transition_output_gate = 0 # Can never be 0
+    self.restricted_black_gate = 0 # Can never be 0
+    self.restricted_white_gate = 0 # Can never be 0
     self.final_output_gate = 0 # Can never be 0
 
 
@@ -326,5 +367,9 @@ class GroundedGoalEncoding:
     self.generate_initial_gate()
 
     self.generate_goal_gate()
+
+    self.generate_restricted_black_moves()
+
+    self.generate_restricted_white_moves()
 
     self.generate_final_gate()
