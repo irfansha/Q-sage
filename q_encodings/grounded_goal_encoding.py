@@ -40,7 +40,10 @@ class GroundedGoalEncoding:
 
     # Grounded goal variables before forall position variables:
     self.quantifier_block.append(['# Grounded goal variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_state_variables) + ')'])
+    all_goal_vars = []
+    for vars in self.goal_state_variables:
+      all_goal_vars.extend(vars)
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
 
     # Forall position variables:
     self.quantifier_block.append(['# Forall position variables: '])
@@ -208,7 +211,9 @@ class GroundedGoalEncoding:
       print("Predicate variables: ",self.predicate_variables)
 
     # Allocating goal state variables:
-    self.goal_state_variables = self.encoding_variables.get_vars(parsed.num_positions)
+    self.goal_state_variables = []
+    for i in range(parsed.num_positions):
+      self.goal_state_variables.append(self.encoding_variables.get_vars(2))
 
     if (parsed.args.debug == 1):
       print("Goal state variables: ",self.goal_state_variables)
