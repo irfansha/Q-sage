@@ -25,10 +25,31 @@ class GroundedGoalEncoding:
 
   # Generates quanifier blocks:
   def generate_quantifier_blocks(self):
-    # Action and parameter variables are first existential layer:
-    self.encoding.append(["# ------------------------------------------------------------------------"])
-    self.encoding.append(['# Quantifier alternations: '])
+    # Time variables in outer most layer:
+    self.quantifier_block.append(['# Time variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.time_variables) + ')'])
 
+    # Move variables following time variables:
+    self.quantifier_block.append(['# Move variables: '])
+    for i in range(self.parsed.depth):
+      # starts with 0 and even is black (i.e., existential moves):
+      if (i % 2 == 0):
+        self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
+      else:
+        self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
+
+    # Grounded goal variables before forall position variables:
+    self.quantifier_block.append(['# Grounded goal variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_state_variables) + ')'])
+
+    # Forall position variables:
+    self.quantifier_block.append(['# Forall position variables: '])
+    self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.forall_position_variables) + ')'])
+
+    # Finally predicate variables for each time step:
+    self.quantifier_block.append(['# Predicate variables: '])
+    for i in range(self.parsed.depth):
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.predicate_variables[i]) + ')'])
 
   def generate_k_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
