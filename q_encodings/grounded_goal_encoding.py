@@ -75,6 +75,47 @@ class GroundedGoalEncoding:
 
 
 
+    # Allocating time variables first:
+    self.time_num_variables = math.ceil(math.log2(parsed.depth))
+    self.time_variables = self.encoding_variables.get_vars(self.time_num_variables)
+    if (parsed.args.debug == 1):
+      print("------------------------------------------------------------")
+      print("Number of (log) time variables: ", self.time_num_variables)
+      print("Time variables: ",self.time_variables)
+
+    # Allocating action variables for each time step until depth,
+    # Moves are same as the vertexs/positions on the board:
+    self.num_move_variables = math.ceil(math.log2(parsed.num_positions))
+    self.move_variables = []
+    for i in range(parsed.depth):
+      self.move_variables.append(self.encoding_variables.get_vars(self.num_move_variables))
+
+    if (parsed.args.debug == 1):
+      print("Number of (log) move variables: ", self.num_move_variables)
+      print("Move variables: ",self.move_variables)
+
+    # Allocating forall position variables:
+    self.forall_position_variables = self.encoding_variables.get_vars(self.num_move_variables)
+
+    if (parsed.args.debug == 1):
+      print("Forall position variables: ",self.forall_position_variables)
+
+    # Allocating predicate variables, two variables are used one is occupied and
+    # other color (but implicitly) for each time step:
+    self.predicate_variables = []
+    for i in range(parsed.depth):
+      self.predicate_variables.append(self.encoding_variables.get_vars(2))
+
+    if (parsed.args.debug == 1):
+      print("Predicate variables: ",self.predicate_variables)
+
+    # Allocating goal state variables:
+    self.goal_state_variables = self.encoding_variables.get_vars(parsed.num_positions)
+
+    if (parsed.args.debug == 1):
+      print("Goal state variables: ",self.goal_state_variables)
+
+
     # Generating quantifer blocks:
     self.generate_quantifier_blocks()
     # Generating k steps i.e., plan length number of transitions:
