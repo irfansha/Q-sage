@@ -159,8 +159,6 @@ class GroundedGoalEncoding:
     self.encoding.append(['# Initial state: '])
 
     # Constraints in forall branches for black positions:
-    print(self.parsed.black_initial_positions)
-
     black_position_output_gates = []
 
     for position in self.parsed.black_initial_positions:
@@ -180,8 +178,6 @@ class GroundedGoalEncoding:
     initial_step_output_gates.append(self.gates_generator.output_gate)
 
     # Constraints in forall branches for white positions:
-    print(self.parsed.white_initial_positions)
-
     white_position_output_gates = []
 
     for position in self.parsed.white_initial_positions:
@@ -217,11 +213,44 @@ class GroundedGoalEncoding:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
 
+    # First connecting outer goal variables to inner predicate variables:
+    self.encoding.append(['# Clauses for connecting outer and inner goal variables: '])
+    for i in range(self.parsed.num_positions):
+      binary_format_clause = self.generate_binary_format(self.forall_position_variables,i)
+      self.gates_generator.and_gate(binary_format_clause)
+      if_condition_output_gate = self.gates_generator.output_gate
+      self.encoding.append(['# equality clause inner and outer variables for position ' + str(i) + ' : '])
+      self.gates_generator.complete_equality_gate(self.goal_state_variables[i], self.predicate_variables[-1])
+      self.encoding.append(['# if then clause : '])
+      self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
+      goal_step_output_gates.append(self.gates_generator.output_gate)
 
-  def generate_simple_restricted_forall_constraints(self):
+    # now adding clauses for the winning configurations:
+    self.encoding.append(['# Clauses for black winning configurations: '])
+    win_configuration_step_output_gates = []
+    for win_configuration in self.parsed.black_win_configurations:
+      temp_list = []
+      for position in win_configuration:
+        temp_list.extend([self.goal_state_variables[position][0], -self.goal_state_variables[position][1] ])
+      self.gates_generator.and_gate(temp_list)
+      win_configuration_step_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# Atleast one of the winning configurations to be true: '])
+    self.gates_generator.or_gate(win_configuration_step_output_gates)
+
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+
+  def generate_restricted_black_moves(self):
 
     self.encoding.append(["# ------------------------------------------------------------------------"])
-    self.encoding.append(['# Conditional forall constraints: '])
+    self.encoding.append(['# Restricted black moves: '])
+
+
+
+  def generate_restricted_white_moves(self):
+
+    self.encoding.append(["# ------------------------------------------------------------------------"])
+    self.encoding.append(['# Restricted white moves: '])
 
 
 
