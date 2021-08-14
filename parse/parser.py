@@ -9,6 +9,7 @@ class Parse:
 
   # Parses domain and problem file:
   def __init__(self, args):
+    self.args = args
     problem_path = args.problem
     f = open(problem_path, 'r')
     lines = f.readlines()
