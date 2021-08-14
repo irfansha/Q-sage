@@ -1,7 +1,9 @@
 # Irfansha Shaik, 13.09.2021, Aarhus
 
 '''
-TODOS: XXX
+TODOS:
+  - It is possible to restrict moves to only open positions, by rearranging the order of positions.
+    In simple cases, it can even reduce number of forall/exists variables.
 '''
 
 import os
