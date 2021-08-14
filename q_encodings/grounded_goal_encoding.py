@@ -40,9 +40,11 @@ class GroundedGoalEncoding:
 
   # Generates quanifier blocks:
   def generate_quantifier_blocks(self):
+    '''
     # Time variables in outer most layer:
     self.quantifier_block.append(['# Time variables: '])
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.time_variables) + ')'])
+    '''
 
     # Move variables following time variables:
     self.quantifier_block.append(['# Move variables: '])
@@ -71,20 +73,24 @@ class GroundedGoalEncoding:
 
   def generate_black_transition(self, time_step):
     self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
+    '''
     # Time variable less than constraint t < time_step + 1:
     self.encoding.append(['# Less than constraint for time :'])
     lsc.add_circuit(self.gates_generator, self.time_variables, time_step + 1)
     time_output_gate = self.gates_generator.output_gate
+    '''
 
     # Move equality constraint with position variables:
     self.encoding.append(['# Equality gate for move and forall positional variables:'])
     self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
-    equality_output_gate = self.gates_generator.output_gate
-
+    #equality_output_gate = self.gates_generator.output_gate
+    conditional_and_output_gate = self.gates_generator.output_gate
+    '''
     # conjuction for time and equality constraint:
     self.encoding.append(['# Conjuction for time and equality constraints:'])
-    self.gates_generator.and_gate([time_output_gate,equality_output_gate])
+    self.gates_generator.and_gate([-time_output_gate,equality_output_gate])
     conditional_and_output_gate = self.gates_generator.output_gate
+    '''
 
     # constraints choosing black position:
     self.encoding.append(['# Choosing black position constraints:'])
@@ -107,22 +113,25 @@ class GroundedGoalEncoding:
 
   def generate_white_transition(self, time_step):
     self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
+    '''
     # Time variable less than constraint t < time_step + 1:
     self.encoding.append(['# Less than constraint for time :'])
     lsc.add_circuit(self.gates_generator, self.time_variables, time_step + 1)
     time_output_gate = self.gates_generator.output_gate
-
+    '''
     # Move equality constraint with position variables:
     self.encoding.append(['# Equality gate for move and forall positional variables:'])
     self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
-    equality_output_gate = self.gates_generator.output_gate
-
-    # conjuction for time and equality constraint:
-    self.encoding.append(['# Conjuction for time and equality constraints:'])
-    self.gates_generator.and_gate([time_output_gate,equality_output_gate])
+    #equality_output_gate = self.gates_generator.output_gate
     conditional_and_output_gate = self.gates_generator.output_gate
 
-    # constraints choosing black position:
+    '''
+    # conjuction for time and equality constraint:
+    self.encoding.append(['# Conjuction for time and equality constraints:'])
+    self.gates_generator.and_gate([-time_output_gate,equality_output_gate])
+    conditional_and_output_gate = self.gates_generator.output_gate
+    '''
+    # constraints choosing white position:
     self.encoding.append(['# Choosing white position constraints:'])
     self.encoding.append(['# In time step i, occupied must be false:'])
     self.encoding.append(['# In time step i+1, occupied must be true and color must be white (i.e., 1):'])
@@ -148,6 +157,7 @@ class GroundedGoalEncoding:
         self.generate_black_transition(i)
       else:
         self.generate_white_transition(i)
+
 
     self.encoding.append(['# Final transition gate: '])
     self.gates_generator.and_gate(self.transition_step_output_gates)
@@ -290,8 +300,12 @@ class GroundedGoalEncoding:
     self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
     self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
 
-    self.encoding.append(['# If legal white move then all contraints hold : '])
-    self.gates_generator.if_then_gate(self.restricted_white_gate, self.gates_generator.output_gate)
+    self.encoding.append(['# If legal white move and good position then all contraints hold : '])
+    self.gates_generator.and_gate([self.restricted_white_gate, self.restricted_positions_gate])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate, self.gates_generator.output_gate)
+
+    #self.encoding.append(['# Final gate is conjunction of restricted black gate, time gate and above if then gate output : '])
+    #self.gates_generator.and_gate([self.restricted_black_gate, -self.time_restricted_gate, self.gates_generator.output_gate])
 
     self.encoding.append(['# Final gate is conjunction of restricted black gate and above if then gate output : '])
     self.gates_generator.and_gate([self.restricted_black_gate, self.gates_generator.output_gate])
@@ -309,17 +323,19 @@ class GroundedGoalEncoding:
     self.transition_output_gate = 0 # Can never be 0
     self.restricted_black_gate = 0 # Can never be 0
     self.restricted_white_gate = 0 # Can never be 0
+    self.restricted_positions_gate = 0 # Can never be 0
     self.final_output_gate = 0 # Can never be 0
 
 
-
+    '''
     # Allocating time variables first:
-    self.time_num_variables = math.ceil(math.log2(parsed.depth))
+    self.time_num_variables = math.ceil(math.log2(parsed.depth + 1))
     self.time_variables = self.encoding_variables.get_vars(self.time_num_variables)
     if (parsed.args.debug == 1):
       print("------------------------------------------------------------")
       print("Number of (log) time variables: ", self.time_num_variables)
       print("Time variables: ",self.time_variables)
+    '''
 
     # Allocating action variables for each time step until depth,
     # Moves are same as the vertexs/positions on the board:
@@ -371,5 +387,18 @@ class GroundedGoalEncoding:
     self.generate_restricted_black_moves()
 
     self.generate_restricted_white_moves()
+
+    # positions combinations to be restricted:
+    self.encoding.append(['#Position combinations restricted :'])
+    lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
+    self.restricted_positions_gate = self.gates_generator.output_gate
+
+    '''
+    # time cannot be 0:
+    self.encoding.append(['# time cannot be 0: '])
+    binary_format_clause = self.generate_binary_format(self.time_variables,0)
+    self.gates_generator.and_gate(binary_format_clause)
+    self.time_restricted_gate = self.gates_generator.output_gate
+    '''
 
     self.generate_final_gate()
