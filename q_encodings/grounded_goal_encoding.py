@@ -23,6 +23,21 @@ class GroundedGoalEncoding:
     for gate in self.encoding:
       self.print_gate_tofile(gate, f)
 
+  # Takes a list of clause variables and maps to a integer value:
+  def generate_binary_format(self, clause_variables, corresponding_number):
+    num_variables = len(clause_variables)
+    # Representation in binary requires number of variables:
+    rep_string = '0' + str(num_variables) + 'b'
+    bin_string = format(corresponding_number, rep_string)
+    cur_variable_list = []
+    # Depending on the binary string we set action variables to '+' or '-':
+    for j in range(num_variables):
+      if (bin_string[j] == '0'):
+        cur_variable_list.append(-clause_variables[j])
+      else:
+        cur_variable_list.append(clause_variables[j])
+    return cur_variable_list
+
   # Generates quanifier blocks:
   def generate_quantifier_blocks(self):
     # Time variables in outer most layer:
@@ -143,6 +158,58 @@ class GroundedGoalEncoding:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Initial state: '])
 
+    # Constraints in forall branches for black positions:
+    print(self.parsed.black_initial_positions)
+
+    black_position_output_gates = []
+
+    for position in self.parsed.black_initial_positions:
+      binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
+      self.gates_generator.and_gate(binary_format_clause)
+      black_position_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# Or for all black forall position clauses: '])
+    self.gates_generator.or_gate(black_position_output_gates)
+
+    black_final_output_gate = self.gates_generator.output_gate
+
+    self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
+    self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
+    self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
+
+    initial_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Constraints in forall branches for white positions:
+    print(self.parsed.white_initial_positions)
+
+    white_position_output_gates = []
+
+    for position in self.parsed.white_initial_positions:
+      binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
+      self.gates_generator.and_gate(binary_format_clause)
+      white_position_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# Or for all white forall position clauses: '])
+    self.gates_generator.or_gate(white_position_output_gates)
+
+    white_final_output_gate = self.gates_generator.output_gate
+
+    self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
+    self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
+    self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
+
+    initial_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Finally for all other forall branches, the position is unoccupied:
+    self.encoding.append(['# for all other branches the occupied is 0: '])
+    self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate, -self.predicate_variables[0][0]])
+
+    initial_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Now final output gate for the initial state:
+    self.gates_generator.and_gate(initial_step_output_gates)
+    self.initial_output_gate = self.gates_generator.output_gate
+
 
   # Generating goal constraints:
   def generate_goal_gate(self):
@@ -226,8 +293,6 @@ class GroundedGoalEncoding:
 
     # Generating d steps i.e., which includes black and white constraints:
     self.generate_d_transitions()
-
-    print(self.transition_step_output_gates)
 
     self.generate_initial_gate()
 
