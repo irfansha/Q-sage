@@ -303,10 +303,14 @@ class GroundedGoalEncoding:
     self.gates_generator.and_gate([self.restricted_black_gate, self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
     temp_and_output_gate = self.gates_generator.output_gate
 
+    if (self.parsed.args.restricted_position_constraints == 1):
+      self.encoding.append(['# If legal white move and good position then all contraints hold : '])
+      self.gates_generator.and_gate([self.restricted_white_gate, self.restricted_positions_gate])
+      self.gates_generator.if_then_gate(self.gates_generator.output_gate, temp_and_output_gate)
+    else:
+      self.encoding.append(['# If legal white move then all contraints hold : '])
+      self.gates_generator.if_then_gate(self.restricted_white_gate, temp_and_output_gate)
 
-    self.encoding.append(['# If legal white move and good position then all contraints hold : '])
-    self.gates_generator.and_gate([self.restricted_white_gate, self.restricted_positions_gate])
-    self.gates_generator.if_then_gate(self.gates_generator.output_gate, temp_and_output_gate)
 
     #self.encoding.append(['# Final gate is conjunction of restricted black gate, time gate and above if then gate output : '])
     #self.gates_generator.and_gate([self.restricted_black_gate, -self.time_restricted_gate, self.gates_generator.output_gate])
@@ -341,7 +345,6 @@ class GroundedGoalEncoding:
     self.transition_output_gate = 0 # Can never be 0
     self.restricted_black_gate = 0 # Can never be 0
     self.restricted_white_gate = 0 # Can never be 0
-    self.restricted_positions_gate = 0 # Can never be 0
     self.final_output_gate = 0 # Can never be 0
 
 
@@ -408,10 +411,12 @@ class GroundedGoalEncoding:
 
       self.generate_restricted_white_moves()
 
-      # positions combinations to be restricted:
-      self.encoding.append(['#Position combinations restricted :'])
-      lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
-      self.restricted_positions_gate = self.gates_generator.output_gate
+      if (self.parsed.args.restricted_position_constraints == 1):
+        self.restricted_positions_gate = 0 # Can never be 0
+        # positions combinations to be restricted:
+        self.encoding.append(['#Position combinations restricted :'])
+        lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
+        self.restricted_positions_gate = self.gates_generator.output_gate
 
       '''
       # time cannot be 0:

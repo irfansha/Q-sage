@@ -42,6 +42,7 @@ if __name__ == '__main__':
                                        3 = RaReQS'''),default = 2)
   parser.add_argument("--solver_out", help="solver output file",default = 'intermediate_files/solver_output')
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
+  parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
@@ -63,7 +64,7 @@ if __name__ == '__main__':
   print(args)
 
   if args.version:
-    print("Version 0.1")
+    print("Version 0.3")
 
   # --------------------------------------- Timing the encoding ----------------------------------------
   start_encoding_time = time.perf_counter()
