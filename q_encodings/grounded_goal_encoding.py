@@ -122,7 +122,9 @@ class GroundedGoalEncoding:
     # Move equality constraint with position variables:
     self.encoding.append(['# Equality gate for move and forall positional variables:'])
     self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
-    #equality_output_gate = self.gates_generator.output_gate
+    equality_output_gate = self.gates_generator.output_gate
+    self.encoding.append(['# In time step i, occupied must be false:'])
+    self.gates_generator.and_gate([equality_output_gate, -self.predicate_variables[time_step][0] ])
     conditional_and_output_gate = self.gates_generator.output_gate
 
     '''
@@ -133,9 +135,8 @@ class GroundedGoalEncoding:
     '''
     # constraints choosing white position:
     self.encoding.append(['# Choosing white position constraints:'])
-    self.encoding.append(['# In time step i, occupied must be false:'])
     self.encoding.append(['# In time step i+1, occupied must be true and color must be white (i.e., 1):'])
-    self.gates_generator.and_gate([-self.predicate_variables[time_step][0], self.predicate_variables[time_step + 1][0], self.predicate_variables[time_step + 1][1]])
+    self.gates_generator.and_gate([self.predicate_variables[time_step + 1][0], self.predicate_variables[time_step + 1][1]])
 
     # Now if condition:
     self.encoding.append(['# If time and equality constraints hold then choosing white constraints must be true:'])
@@ -211,7 +212,8 @@ class GroundedGoalEncoding:
 
     # Finally for all other forall branches, the position is unoccupied:
     self.encoding.append(['# for all other branches the occupied is 0: '])
-    self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate, -self.predicate_variables[0][0]])
+    self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate, -self.predicate_variables[0][0])
 
     initial_step_output_gates.append(self.gates_generator.output_gate)
 
@@ -298,17 +300,19 @@ class GroundedGoalEncoding:
     self.encoding.append(['# Final gate: '])
 
     self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    self.gates_generator.and_gate([self.restricted_black_gate, self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    temp_and_output_gate = self.gates_generator.output_gate
+
 
     self.encoding.append(['# If legal white move and good position then all contraints hold : '])
     self.gates_generator.and_gate([self.restricted_white_gate, self.restricted_positions_gate])
-    self.gates_generator.if_then_gate(self.gates_generator.output_gate, self.gates_generator.output_gate)
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate, temp_and_output_gate)
 
     #self.encoding.append(['# Final gate is conjunction of restricted black gate, time gate and above if then gate output : '])
     #self.gates_generator.and_gate([self.restricted_black_gate, -self.time_restricted_gate, self.gates_generator.output_gate])
 
-    self.encoding.append(['# Final gate is conjunction of restricted black gate and above if then gate output : '])
-    self.gates_generator.and_gate([self.restricted_black_gate, self.gates_generator.output_gate])
+    #self.encoding.append(['# Final gate is conjunction of restricted black gate and above if then gate output : '])
+    #self.gates_generator.and_gate([self.restricted_black_gate, self.gates_generator.output_gate])
 
     self.final_output_gate = self.gates_generator.output_gate
 
