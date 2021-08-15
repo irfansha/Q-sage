@@ -1,12 +1,16 @@
 # Irfansha Shaik, 14.08.2021, Aarhus.
 
 from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
+from q_encodings.grounded_goal_with_time import GroundedGoalTimeEncoding as ggte
 import os
 
 def generate_encoding(parsed_instance):
   if (parsed_instance.args.e == 'gg'):
     print("Generating grounded goal encoding")
     encoding = gge(parsed_instance)
+  elif (parsed_instance.args.e == 'ggt'):
+    print("Generating grounded goal encoding with time")
+    encoding = ggte(parsed_instance)
 
   # We print QCIR format directly to the file:
   if (parsed_instance.args.encoding_format == 1):

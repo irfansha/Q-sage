@@ -26,7 +26,8 @@ if __name__ == '__main__':
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("-e", help=textwrap.dedent('''
                                   encoding types:
-                                  gg = grounded goal encoding '''),default = 'gg')
+                                  gg = grounded goal encoding
+                                  ggt = grounded goal with time'''),default = 'gg')
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
                                0 = only generate encoding
@@ -70,9 +71,7 @@ if __name__ == '__main__':
   parsed_instance = ps(args)
 
 
-  if (args.e == 'gg'):
-    # Generating simple transition function:
-    encoding = ge.generate_encoding(parsed_instance)
+  encoding = ge.generate_encoding(parsed_instance)
 
 
   encoding_time = time.perf_counter() - start_encoding_time
