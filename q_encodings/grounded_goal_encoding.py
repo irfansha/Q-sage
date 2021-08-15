@@ -213,7 +213,7 @@ class GroundedGoalEncoding:
     # Finally for all other forall branches, the position is unoccupied:
     self.encoding.append(['# for all other branches the occupied is 0: '])
     self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
-    self.gates_generator.if_then_gate(self.gates_generator.output_gate, -self.predicate_variables[0][0])
+    self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
 
     initial_step_output_gates.append(self.gates_generator.output_gate)
 
