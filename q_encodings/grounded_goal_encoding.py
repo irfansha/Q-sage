@@ -316,6 +316,20 @@ class GroundedGoalEncoding:
 
     self.final_output_gate = self.gates_generator.output_gate
 
+  # Final output gate is an and-gate with inital, goal and transition gates:
+  def generate_unrestricted_final_gate(self):
+    self.encoding.append(["# ------------------------------------------------------------------------"])
+    self.encoding.append(['# Final gate: '])
+
+    self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
+    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+
+    #self.encoding.append(['# Final gate is conjunction of time gate and above if then gate output : '])
+    #self.gates_generator.and_gate([-self.time_restricted_gate, self.gates_generator.output_gate])
+
+    self.final_output_gate = self.gates_generator.output_gate
+
+
   def __init__(self, parsed):
     self.parsed = parsed
     self.encoding_variables = vd()
@@ -388,21 +402,25 @@ class GroundedGoalEncoding:
 
     self.generate_goal_gate()
 
-    self.generate_restricted_black_moves()
+    # Note: Improved version needs to change this with only open positions:
+    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+      self.generate_restricted_black_moves()
 
-    self.generate_restricted_white_moves()
+      self.generate_restricted_white_moves()
 
-    # positions combinations to be restricted:
-    self.encoding.append(['#Position combinations restricted :'])
-    lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
-    self.restricted_positions_gate = self.gates_generator.output_gate
+      # positions combinations to be restricted:
+      self.encoding.append(['#Position combinations restricted :'])
+      lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
+      self.restricted_positions_gate = self.gates_generator.output_gate
 
-    '''
-    # time cannot be 0:
-    self.encoding.append(['# time cannot be 0: '])
-    binary_format_clause = self.generate_binary_format(self.time_variables,0)
-    self.gates_generator.and_gate(binary_format_clause)
-    self.time_restricted_gate = self.gates_generator.output_gate
-    '''
+      '''
+      # time cannot be 0:
+      self.encoding.append(['# time cannot be 0: '])
+      binary_format_clause = self.generate_binary_format(self.time_variables,0)
+      self.gates_generator.and_gate(binary_format_clause)
+      self.time_restricted_gate = self.gates_generator.output_gate
+      '''
 
-    self.generate_final_gate()
+      self.generate_final_gate()
+    else:
+      self.generate_unrestricted_final_gate()
