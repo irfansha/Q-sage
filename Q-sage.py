@@ -22,7 +22,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("-V", "--version", help="show program version", action="store_true")
   parser.add_argument("--problem", help="problem file path", default = 'testcases/Hein_hex/hein_04_3x3-03.pg')
-  parser.add_argument("--planner_path", help="path for qplanner.py, allowing remote run", default = os.getcwd())
+  parser.add_argument("--planner_path", help="path for Q-sage.py, allowing remote run", default = os.getcwd())
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("-e", help=textwrap.dedent('''
                                   encoding types:
