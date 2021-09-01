@@ -32,6 +32,7 @@ class Parse:
         print(key, value)
 
     self.depth = len(parsed_dict['#times'][0])
+    self.positions = parsed_dict['#positions'][0]
     self.num_positions = len(parsed_dict['#positions'][0])
 
     self.white_initial_positions = []
@@ -60,6 +61,7 @@ class Parse:
     
     if args.debug == 1:
       print("Depth: ",self.depth)
+      print("Given positions: ", self.positions)
       print("Total positions: ", self.num_positions)
       print("Black initial positions: ", self.black_initial_positions)
       print("White initial positions: ", self.white_initial_positions)

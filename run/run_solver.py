@@ -26,3 +26,12 @@ def run_single_solver(encoding):
   else:
     print("Plan not found")
     return
+
+  # If plan extraction is enabled:
+  if (args.run == 2):
+    move_string = ''
+    for val in encoding.move_variables[0]:
+      move_string += str(sol_map[val])
+      # Action index, powers of two:
+    action_index = int(move_string, 2)
+    print("First winning move:", encoding.parsed.positions[action_index])

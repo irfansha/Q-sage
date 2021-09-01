@@ -31,7 +31,8 @@ if __name__ == '__main__':
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
                                0 = only generate encoding
-                               1 = existence of winning strategy'''),default = 0)
+                               1 = existence of winning strategy
+                               2 = extract first step of winning strategy if found'''),default = 0)
   parser.add_argument("--encoding_format", type=int, help="Encoding format: [1 = QCIR14 2 = QDIMACS], default 1",default = 2)
   parser.add_argument("--encoding_out", help="output encoding file",default = 'intermediate_files/encoding')
   parser.add_argument("--intermediate_encoding_out", help="output intermediate encoding file",default = 'intermediate_files/intermediate_encoding')
