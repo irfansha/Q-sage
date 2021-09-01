@@ -130,3 +130,6 @@ dmypy.json
 
 # Intermediate files
 intermediate_files/
+testcases/
+data/
+Benchmarks/
