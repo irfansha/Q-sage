@@ -24,6 +24,7 @@ if __name__ == '__main__':
   parser.add_argument("--problem", help="problem file path", default = 'testcases/Hein_hex/hein_04_3x3-03.pg')
   parser.add_argument("--planner_path", help="path for Q-sage.py, allowing remote run", default = os.getcwd())
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
+  parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
   parser.add_argument("-e", help=textwrap.dedent('''
                                   encoding types:
                                   gg = grounded goal encoding

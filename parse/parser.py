@@ -31,7 +31,10 @@ class Parse:
       for key,value in parsed_dict.items():
         print(key, value)
 
-    self.depth = len(parsed_dict['#times'][0])
+    if (args.ignore_file_depth == 0):
+      self.depth = len(parsed_dict['#times'][0])
+    else:
+      self.depth = args.depth
     self.positions = parsed_dict['#positions'][0]
     self.num_positions = len(parsed_dict['#positions'][0])
 
