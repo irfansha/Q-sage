@@ -66,7 +66,7 @@ if __name__ == '__main__':
   print(args)
 
   if args.version:
-    print("Version 0.3")
+    print("Version 0.4")
 
   # --------------------------------------- Timing the encoding ----------------------------------------
   start_encoding_time = time.perf_counter()
