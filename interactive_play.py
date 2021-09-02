@@ -2,6 +2,7 @@
 
 import os, subprocess
 import argparse
+import math
 
 
 def parse(problem_path):
@@ -59,6 +60,27 @@ def read_winning_move(file_path):
     if ("Plan not found" in line):
       return -1
 
+def print_board(board_size):
+  spaces = board_size + 1
+
+  for i in range(board_size):
+    temp_string = ''
+    for j in range(spaces):
+      temp_string += "  "
+    for j in range(i):
+      temp_string += "-   "
+    print(temp_string)
+    spaces -= 1
+  for i in range(board_size):
+    temp_string = ''
+    for j in range(spaces):
+      temp_string += "  "
+    for j in range(board_size-i):
+      temp_string += "-   "
+    print(temp_string)
+    spaces += 1
+
+
 # Main:
 if __name__ == '__main__':
   text = "Plays interactively if a winning strategy is found for given depth, Q-sage is black player and takes the first move"
@@ -69,6 +91,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   # Reading the input problem file
   parsed_dict = parse(args.problem)
+  board_size = int(math.sqrt(len(parsed_dict['#positions'][0])))
   # TODO: repeat the loop of running until either winning configuration is reached
   while (args.depth > 0):
     temp_input_file = "intermediate_files/interactive_problem_file"
@@ -82,6 +105,7 @@ if __name__ == '__main__':
       exit()
     else:
       print("Winning strategy found, Q-sage plays move: ",winning_move)
+      print_board(board_size)
       args.depth = args.depth - 2
       if (args.depth <= 0):
         print("Q-sage wins! game complete")
