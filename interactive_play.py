@@ -56,27 +56,53 @@ def read_winning_move(file_path):
   for line in lines:
     if ("First winning move" in line):
       split_line = line.split(" ")
-      return split_line[-1]
+      return split_line[-1].strip("\n")
     if ("Plan not found" in line):
       return -1
 
-def print_board(board_size):
+# depending on the board position, corresponding symbol is returned:
+def get_symbol(position, parsed_dict):
+  position_symbol = parsed_dict['#positions'][0][position]
+  if [position_symbol] in parsed_dict['#blackinitials']:
+    return 'o'
+  elif [position_symbol] in parsed_dict['#whiteinitials']:
+    return 'x'
+  else:
+    return '-'
+
+
+
+# Printing the board looking the parsed state of the board:
+def print_board(board_size, parsed_dict):
   spaces = board_size + 1
 
-  for i in range(board_size):
+  for i in range(1, board_size+1):
     temp_string = ''
     for j in range(spaces):
       temp_string += "  "
     for j in range(i):
-      temp_string += "-   "
+      # Mapping to the linear position sequence:
+      mapped_i = j
+      mapped_j = (board_size - i) + j
+      position = (board_size*mapped_i)+ mapped_j
+      cur_symbol = get_symbol(position, parsed_dict)
+      temp_string += cur_symbol
+      temp_string += "   "
     print(temp_string)
     spaces -= 1
-  for i in range(board_size):
+  spaces += 2
+
+  for i in range(1,board_size):
     temp_string = ''
     for j in range(spaces):
       temp_string += "  "
     for j in range(board_size-i):
-      temp_string += "-   "
+      mapped_i = i+j
+      mapped_j = j
+      position = (board_size*mapped_i)+ mapped_j
+      cur_symbol = get_symbol(position, parsed_dict)
+      temp_string += cur_symbol
+      temp_string += "   "
     print(temp_string)
     spaces += 1
 
@@ -92,7 +118,10 @@ if __name__ == '__main__':
   # Reading the input problem file
   parsed_dict = parse(args.problem)
   board_size = int(math.sqrt(len(parsed_dict['#positions'][0])))
-  # TODO: repeat the loop of running until either winning configuration is reached
+
+  print("Q-sage plays with symbol 'o', and with the goal to connect bottom left to top right")
+
+  # Repeat the loop of running until either winning configuration is reached
   while (args.depth > 0):
     temp_input_file = "intermediate_files/interactive_problem_file"
     # Writing to temporary intermediate file:
@@ -105,12 +134,19 @@ if __name__ == '__main__':
       exit()
     else:
       print("Winning strategy found, Q-sage plays move: ",winning_move)
-      print_board(board_size)
+      # updating the dictionary with black move:
+      parsed_dict["#blackinitials"].append([winning_move])
+      print_board(board_size, parsed_dict)
       args.depth = args.depth - 2
       if (args.depth <= 0):
         print("Q-sage wins! game complete")
       else:
+        # printing the available moves:
+        temp_string = ''
+        for move in parsed_dict['#positions'][0]:
+          if ([move] not in parsed_dict['#blackinitials'] and [move] not in parsed_dict['#whiteinitials']):
+            temp_string += move + ','
+        print("Available moves: ", temp_string.strip(','))
         white_move = input("Enter your move: ")
-        # updating the dictionary:
-        parsed_dict["#blackinitials"].append([winning_move])
+        # updating the dictionary with white move:
         parsed_dict["#whiteinitials"].append([white_move])
