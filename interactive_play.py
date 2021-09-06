@@ -64,9 +64,9 @@ def read_winning_move(file_path):
 def get_symbol(position, parsed_dict):
   position_symbol = parsed_dict['#positions'][0][position]
   if [position_symbol] in parsed_dict['#blackinitials']:
-    return 'o'
-  elif [position_symbol] in parsed_dict['#whiteinitials']:
     return 'x'
+  elif [position_symbol] in parsed_dict['#whiteinitials']:
+    return 'o'
   else:
     return '-'
 
@@ -119,7 +119,8 @@ if __name__ == '__main__':
   parsed_dict = parse(args.problem)
   board_size = int(math.sqrt(len(parsed_dict['#positions'][0])))
 
-  print("Q-sage plays with symbol 'o', and with the goal to connect bottom left to top right")
+  print("Q-sage plays with symbol 'x', and with the goal to connect bottom left to top right")
+  print("Finding a winning strategy...")
 
   # Repeat the loop of running until either winning configuration is reached
   while (args.depth > 0):
