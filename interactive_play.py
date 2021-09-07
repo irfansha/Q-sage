@@ -119,6 +119,15 @@ if __name__ == '__main__':
   parsed_dict = parse(args.problem)
   board_size = int(math.sqrt(len(parsed_dict['#positions'][0])))
 
+  # Initializing open moves:
+  open_moves = []
+  for move in parsed_dict['#positions'][0]:
+    if ([move] not in parsed_dict['#blackinitials'] and [move] not in parsed_dict['#whiteinitials']):
+      open_moves.append(move)
+  #print(open_moves)
+
+
+
   print("Q-sage plays with symbol 'x', and with the goal to connect bottom left to top right")
   print("Finding a winning strategy...")
 
@@ -137,17 +146,23 @@ if __name__ == '__main__':
       print("Winning strategy found, Q-sage plays move: ",winning_move)
       # updating the dictionary with black move:
       parsed_dict["#blackinitials"].append([winning_move])
+      # Updating the open moves:
+      open_moves.remove(winning_move)
       print_board(board_size, parsed_dict)
       args.depth = args.depth - 2
       if (args.depth <= 0):
         print("Q-sage wins! game complete")
       else:
-        # printing the available moves:
-        temp_string = ''
-        for move in parsed_dict['#positions'][0]:
-          if ([move] not in parsed_dict['#blackinitials'] and [move] not in parsed_dict['#whiteinitials']):
-            temp_string += move + ','
-        print("Available moves: ", temp_string.strip(','))
-        white_move = input("Enter your move: ")
-        # updating the dictionary with white move:
-        parsed_dict["#whiteinitials"].append([white_move])
+        # Looping until valid move is played:
+        while(1):
+          # printing the available moves:
+          print("Available moves: ", open_moves)
+          white_move = input("Enter your move: ")
+          if white_move in open_moves:
+            # updating the dictionary with white move:
+            parsed_dict["#whiteinitials"].append([white_move])
+            # Updating open moves:
+            open_moves.remove(white_move)
+            break
+          else:
+            print("\nNot a valid open move, try again")
