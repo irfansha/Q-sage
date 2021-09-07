@@ -12,6 +12,7 @@ import argparse, textwrap
 import q_encodings.encoder as ge
 from parse.parser import Parse as ps
 import run.run_solver as rs
+import testing.tests as ts
 import subprocess
 import datetime
 
@@ -44,6 +45,7 @@ if __name__ == '__main__':
                                        3 = RaReQS'''),default = 2)
   parser.add_argument("--solver_out", help="solver output file",default = 'intermediate_files/solver_output')
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
+  parser.add_argument("--run_tests", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
@@ -67,6 +69,14 @@ if __name__ == '__main__':
 
   if args.version:
     print("Version 0.4")
+
+  # Run tests include all testcase domains:
+  if (args.run_tests == 1):
+    # We do not print any additional information:
+    if (args.debug != 0):
+      args.debug = 0
+    ts.run_tests(args)
+    exit()
 
   # --------------------------------------- Timing the encoding ----------------------------------------
   start_encoding_time = time.perf_counter()

@@ -119,8 +119,15 @@ if __name__ == '__main__':
                                   user = interactive user play (default)
                                   random = random player, playes random move'''),default = 'user')
   parser.add_argument("--seed", help="seed value for random generater (default 0)", type=int,default = 0)
+  parser.add_argument("-e", help=textwrap.dedent('''
+                                  encoding to run by Q-sage:
+                                  gg = grounded goal encoding
+                                  ggt = grounded goal with time'''),default = 'gg')
+  parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 1", type=int,default = 1)
 
   args = parser.parse_args()
+  print(args)
+
   # Reading the input problem file
   parsed_dict = parse(args.problem)
   board_size = int(math.sqrt(len(parsed_dict['#positions'][0])))
@@ -132,6 +139,12 @@ if __name__ == '__main__':
       open_moves.append(move)
   #print(open_moves)
 
+  # If we are not ignoring the file depth:
+  if (args.ignore_file_depth == 0):
+    depth = len(parsed_dict['#times'][0])
+  else:
+    depth = args.depth
+
   if (args.player == 'random'):
     random.seed(args.seed)
     print("Initializing random generator with seed: ", args.seed)
@@ -140,11 +153,11 @@ if __name__ == '__main__':
   print("Finding a winning strategy...")
 
   # Repeat the loop of running until either winning configuration is reached
-  while (args.depth > 0):
+  while (depth > 0):
     temp_input_file = "intermediate_files/interactive_problem_file"
     # Writing to temporary intermediate file:
     print_to_file(temp_input_file, parsed_dict)
-    command = "python3 Q-sage.py --run 2 --ignore_file_depth 1 --depth " + str(args.depth) + " --problem " + temp_input_file + " > intermediate_files/interactive_output"
+    command = "python3 Q-sage.py --run 2 --ignore_file_depth 1 --depth " + str(depth) + ' -e ' + args.e + " --problem " + temp_input_file + " > intermediate_files/interactive_output"
     subprocess.run([command], shell = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT ,check=True)
     winning_move = read_winning_move("intermediate_files/interactive_output")
     if (winning_move == -1):
@@ -157,8 +170,8 @@ if __name__ == '__main__':
       # Updating the open moves:
       open_moves.remove(winning_move)
       print_board(board_size, parsed_dict)
-      args.depth = args.depth - 2
-      if (args.depth <= 0):
+      depth = depth - 2
+      if (depth <= 0):
         print("Q-sage wins! game complete")
       else:
         if (args.player == 'random'):
