@@ -1,8 +1,9 @@
 # Irfansha Shaik, 01.09.2021, Aarhus.
 
-import os, subprocess
-import argparse
+import subprocess
+import argparse, textwrap
 import math
+import random
 
 
 def parse(problem_path):
@@ -113,6 +114,11 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--problem", help="problem file path", default = 'testcases/Hein_hex/hein_04_3x3-05.pg')
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
+  parser.add_argument("--player", help=textwrap.dedent('''
+                                  player type:
+                                  user = interactive user play (default)
+                                  random = random player, playes random move'''),default = 'user')
+  parser.add_argument("--seed", help="seed value for random generater (default 0)", type=int,default = 0)
 
   args = parser.parse_args()
   # Reading the input problem file
@@ -126,7 +132,9 @@ if __name__ == '__main__':
       open_moves.append(move)
   #print(open_moves)
 
-
+  if (args.player == 'random'):
+    random.seed(args.seed)
+    print("Initializing random generator with seed: ", args.seed)
 
   print("Q-sage plays with symbol 'x', and with the goal to connect bottom left to top right")
   print("Finding a winning strategy...")
@@ -153,16 +161,24 @@ if __name__ == '__main__':
       if (args.depth <= 0):
         print("Q-sage wins! game complete")
       else:
-        # Looping until valid move is played:
-        while(1):
-          # printing the available moves:
-          print("Available moves: ", open_moves)
-          white_move = input("Enter your move: ")
-          if white_move in open_moves:
-            # updating the dictionary with white move:
-            parsed_dict["#whiteinitials"].append([white_move])
-            # Updating open moves:
-            open_moves.remove(white_move)
-            break
-          else:
-            print("\nNot a valid open move, try again")
+        if (args.player == 'random'):
+          white_move = random.choice(open_moves)
+          # updating the dictionary with white move:
+          parsed_dict["#whiteinitials"].append([white_move])
+          # Updating open moves:
+          open_moves.remove(white_move)
+          print("Random player plays: ", white_move)
+        else:
+          # Looping until valid move is played:
+          while(1):
+            # printing the available moves:
+            print("Available moves: ", open_moves)
+            white_move = input("Enter your move: ")
+            if white_move in open_moves:
+              # updating the dictionary with white move:
+              parsed_dict["#whiteinitials"].append([white_move])
+              # Updating open moves:
+              open_moves.remove(white_move)
+              break
+            else:
+              print("\nNot a valid open move, try again")
