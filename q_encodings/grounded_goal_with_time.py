@@ -119,20 +119,36 @@ class GroundedGoalTimeEncoding:
     lsc.add_circuit(self.gates_generator, self.time_variables, time_step + 1)
     time_output_gate = self.gates_generator.output_gate
     #'''
+
+    # Generating move restriction clauses inside if condition if enabled:
+    if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+      # White move restriction:
+      self.encoding.append(['# Move constraints (if not powers of 2 or simply restricting moves) :'])
+      lsc.add_circuit(self.gates_generator, self.move_variables[time_step], self.parsed.num_positions)
+      move_restriction_output_gate = self.gates_generator.output_gate
+
     # Move equality constraint with position variables:
     self.encoding.append(['# Equality gate for move and forall positional variables:'])
     self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
     equality_output_gate = self.gates_generator.output_gate
     self.encoding.append(['# In time step i, occupied must be false:'])
     self.gates_generator.and_gate([equality_output_gate, -self.predicate_variables[time_step][0] ])
-    temp_conditional_output_gate = self.gates_generator.output_gate
+    #temp_conditional_output_gate = self.gates_generator.output_gate
     #conditional_and_output_gate = self.gates_generator.output_gate
+
+    # If inside move restrictions are enables, including in the if condition:
+    if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+      # conjuction for move restriction and equality constraint:
+      self.encoding.append(['# Conjuction for move restriction and above conjunction constraints:'])
+      self.gates_generator.and_gate([move_restriction_output_gate, self.gates_generator.output_gate])
+
 
     #'''
     # conjuction for time and equality constraint:
     self.encoding.append(['# Conjuction for time and equality constraints:'])
-    self.gates_generator.and_gate([-time_output_gate,temp_conditional_output_gate])
+    self.gates_generator.and_gate([-time_output_gate,self.gates_generator.output_gate])
     conditional_and_output_gate = self.gates_generator.output_gate
+
     #'''
     # constraints choosing white position:
     self.encoding.append(['# Choosing white position constraints:'])
@@ -305,15 +321,25 @@ class GroundedGoalTimeEncoding:
     temp_and_output_gate = self.gates_generator.output_gate
 
 
-    self.encoding.append(['# If legal white move and good position then all contraints hold : '])
-    self.gates_generator.and_gate([self.restricted_white_gate, self.restricted_positions_gate])
-    self.gates_generator.if_then_gate(self.gates_generator.output_gate, temp_and_output_gate)
+    temp_if_condition_gates = []
+
+    # Adding restriction position gate to if condition if enabled:
+    if (self.parsed.args.restricted_position_constraints == 1):
+      temp_if_condition_gates.append(self.restricted_positions_gate)
+
+    # Adding restriction white gate to if condition if enabled:
+    if (self.parsed.args.forall_move_restrictions == 'out'):
+      temp_if_condition_gates.append(self.restricted_white_gate)
+
+    # if atleast one restriction is enabled, we generate if condition:
+    if (len(temp_if_condition_gates) != 0):
+      self.encoding.append(['# If condition with position and/or white moves restriction : '])
+      self.gates_generator.and_gate(temp_if_condition_gates)
+      self.gates_generator.if_then_gate(self.gates_generator.output_gate, temp_and_output_gate)
 
     self.encoding.append(['# Final gate is conjunction, time gate and above if then gate output : '])
     self.gates_generator.and_gate([-self.time_restricted_gate, self.gates_generator.output_gate])
 
-    #self.encoding.append(['# Final gate is conjunction of restricted black gate and above if then gate output : '])
-    #self.gates_generator.and_gate([self.restricted_black_gate, self.gates_generator.output_gate])
 
     self.final_output_gate = self.gates_generator.output_gate
 
@@ -342,7 +368,6 @@ class GroundedGoalTimeEncoding:
     self.transition_output_gate = 0 # Can never be 0
     self.restricted_black_gate = 0 # Can never be 0
     self.restricted_white_gate = 0 # Can never be 0
-    self.restricted_positions_gate = 0 # Can never be 0
     self.final_output_gate = 0 # Can never be 0
 
 
@@ -415,12 +440,16 @@ class GroundedGoalTimeEncoding:
     if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
       self.generate_restricted_black_moves()
 
-      self.generate_restricted_white_moves()
+      # we only generate restricted constraints outside the transitions if specified explicitly:
+      if (self.parsed.args.forall_move_restrictions == 'out'):
+        self.generate_restricted_white_moves()
 
-      # positions combinations to be restricted:
-      self.encoding.append(['#Position combinations restricted :'])
-      lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
-      self.restricted_positions_gate = self.gates_generator.output_gate
+      if (self.parsed.args.restricted_position_constraints == 1):
+        self.restricted_positions_gate = 0 # Can never be 0
+        # positions combinations to be restricted:
+        self.encoding.append(['#Position combinations restricted :'])
+        lsc.add_circuit(self.gates_generator, self.forall_position_variables, self.parsed.num_positions)
+        self.restricted_positions_gate = self.gates_generator.output_gate
 
 
       self.generate_final_gate()
