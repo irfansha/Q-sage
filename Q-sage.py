@@ -68,7 +68,7 @@ if __name__ == '__main__':
   print(args)
 
   if args.version:
-    print("Version 0.4")
+    print("Version 0.5")
 
   # Run tests include all testcase domains:
   if (args.run_tests == 1):
