@@ -38,6 +38,22 @@ class Parse:
     self.positions = parsed_dict['#positions'][0]
     self.num_positions = len(parsed_dict['#positions'][0])
 
+    # Pushing already placed positions to the end, and renumbering variables accordingly:
+    self.rearranged_positions = []
+
+    # first gathering open positions:
+    for pos in self.positions:
+      if ([pos] not in parsed_dict['#blackinitials'] and [pos] not in parsed_dict['#whiteinitials']):
+        self.rearranged_positions.append(pos)
+
+    self.num_available_moves = len(self.rearranged_positions)
+
+    # now appending black and white initials:
+    for [pos] in parsed_dict['#blackinitials']:
+      self.rearranged_positions.append(pos)
+    for [pos] in parsed_dict['#whiteinitials']:
+      self.rearranged_positions.append(pos)
+
     self.white_initial_positions = []
     self.black_initial_positions = []
 
@@ -45,12 +61,16 @@ class Parse:
 
     for initial in parsed_dict['#whiteinitials']:
       # Finding position of white initial var:
-      position = parsed_dict['#positions'][0].index(initial[0])
+      # position = parsed_dict['#positions'][0].index(initial[0])
+      # Finding var position from rearranged positions instead:
+      position = self.rearranged_positions.index(initial[0])
       self.white_initial_positions.append(position)
 
     for initial in parsed_dict['#blackinitials']:
       # Finding position of black initial var:
-      position = parsed_dict['#positions'][0].index(initial[0])
+      # position = parsed_dict['#positions'][0].index(initial[0])
+      # Finding var position from rearranged positions instead:
+      position = self.rearranged_positions.index(initial[0])
       self.black_initial_positions.append(position)
 
 
@@ -58,7 +78,9 @@ class Parse:
       temp_conf = []
       for single_vextex in win_conf:
         # Finding position of black win vars:
-        position = parsed_dict['#positions'][0].index(single_vextex)
+        # position = parsed_dict['#positions'][0].index(single_vextex)
+        # Finding var position from rearranged positions instead:
+        position = self.rearranged_positions.index(single_vextex)
         # we do not need to check already black position in winning configurations:
         if (position not in self.black_initial_positions):
           temp_conf.append(position)
@@ -72,6 +94,8 @@ class Parse:
       print("Depth: ",self.depth)
       print("Given positions: ", self.positions)
       print("Total positions: ", self.num_positions)
+      print("Rearranged positions: ", self.rearranged_positions)
+      print("Total open positions: ", self.num_available_moves)
       print("Black initial positions: ", self.black_initial_positions)
       print("White initial positions: ", self.white_initial_positions)
       print("Black win configurations: ", self.black_win_configurations)

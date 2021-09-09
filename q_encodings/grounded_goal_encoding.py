@@ -102,7 +102,9 @@ class GroundedGoalEncoding:
     if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
       # White move restriction:
       self.encoding.append(['# Move constraints (if not powers of 2 or simply restricting moves) :'])
-      lsc.add_circuit(self.gates_generator, self.move_variables[time_step], self.parsed.num_positions)
+      #lsc.add_circuit(self.gates_generator, self.move_variables[time_step], self.parsed.num_positions)
+      # using new open moves, further restricting search space:
+      lsc.add_circuit(self.gates_generator, self.move_variables[time_step], self.parsed.num_available_moves)
       move_restriction_output_gate = self.gates_generator.output_gate
 
     # Move equality constraint with position variables:
@@ -256,7 +258,9 @@ class GroundedGoalEncoding:
 
     for i in range(self.parsed.depth):
       if (i%2 == 0):
-        lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_positions)
+        #lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_positions)
+        # restricting more moves:
+        lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_available_moves)
         step_restricted_black_output_gates.append(self.gates_generator.output_gate)
 
     self.encoding.append(['# And gate for all restricted black move clauses: '])
@@ -273,7 +277,9 @@ class GroundedGoalEncoding:
 
     for i in range(self.parsed.depth):
       if (i%2 == 1):
-        lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_positions)
+        #lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_positions)
+        # restricting more moves:
+        lsc.add_circuit(self.gates_generator, self.move_variables[i], self.parsed.num_available_moves)
         step_restricted_white_output_gates.append(self.gates_generator.output_gate)
 
     self.encoding.append(['# And gate for all restricted white move clauses: '])

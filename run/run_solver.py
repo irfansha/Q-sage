@@ -34,4 +34,6 @@ def run_single_solver(encoding):
       move_string += str(sol_map[val])
       # Action index, powers of two:
     action_index = int(move_string, 2)
-    print("First winning move:", encoding.parsed.positions[action_index])
+    #print("First winning move:", encoding.parsed.positions[action_index])
+    # parsing using rearranged positions:
+    print("First winning move:", encoding.parsed.rearranged_positions[action_index])
