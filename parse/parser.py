@@ -59,8 +59,14 @@ class Parse:
       for single_vextex in win_conf:
         # Finding position of black win vars:
         position = parsed_dict['#positions'][0].index(single_vextex)
-        temp_conf.append(position)
-      self.black_win_configurations.append(temp_conf)
+        # we do not need to check already black position in winning configurations:
+        if (position not in self.black_initial_positions):
+          temp_conf.append(position)
+      # We only append if winning configuration is non-empty:
+      if (len(temp_conf) != 0):
+        self.black_win_configurations.append(temp_conf)
+
+    assert(len(self.black_win_configurations) != 0)
     
     if args.debug == 1:
       print("Depth: ",self.depth)
