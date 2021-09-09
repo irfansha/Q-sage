@@ -317,7 +317,12 @@ class GroundedGoalTimeEncoding:
     self.encoding.append(['# Final gate: '])
 
     self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-    self.gates_generator.and_gate([self.restricted_black_gate, self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    # Restrictions on black moves are invalid if not powers of 2:
+    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+      self.gates_generator.and_gate([self.restricted_black_gate, self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    else:
+      self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+
     temp_and_output_gate = self.gates_generator.output_gate
 
 
@@ -340,19 +345,6 @@ class GroundedGoalTimeEncoding:
     self.encoding.append(['# Final gate is conjunction, time gate and above if then gate output : '])
     self.gates_generator.and_gate([-self.time_restricted_gate, self.gates_generator.output_gate])
 
-
-    self.final_output_gate = self.gates_generator.output_gate
-
-  # Final output gate is an and-gate with inital, goal and transition gates:
-  def generate_unrestricted_final_gate(self):
-    self.encoding.append(["# ------------------------------------------------------------------------"])
-    self.encoding.append(['# Final gate: '])
-
-    self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
-
-    self.encoding.append(['# Final gate is conjunction of time gate and above if then gate output : '])
-    self.gates_generator.and_gate([-self.time_restricted_gate, self.gates_generator.output_gate])
 
     self.final_output_gate = self.gates_generator.output_gate
 
@@ -452,6 +444,4 @@ class GroundedGoalTimeEncoding:
         self.restricted_positions_gate = self.gates_generator.output_gate
 
 
-      self.generate_final_gate()
-    else:
-      self.generate_unrestricted_final_gate()
+    self.generate_final_gate()
