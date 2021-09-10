@@ -41,18 +41,23 @@ class Parse:
     # Pushing already placed positions to the end, and renumbering variables accordingly:
     self.rearranged_positions = []
 
-    # first gathering open positions:
-    for pos in self.positions:
-      if ([pos] not in parsed_dict['#blackinitials'] and [pos] not in parsed_dict['#whiteinitials']):
+    if (args.renumber_positions == 1):
+      # first gathering open positions:
+      for pos in self.positions:
+        if ([pos] not in parsed_dict['#blackinitials'] and [pos] not in parsed_dict['#whiteinitials']):
+          self.rearranged_positions.append(pos)
+
+      self.num_available_moves = len(self.rearranged_positions)
+
+      # now appending black and white initials:
+      for [pos] in parsed_dict['#blackinitials']:
         self.rearranged_positions.append(pos)
-
-    self.num_available_moves = len(self.rearranged_positions)
-
-    # now appending black and white initials:
-    for [pos] in parsed_dict['#blackinitials']:
-      self.rearranged_positions.append(pos)
-    for [pos] in parsed_dict['#whiteinitials']:
-      self.rearranged_positions.append(pos)
+      for [pos] in parsed_dict['#whiteinitials']:
+        self.rearranged_positions.append(pos)
+    else:
+      # simply using the original positions and num of available moves are all positions:
+      self.rearranged_positions = self.positions
+      self.num_available_moves = self.num_positions
 
     self.white_initial_positions = []
     self.black_initial_positions = []
@@ -95,7 +100,7 @@ class Parse:
       print("Given positions: ", self.positions)
       print("Total positions: ", self.num_positions)
       print("Rearranged positions: ", self.rearranged_positions)
-      print("Total open positions: ", self.num_available_moves)
+      print("Upper bound of allowed moves: ", self.num_available_moves)
       print("Black initial positions: ", self.black_initial_positions)
       print("White initial positions: ", self.white_initial_positions)
       print("Black win configurations: ", self.black_win_configurations)

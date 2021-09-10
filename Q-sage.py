@@ -47,6 +47,7 @@ if __name__ == '__main__':
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--run_tests", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--seed", help="seed value for random generater for testing (default 0)", type=int,default = 0)
+  parser.add_argument("--renumber_positions", type=int, help="renumber positions for tighter lessthan constraints [0/1], default 0" ,default = 0)
   parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
                                        in = let forall restrictions in each if condition
