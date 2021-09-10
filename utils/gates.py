@@ -75,10 +75,24 @@ class GatesGen:
     if key in self.gate_reuse_map:
       self.output_gate = self.gate_reuse_map[key]
       return
-    assert(len(first_vars) == len(second_vars))
+    #assert(len(first_vars) == len(second_vars))
+
+    temp_first_vars = list(first_vars)
+    temp_second_vars = list(second_vars)
+
     step_output_gates = []
-    for i in range(len(first_vars)):
-      self.single_equality_gate(first_vars[i], second_vars[i])
+
+    # If the number of vars is inequal then we need to change the equality gates,
+    # we simly negate all the extra variables:
+    while (len(temp_first_vars) != len(temp_second_vars)):
+      if (len(temp_first_vars) < len(temp_second_vars)):
+        cur_var = temp_second_vars.pop(0)
+      elif(len(temp_second_vars) < len(temp_first_vars)):
+        cur_var = temp_second_vars.pop(0)
+      step_output_gates.append(-cur_var)
+
+    for i in range(len(temp_first_vars)):
+      self.single_equality_gate(temp_first_vars[i], temp_second_vars[i])
       step_output_gates.append(self.output_gate)
     self.and_gate(step_output_gates)
     self.gate_reuse_map[key] = self.output_gate

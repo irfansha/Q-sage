@@ -99,7 +99,7 @@ class GroundedGoalEncoding:
     self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
 
     # Generating move restriction clauses inside if condition if enabled:
-    if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+    if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables))):
       # White move restriction:
       self.encoding.append(['# Move constraints (if not powers of 2 or simply restricting moves) :'])
       #lsc.add_circuit(self.gates_generator, self.move_variables[time_step], self.parsed.num_positions)
@@ -115,7 +115,7 @@ class GroundedGoalEncoding:
     self.gates_generator.and_gate([equality_output_gate, -self.predicate_variables[time_step][0] ])
 
     # If inside move restrictions are enables, including in the if condition:
-    if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+    if (self.parsed.args.forall_move_restrictions == 'in' and self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables))):
       # conjuction for move restriction and equality constraint:
       self.encoding.append(['# Conjuction for move restriction and above conjunction constraints:'])
       self.gates_generator.and_gate([move_restriction_output_gate, self.gates_generator.output_gate])
@@ -294,7 +294,7 @@ class GroundedGoalEncoding:
 
     self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
     # Restrictions on black moves are invalid if not powers of 2:
-    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables))):
       self.gates_generator.and_gate([self.restricted_black_gate, self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
     else:
       self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
@@ -303,11 +303,11 @@ class GroundedGoalEncoding:
     temp_if_condition_gates = []
 
     # Adding restriction position gate to if condition if enabled:
-    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables)) and self.parsed.args.restricted_position_constraints == 1):
+    if (self.parsed.num_positions != int(math.pow(2, self.num_position_variables)) and self.parsed.args.restricted_position_constraints == 1):
       temp_if_condition_gates.append(self.restricted_positions_gate)
 
     # Adding restriction white gate to if condition if enabled:
-    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables)) and self.parsed.args.forall_move_restrictions == 'out'):
+    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.forall_move_restrictions == 'out'):
       temp_if_condition_gates.append(self.restricted_white_gate)
 
     # if atleast one restriction is enabled, we generate if condition:
@@ -334,9 +334,12 @@ class GroundedGoalEncoding:
     self.final_output_gate = 0 # Can never be 0
 
 
-    # Allocating action variables for each time step until depth,
-    # Moves are same as the vertexs/positions on the board:
-    self.num_move_variables = math.ceil(math.log2(parsed.num_positions))
+    # Allocating action variables for each time step until depth:
+    # Handling single move, log 1 is 0:
+    if (parsed.num_available_moves == 1):
+      self.num_move_variables = 1
+    else:
+      self.num_move_variables = math.ceil(math.log2(parsed.num_available_moves))
     self.move_variables = []
     for i in range(parsed.depth):
       self.move_variables.append(self.encoding_variables.get_vars(self.num_move_variables))
@@ -345,8 +348,12 @@ class GroundedGoalEncoding:
       print("Number of (log) move variables: ", self.num_move_variables)
       print("Move variables: ",self.move_variables)
 
+    # Moves are same as the vertexs/positions on the board:
+    self.num_position_variables = math.ceil(math.log2(parsed.num_positions))
+
+
     # Allocating forall position variables:
-    self.forall_position_variables = self.encoding_variables.get_vars(self.num_move_variables)
+    self.forall_position_variables = self.encoding_variables.get_vars(self.num_position_variables)
 
     if (parsed.args.debug == 1):
       print("Forall position variables: ",self.forall_position_variables)
@@ -382,14 +389,14 @@ class GroundedGoalEncoding:
     self.generate_goal_gate()
 
     # Note: Improved version needs to change this with only open positions:
-    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables))):
+    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables))):
       self.generate_restricted_black_moves()
 
       # we only generate restricted constraints outside the transitions if specified explicitly:
       if (self.parsed.args.forall_move_restrictions == 'out'):
         self.generate_restricted_white_moves()
 
-    if (self.parsed.num_positions != int(math.pow(2, self.num_move_variables)) and self.parsed.args.restricted_position_constraints == 1):
+    if (self.parsed.num_positions != int(math.pow(2, self.num_position_variables)) and self.parsed.args.restricted_position_constraints == 1):
       self.restricted_positions_gate = 0 # Can never be 0
       # positions combinations to be restricted:
       self.encoding.append(['#Position combinations restricted :'])
