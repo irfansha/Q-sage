@@ -2,8 +2,7 @@
 
 '''
 TODOS:
-  - It is possible to restrict moves to only open positions, by rearranging the order of positions.
-    In simple cases, it can even reduce number of forall/exists variables.
+  - Use D-CAQE to take advantage of selected dependency in the earlier rounds
 '''
 
 import os
