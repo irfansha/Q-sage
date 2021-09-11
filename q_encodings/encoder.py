@@ -2,6 +2,7 @@
 
 from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
 from q_encodings.grounded_goal_with_time import GroundedGoalTimeEncoding as ggte
+from q_encodings.path_based_goal import PathBasedGoal as pbg
 import os
 
 def generate_encoding(parsed_instance):
@@ -11,6 +12,10 @@ def generate_encoding(parsed_instance):
   elif (parsed_instance.args.e == 'ggt'):
     print("Generating grounded goal encoding with time")
     encoding = ggte(parsed_instance)
+  elif (parsed_instance.args.e == 'pg'):
+    print("Generating path based goal encoding")
+    encoding = pbg(parsed_instance)
+
 
   # We print QCIR format directly to the file:
   if (parsed_instance.args.encoding_format == 1):
