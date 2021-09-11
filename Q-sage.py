@@ -27,6 +27,7 @@ if __name__ == '__main__':
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
   parser.add_argument("-e", help=textwrap.dedent('''
                                   encoding types:
+                                  pg = path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time'''),default = 'gg')
   parser.add_argument("--run", type=int, help=textwrap.dedent('''

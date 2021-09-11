@@ -32,7 +32,11 @@ class Parse:
         print(key, value)
 
     if (args.ignore_file_depth == 0):
-      self.depth = len(parsed_dict['#times'][0])
+      # If no times are provided in the input file:
+      if (len(parsed_dict['#times']) == 0):
+        self.depth = 0
+      else:
+        self.depth = len(parsed_dict['#times'][0])
     else:
       self.depth = args.depth
     self.positions = parsed_dict['#positions'][0]
@@ -79,22 +83,44 @@ class Parse:
       self.black_initial_positions.append(position)
 
 
-    for win_conf in parsed_dict['#blackwins']:
-      temp_conf = []
-      for single_vextex in win_conf:
-        # Finding position of black win vars:
-        # position = parsed_dict['#positions'][0].index(single_vextex)
-        # Finding var position from rearranged positions instead:
-        position = self.rearranged_positions.index(single_vextex)
-        # we do not need to check already black position in winning configurations:
-        if (position not in self.black_initial_positions):
-          temp_conf.append(position)
-      # We only append if winning configuration is non-empty:
-      if (len(temp_conf) != 0):
-        self.black_win_configurations.append(temp_conf)
+    # Depending on encoding we parse the winning configurations:
+    if (args.e == 'pg'):
+      self.neighbour_dict = {}
+      for neighbour_list in parsed_dict['#neighbours']:
+        # The neighbours list contains itself as its first element, which is the key for the dict:
+        cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
+        temp_list = []
+        for neighbour in neighbour_list:
+          cur_neighbour = self.rearranged_positions.index(neighbour)
+          temp_list.append(cur_neighbour)
+        self.neighbour_dict[cur_position] = temp_list
+      self.start_boarder = []
+      for single_vertex in parsed_dict['#startboarder'][0]:
+        position = self.rearranged_positions.index(single_vertex)
+        self.start_boarder.append(position)
 
-    assert(len(self.black_win_configurations) != 0)
-    
+      self.end_boarder = []
+      for single_vertex in parsed_dict['#endboarder'][0]:
+        position = self.rearranged_positions.index(single_vertex)
+        self.end_boarder.append(position)
+
+    else:
+      for win_conf in parsed_dict['#blackwins']:
+        temp_conf = []
+        for single_vextex in win_conf:
+          # Finding position of black win vars:
+          # position = parsed_dict['#positions'][0].index(single_vextex)
+          # Finding var position from rearranged positions instead:
+          position = self.rearranged_positions.index(single_vextex)
+          # we do not need to check already black position in winning configurations:
+          if (position not in self.black_initial_positions):
+            temp_conf.append(position)
+        # We only append if winning configuration is non-empty:
+        if (len(temp_conf) != 0):
+          self.black_win_configurations.append(temp_conf)
+      assert(len(self.black_win_configurations) != 0)
+
+
     if args.debug == 1:
       print("Depth: ",self.depth)
       print("Given positions: ", self.positions)
@@ -103,4 +129,9 @@ class Parse:
       print("Upper bound of allowed moves: ", self.num_available_moves)
       print("Black initial positions: ", self.black_initial_positions)
       print("White initial positions: ", self.white_initial_positions)
-      print("Black win configurations: ", self.black_win_configurations)
+      if (args.e == 'pg'):
+        print("Neighbour dict: ", self.neighbour_dict)
+        print("Start boarder: ", self.start_boarder)
+        print("End boarder: ", self.end_boarder)
+      else:
+        print("Black win configurations: ", self.black_win_configurations)

@@ -15,13 +15,13 @@ def print_positions(size):
   for i in range(1, size + 1):
     for j in range(1, size + 1):
       positions.append(string.ascii_lowercase[i-1] + str(j))
-  print("#positions:")
+  print("#positions")
   print(' '.join(positions))
 
 
 # The neighbours for (i,j) are (i-1, j), (i+1, j), (i, j-1), (i, j+1), (i-1, j+1), (i+1, j-1):
 def generate_neighbours(size):
-  print("#neighbours:")
+  print("#neighbours")
   print("%format: position followed by its neighbours separated by spaces")
   for i in range(1, size + 1):
     for j in range(1, size + 1):
@@ -55,9 +55,9 @@ def print_boarders(size):
   for j in range(1, size+1):
     start_boarder.append(string.ascii_lowercase[0] + str(j))
     end_boarder.append(string.ascii_lowercase[size-1] + str(j))
-  print("#startboard:")
+  print("#startboarder")
   print(' '.join(start_boarder))
-  print("#endboard:")
+  print("#endboarder")
   print(' '.join(end_boarder))
 
 # Main:
