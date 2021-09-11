@@ -52,9 +52,9 @@ def generate_neighbours(size):
 def print_boarders(size):
   start_boarder = []
   end_boarder = []
-  for j in range(1, size+1):
-    start_boarder.append(string.ascii_lowercase[0] + str(j))
-    end_boarder.append(string.ascii_lowercase[size-1] + str(j))
+  for i in range(1, size+1):
+    start_boarder.append(string.ascii_lowercase[i-1] + '1')
+    end_boarder.append(string.ascii_lowercase[i-1] + str(size))
   print("#startboarder")
   print(' '.join(start_boarder))
   print("#endboarder")
