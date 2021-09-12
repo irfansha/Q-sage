@@ -28,6 +28,7 @@ if __name__ == '__main__':
   parser.add_argument("-e", help=textwrap.dedent('''
                                   encoding types:
                                   pg = path based goal (ungrounded)
+                                  cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time'''),default = 'gg')
   parser.add_argument("--run", type=int, help=textwrap.dedent('''

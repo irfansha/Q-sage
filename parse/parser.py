@@ -84,7 +84,7 @@ class Parse:
 
 
     # Depending on encoding we parse the winning configurations:
-    if (args.e == 'pg'):
+    if (args.e == 'pg' or args.e == 'cpg'):
       self.neighbour_dict = {}
       for neighbour_list in parsed_dict['#neighbours']:
         # The neighbours list contains itself as its first element, which is the key for the dict:

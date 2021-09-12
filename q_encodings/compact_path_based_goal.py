@@ -1,4 +1,4 @@
-# Irfansha Shaik, 11.09.2021, Aarhus.
+# Irfansha Shaik, 12.09.2021, Aarhus.
 
 from utils.variables_dispatcher import VarDispatcher as vd
 from utils.gates import GatesGen as ggen
@@ -7,7 +7,7 @@ import utils.lessthen_cir as lsc
 
 
 
-class PathBasedGoal:
+class CompactPathBasedGoal:
 
   def print_gate_tofile(self, gate, f):
     if len(gate) == 1:
@@ -52,10 +52,20 @@ class PathBasedGoal:
 
     # Grounded goal variables before forall position variables:
     self.quantifier_block.append(['# goal path variables: '])
-    all_goal_vars = []
-    for vars in self.goal_path_variables:
-      all_goal_vars.extend(vars)
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
+
+    self.quantifier_block.append(['# start path variables :'])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.start_path_variables) + ')'])
+
+    self.quantifier_block.append(['# end path variables :'])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.end_path_varaibles) + ')'])
+
+    self.quantifier_block.append(['# Quantifier path variables and forall path variables:'])
+    for i in range(self.path_depth):
+      self.quantifier_block.append(['# Layer ' + str(i) + ':'])
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_path_variables[3*i]) + ')'])
+      self.quantifier_block.append(['forall(' + str(self.forall_path_variables[i]) + ')'])
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_path_variables[3*i + 1]) + ')'])
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_path_variables[3*i + 2]) + ')'])
 
     # Forall position variables:
     self.quantifier_block.append(['# Forall position variables: '])
@@ -253,40 +263,96 @@ class PathBasedGoal:
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
+    # Generating equality constraints for zero layer:
+    self.encoding.append(['# Constraints in zero layer, connecting with start and end path positions :'])
+    self.encoding.append(['# Equality clause between S1 and START positons: '])
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[1], self.start_path_variables)
+    temp_first_equality_output_gate = self.gates_generator.output_gate
 
-    # Path based equality constraints
-    for i in range(self.safe_max_path_length - 1):
-      self.encoding.append(['# Constratins for position ' + str(i) + ' :'])
-      self.encoding.append(['# Equality clause for the current path variables and forall position variables: '])
-      self.gates_generator.complete_equality_gate(self.goal_path_variables[i], self.forall_position_variables)
-      if_condition_output_gate = self.gates_generator.output_gate
+    self.encoding.append(['# Equality clause between S2 and S0 positons: '])
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[2], self.goal_path_variables[0])
+    temp_second_equality_output_gate = self.gates_generator.output_gate
 
-      # Now equality for the neighbour variables:
-      self.encoding.append(['# Equality clause for the neighbour path variables and neighbours variables: '])
-      temp_neighbour_equality_output_gates = []
-      for neighbour_index in range(7):
-        self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbour_variables[neighbour_index])
-        temp_neighbour_equality_output_gates.append(self.gates_generator.output_gate)
-      
-      self.encoding.append(['# Disjunction clause for neighbour equality clauses, the i+1 path variable is equal to one of the neighbours: '])
-      self.gates_generator.or_gate(temp_neighbour_equality_output_gates)
+    self.encoding.append(['# if then for negative forall 0 variable and conjunction of two equality gates: '])
+    self.gates_generator.if_then_gate(-self.forall_path_variables[0], [temp_first_equality_output_gate, temp_second_equality_output_gate])
+    goal_step_output_gates.append(self.gates_generator.output_gate)
 
-      neighbour_equality_output_gate = self.gates_generator.output_gate
+    self.encoding.append(['# Equality clause between S1 and S0 positons: '])
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[1], self.goal_path_variables[0])
+    temp_first_equality_output_gate = self.gates_generator.output_gate
 
-      # the position must be occupied and the color must be black:
-      self.encoding.append(['# The goal position is occupied and the color is black and conjuction with neighbour equality gate: '])
-      self.gates_generator.and_gate([neighbour_equality_output_gate, self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
-      constraints_output_gate = self.gates_generator.output_gate
+    self.encoding.append(['# Equality clause between S2 and END positons: '])
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[2], self.end_path_varaibles)
+    temp_second_equality_output_gate = self.gates_generator.output_gate
 
-      self.encoding.append(['# if then clause : '])
-      # The if condition for the path constraints:
-      self.gates_generator.if_then_gate(if_condition_output_gate, constraints_output_gate)
+    self.encoding.append(['# if then for positive forall 0 variable and conjunction of two equality gates: '])
+    self.gates_generator.if_then_gate(self.forall_path_variables[0], [temp_first_equality_output_gate, temp_second_equality_output_gate])
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    # For each layer until path depth, generate equality clauses:
+    for i in range(1,self.path_depth):
+      self.encoding.append(['# Constraints in ' + str(i) + 'th layer, connecting with start and end path positions :'])
+      self.encoding.append(['# Equality clause between S' + str(3*i) + ' and S' + str((3*i)+2) + ' positons: '])
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[3*i], self.goal_path_variables[(3*i) + 2])
+      temp_first_equality_output_gate = self.gates_generator.output_gate
+
+      self.encoding.append(['# Equality clause between S' + str((3*i)+1) + ' and S' + str((3*i)-2) + ' positons: '])
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[(3*i)+1], self.goal_path_variables[(3*i)-2])
+      temp_second_equality_output_gate = self.gates_generator.output_gate
+
+      self.encoding.append(['# if then for negative forall ' + str(i) + ' variable and conjunction of two equality gates: '])
+      self.gates_generator.if_then_gate(-self.forall_path_variables[i], [temp_first_equality_output_gate, temp_second_equality_output_gate])
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
+      self.encoding.append(['# Equality clause between S' + str(3*i) + ' and S' + str((3*i)+1) + ' positons: '])
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[3*i], self.goal_path_variables[(3*i) + 1])
+      temp_first_equality_output_gate = self.gates_generator.output_gate
+
+      self.encoding.append(['# Equality clause between S' + str((3*i)+2) + ' and S' + str((3*i)-1) + ' positons: '])
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[(3*i)+2], self.goal_path_variables[(3*i)-1])
+      temp_second_equality_output_gate = self.gates_generator.output_gate
+
+      self.encoding.append(['# if then for positive forall ' + str(i) + ' variable and conjunction of two equality gates: '])
+      self.gates_generator.if_then_gate(self.forall_path_variables[i], [temp_first_equality_output_gate, temp_second_equality_output_gate])
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+
+    # Finally neighbour constraints for the final two positions:
+
+    self.encoding.append(['# Constratins for neighbours :'])
+    self.encoding.append(['# Equality clause for the last second path variables and forall position variables: '])
+    # Here neighbour constraints are for S[-2] and S[-1]:
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[-2], self.forall_position_variables)
+    if_condition_output_gate = self.gates_generator.output_gate
+
+    # Now equality for the neighbour variables:
+    self.encoding.append(['# Equality clause for the neighbour path variables and neighbours variables i.e., the last position variables: '])
+    temp_neighbour_equality_output_gates = []
+    for neighbour_index in range(7):
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.neighbour_variables[neighbour_index])
+      temp_neighbour_equality_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# Disjunction clause for neighbour equality clauses, the last path variable is equal to one of the neighbours: '])
+    self.gates_generator.or_gate(temp_neighbour_equality_output_gates)
+
+    neighbour_equality_output_gate = self.gates_generator.output_gate
+
+    # the position must be occupied and the color must be black:
+    self.encoding.append(['# The goal position is occupied and the color is black and conjuction with neighbour equality gate: '])
+    self.gates_generator.and_gate([neighbour_equality_output_gate, self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
+    constraints_output_gate = self.gates_generator.output_gate
+
+    self.encoding.append(['# if then clause : '])
+    # The if condition for the path constraints:
+    self.gates_generator.if_then_gate(if_condition_output_gate, constraints_output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+
+
+
     # The last path position also must be occupied and black:
-    self.encoding.append(['# Constratins for position ' + str(self.safe_max_path_length - 1) + ' :'])
+    self.encoding.append(['# Constratins for end position :'])
     self.encoding.append(['# Equality clause for the current path variables and forall position variables: '])
-    self.gates_generator.complete_equality_gate(self.goal_path_variables[self.safe_max_path_length - 1], self.forall_position_variables)
+    self.gates_generator.complete_equality_gate(self.end_path_varaibles, self.forall_position_variables)
     last_if_condition_output_gate = self.gates_generator.output_gate
     # the position must be occupied and the color must be black:
     self.encoding.append(['# The goal position is occupied and the color is black: '])
@@ -302,7 +368,7 @@ class PathBasedGoal:
     self.encoding.append(['# Start boarder clauses : '])
     # Specifying the start borders:
     for pos in self.parsed.start_boarder:
-      binary_format_clause = self.generate_binary_format(self.goal_path_variables[0],pos)
+      binary_format_clause = self.generate_binary_format(self.start_path_variables,pos)
       self.gates_generator.and_gate(binary_format_clause)
       start_border_output_gates.append(self.gates_generator.output_gate)
 
@@ -315,7 +381,7 @@ class PathBasedGoal:
     self.encoding.append(['# End boarder clauses : '])
     # Specifying the end borders:
     for pos in self.parsed.end_boarder:
-      binary_format_clause = self.generate_binary_format(self.goal_path_variables[-1],pos)
+      binary_format_clause = self.generate_binary_format(self.end_path_varaibles,pos)
       self.gates_generator.and_gate(binary_format_clause)
       end_border_output_gates.append(self.gates_generator.output_gate)
 
@@ -413,7 +479,6 @@ class PathBasedGoal:
     self.restricted_white_gate = 0 # Can never be 0
     self.final_output_gate = 0 # Can never be 0
 
-
     # Allocating action variables for each time step until depth:
     # Handling single move, log 1 is 0:
     if (parsed.num_available_moves == 1):
@@ -447,10 +512,23 @@ class PathBasedGoal:
     if (parsed.args.debug == 1):
       print("Predicate variables: ",self.predicate_variables)
 
-    # Allocating path variables for the goal:
-    self.goal_path_variables = []
+
+    # Depth for flat path based representation:
     self.safe_max_path_length = math.ceil((parsed.num_positions)/2)
-    for i in range(self.safe_max_path_length):
+    self.path_depth = math.ceil(math.log2(self.safe_max_path_length))
+
+    assert(self.safe_max_path_length >= 2)
+
+    # Generating forall vars for path based quanitfier alterations:
+    self.forall_path_variables = self.encoding_variables.get_vars(self.path_depth)
+
+    # Start and End path variables:
+    self.start_path_variables = self.encoding_variables.get_vars(self.num_position_variables)
+    self.end_path_varaibles = self.encoding_variables.get_vars(self.num_position_variables)
+
+    # Goal path variables:
+    self.goal_path_variables = []
+    for i in range(3*(self.path_depth)):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
 
     # Allocating variables for representing 7 neighbour for each position (including itself):
@@ -459,7 +537,7 @@ class PathBasedGoal:
       self.neighbour_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
 
     if (parsed.args.debug == 1):
-      print("Goal state variables: ",self.goal_path_variables)
+      print("Goal forall path variables: ",self.forall_path_variables)
       print("Neighbour variables: ", self.neighbour_variables)
 
 

@@ -41,7 +41,7 @@ def print_to_file(file_path, parsed_dict, args):
   f.write("#positions\n")
   f.write(' '.join(parsed_dict["#positions"][0]) + '\n')
 
-  if (args.e == 'pg'):
+  if (args.e == 'pg' or args.e == 'cpg'):
     f.write("#neighbours\n")
     for win in parsed_dict["#neighbours"]:
       f.write(' '.join(win) + '\n')
