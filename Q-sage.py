@@ -2,7 +2,9 @@
 
 '''
 TODOS:
-  - Use D-CAQE to take advantage of selected dependency in the earlier rounds
+  - Reduce the black search space further by only considering one levels of nighbours
+    for each peice we can play.
+  - Use D-CAQE to take advantage of selected dependency in the earlier rounds.
 '''
 
 import os
