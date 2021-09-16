@@ -1,5 +1,7 @@
 # Irfansha Shaik, 11.09.2021, Aarhus.
 
+# TODO: no need to specify neighbours of white positions
+
 from utils.variables_dispatcher import VarDispatcher as vd
 from utils.gates import GatesGen as ggen
 import math
@@ -67,10 +69,8 @@ class PathBasedGoal:
       self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.predicate_variables[i]) + ')'])
 
     # Exists neighbour variables:
-    self.quantifier_block.append(['# Exists (7) neighbour variables (including itself): '])
-    for i in range(7):
-      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour_variables[i]) + ')'])
-
+    self.quantifier_block.append(['# Exists neighbour variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
 
   def generate_black_transition(self, time_step):
     self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
@@ -232,20 +232,17 @@ class PathBasedGoal:
       neighbour_output_gates = []
       self.encoding.append(['# neighbour clauses: '])
       # Neighbours of current position:
-      temp_neighbours = list(self.parsed.neighbour_dict[i])
-      # We pop each neighbour, if none available then itself is a neighbour:
-      for cur_neighbour_index in range(7):
-        if (len(temp_neighbours) != 0):
-          cur_neighbour = temp_neighbours.pop(0)
-        else:
-          cur_neighbour = i
-        # Binary format for current_neighbour:
-        temp_binary_format_clause = self.generate_binary_format(self.neighbour_variables[cur_neighbour_index],cur_neighbour)
+      #temp_neighbours = list(self.parsed.neighbour_dict[i])
+
+      # For each neighbour we generate a clause:
+      for cur_neighbour in self.parsed.neighbour_dict[i]:
+        temp_binary_format_clause = self.generate_binary_format(self.neighbour,cur_neighbour)
         self.gates_generator.and_gate(temp_binary_format_clause)
         neighbour_output_gates.append(self.gates_generator.output_gate)
 
-      # Now conjuction of all nieghbour clauses:
-      self.gates_generator.and_gate(neighbour_output_gates)
+      # Disjunction of output gates is true:
+      self.gates_generator.or_gate(neighbour_output_gates)
+
 
       # If then clause for the neighbour implication:
       self.encoding.append(['# if then clause : '])
@@ -261,15 +258,19 @@ class PathBasedGoal:
       self.gates_generator.complete_equality_gate(self.goal_path_variables[i], self.forall_position_variables)
       if_condition_output_gate = self.gates_generator.output_gate
 
-      # Now equality for the neighbour variables:
-      self.encoding.append(['# Equality clause for the neighbour path variables and neighbours variables: '])
-      temp_neighbour_equality_output_gates = []
-      for neighbour_index in range(7):
-        self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbour_variables[neighbour_index])
-        temp_neighbour_equality_output_gates.append(self.gates_generator.output_gate)
-      
-      self.encoding.append(['# Disjunction clause for neighbour equality clauses, the i+1 path variable is equal to one of the neighbours: '])
-      self.gates_generator.or_gate(temp_neighbour_equality_output_gates)
+      # Equality for neighbour variables and next position:
+      self.encoding.append(['# Equality clause for the neighbour path variables and neighbour variables: '])
+      temp_neighbour_equality_output_gate = []
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbour)
+      temp_neighbour_equality_output_gate = self.gates_generator.output_gate
+
+      # Equality for next position with current position:
+      self.encoding.append(['# Equality clause for the neighbour path variables and current path variables: '])
+      self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.goal_path_variables[i])
+
+      # Disjunction of above is true, either next position is a neighbour or itself:
+      self.encoding.append(['# One of the above equality clauses is true: '])
+      self.gates_generator.or_gate([temp_neighbour_equality_output_gate, self.gates_generator.output_gate])
 
       neighbour_equality_output_gate = self.gates_generator.output_gate
 
@@ -449,18 +450,18 @@ class PathBasedGoal:
 
     # Allocating path variables for the goal:
     self.goal_path_variables = []
-    self.safe_max_path_length = math.ceil((parsed.num_positions)/2)
+    self.safe_max_path_length = len(self.parsed.black_initial_positions) + int((self.parsed.depth + 1)/2)
+
     for i in range(self.safe_max_path_length):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
 
-    # Allocating variables for representing 7 neighbour for each position (including itself):
-    self.neighbour_variables = []
-    for i in range(7):
-      self.neighbour_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
+    # One neighbour is sufficeint for path based:
+    self.neighbour = self.encoding_variables.get_vars(self.num_position_variables)
 
     if (parsed.args.debug == 1):
       print("Goal state variables: ",self.goal_path_variables)
-      print("Neighbour variables: ", self.neighbour_variables)
+      #print("Neighbour variables: ", self.neighbour_variables)
+      print("Neighbour variables: ", self.neighbour)
 
 
     # Generating quantifer blocks:
