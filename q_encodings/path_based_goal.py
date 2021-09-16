@@ -1,6 +1,6 @@
 # Irfansha Shaik, 11.09.2021, Aarhus.
 
-# TODO: no need to specify neighbours of white positions
+# TODO: Modifying the board structure for better encoding
 
 from utils.variables_dispatcher import VarDispatcher as vd
 from utils.gates import GatesGen as ggen
@@ -160,7 +160,6 @@ class PathBasedGoal:
     self.transition_output_gate = self.gates_generator.output_gate
 
 
-  # TODO: Testing is needed
   def generate_initial_gate(self):
     initial_step_output_gates = []
 
@@ -226,6 +225,10 @@ class PathBasedGoal:
     # Specifying neighbours:
     self.encoding.append(['# Specifying neighbours: '])
     for i in range(self.parsed.num_positions):
+      # We do not need to specify white position neighbours:
+      # NOTE: Careful it is only for hex
+      if (i in self.parsed.white_initial_positions):
+        continue
       binary_format_clause = self.generate_binary_format(self.forall_position_variables,i)
       self.gates_generator.and_gate(binary_format_clause)
       if_condition_output_gate = self.gates_generator.output_gate
