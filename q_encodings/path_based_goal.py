@@ -166,50 +166,60 @@ class PathBasedGoal:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Initial state: '])
 
-    # Constraints in forall branches for black positions:
-    black_position_output_gates = []
+    if (len(self.parsed.black_initial_positions) != 0):
 
-    for position in self.parsed.black_initial_positions:
-      binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
-      self.gates_generator.and_gate(binary_format_clause)
-      black_position_output_gates.append(self.gates_generator.output_gate)
+       # Constraints in forall branches for black positions:
+       black_position_output_gates = []
+       for position in self.parsed.black_initial_positions:
+         binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
+         self.gates_generator.and_gate(binary_format_clause)
+         black_position_output_gates.append(self.gates_generator.output_gate)
 
-    self.encoding.append(['# Or for all black forall position clauses: '])
-    self.gates_generator.or_gate(black_position_output_gates)
+       self.encoding.append(['# Or for all black forall position clauses: '])
+       self.gates_generator.or_gate(black_position_output_gates)
 
-    black_final_output_gate = self.gates_generator.output_gate
+       black_final_output_gate = self.gates_generator.output_gate
 
-    self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
-    self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
-    self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
+       self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
+       self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
+       self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+       initial_step_output_gates.append(self.gates_generator.output_gate)
 
-    # Constraints in forall branches for white positions:
-    white_position_output_gates = []
+    if (len(self.parsed.white_initial_positions) != 0):
 
-    for position in self.parsed.white_initial_positions:
-      binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
-      self.gates_generator.and_gate(binary_format_clause)
-      white_position_output_gates.append(self.gates_generator.output_gate)
+      # Constraints in forall branches for white positions:
+      white_position_output_gates = []
 
-    self.encoding.append(['# Or for all white forall position clauses: '])
-    self.gates_generator.or_gate(white_position_output_gates)
+      for position in self.parsed.white_initial_positions:
+        binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
+        self.gates_generator.and_gate(binary_format_clause)
+        white_position_output_gates.append(self.gates_generator.output_gate)
 
-    white_final_output_gate = self.gates_generator.output_gate
+      self.encoding.append(['# Or for all white forall position clauses: '])
+      self.gates_generator.or_gate(white_position_output_gates)
 
-    self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
-    self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
-    self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
+      white_final_output_gate = self.gates_generator.output_gate
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+      self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
+      self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
+      self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
 
-    # Finally for all other forall branches, the position is unoccupied:
-    self.encoding.append(['# for all other branches the occupied is 0: '])
-    self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
-    self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+      initial_step_output_gates.append(self.gates_generator.output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+    if (len(initial_step_output_gates) != 0):
+
+      # Finally for all other forall branches, the position is unoccupied:
+      self.encoding.append(['# for all other branches the occupied is 0: '])
+      self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
+      self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+
+      initial_step_output_gates.append(self.gates_generator.output_gate)
+    else:
+      self.encoding.append(['# In all branches the occupied is 0: '])
+      self.gates_generator.and_gate([-self.predicate_variables[0][0]])
+
+      initial_step_output_gates.append(self.gates_generator.output_gate)
 
     # Now final output gate for the initial state:
     self.gates_generator.and_gate(initial_step_output_gates)
