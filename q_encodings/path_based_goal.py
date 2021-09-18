@@ -1,6 +1,6 @@
 # Irfansha Shaik, 11.09.2021, Aarhus.
 
-# TODO: Modifying the board structure for better encoding
+# TODO: Adding additional clauses between path variables and move variables:
 
 from utils.variables_dispatcher import VarDispatcher as vd
 from utils.gates import GatesGen as ggen
@@ -58,6 +58,10 @@ class PathBasedGoal:
     for vars in self.goal_path_variables:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
+
+    # Grounded goal boolean variables before forall position variables:
+    self.quantifier_block.append(['# goal path boolean variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_path_boolean_variables) + ')'])
 
     # Forall position variables:
     self.quantifier_block.append(['# Forall position variables: '])
@@ -263,38 +267,48 @@ class PathBasedGoal:
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
+    # First goal boolean variable is always positive:
+    goal_step_output_gates.append(self.goal_path_boolean_variables[0])
+
 
     # Path based equality constraints
     for i in range(self.safe_max_path_length - 1):
       self.encoding.append(['# Constratins for position ' + str(i) + ' :'])
       self.encoding.append(['# Equality clause for the current path variables and forall position variables: '])
       self.gates_generator.complete_equality_gate(self.goal_path_variables[i], self.forall_position_variables)
-      if_condition_output_gate = self.gates_generator.output_gate
+      cur_path_forall_equality_output_gate = self.gates_generator.output_gate
+
 
       # Equality for neighbour variables and next position:
       self.encoding.append(['# Equality clause for the neighbour path variables and neighbour variables: '])
-      temp_neighbour_equality_output_gate = []
       self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbour)
-      temp_neighbour_equality_output_gate = self.gates_generator.output_gate
+      path_neighbour_equality_output_gate = self.gates_generator.output_gate
 
       # Equality for next position with current position:
       self.encoding.append(['# Equality clause for the neighbour path variables and current path variables: '])
       self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.goal_path_variables[i])
+      next_cur_path_equality_output_gate = self.gates_generator.output_gate
 
-      # Disjunction of above is true, either next position is a neighbour or itself:
-      self.encoding.append(['# One of the above equality clauses is true: '])
-      self.gates_generator.or_gate([temp_neighbour_equality_output_gate, self.gates_generator.output_gate])
 
-      neighbour_equality_output_gate = self.gates_generator.output_gate
+
+      # if boolean is true along with position forall equality then nieghbour equality is true:
+      self.gates_generator.and_gate([cur_path_forall_equality_output_gate, self.goal_path_boolean_variables[i]])
+      self.gates_generator.if_then_gate(self.gates_generator.output_gate, path_neighbour_equality_output_gate)
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+      # if boolean is false, then the next position is same as current and next booelean is false too:
+      self.gates_generator.and_gate([cur_path_forall_equality_output_gate, -self.goal_path_boolean_variables[i]])
+      self.gates_generator.if_then_gate(self.gates_generator.output_gate, [next_cur_path_equality_output_gate, -self.goal_path_boolean_variables[i+1]])
+      goal_step_output_gates.append(self.gates_generator.output_gate)
 
       # the position must be occupied and the color must be black:
-      self.encoding.append(['# The goal position is occupied and the color is black and conjuction with neighbour equality gate: '])
-      self.gates_generator.and_gate([neighbour_equality_output_gate, self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
+      self.encoding.append(['# The goal position is occupied and the color is black: '])
+      self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
       constraints_output_gate = self.gates_generator.output_gate
 
       self.encoding.append(['# if then clause : '])
       # The if condition for the path constraints:
-      self.gates_generator.if_then_gate(if_condition_output_gate, constraints_output_gate)
+      self.gates_generator.if_then_gate(cur_path_forall_equality_output_gate, constraints_output_gate)
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
     # The last path position also must be occupied and black:
@@ -467,6 +481,11 @@ class PathBasedGoal:
 
     for i in range(self.safe_max_path_length):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
+
+    # Allocating single boolean variable for each goal path position,
+    # we avoid redundancy due to stutturing of same position:
+    self.goal_path_boolean_variables = self.encoding_variables.get_vars(self.safe_max_path_length)
+
 
     # One neighbour is sufficeint for path based:
     self.neighbour = self.encoding_variables.get_vars(self.num_position_variables)
