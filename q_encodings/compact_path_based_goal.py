@@ -77,10 +77,8 @@ class CompactPathBasedGoal:
       self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.predicate_variables[i]) + ')'])
 
     # Exists neighbour variables:
-    self.quantifier_block.append(['# Exists (7) neighbour variables (including itself): '])
-    for i in range(7):
-      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour_variables[i]) + ')'])
-
+    self.quantifier_block.append(['# Exists neighbour variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
 
   def generate_black_transition(self, time_step):
     self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
@@ -177,54 +175,65 @@ class CompactPathBasedGoal:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Initial state: '])
 
-    # Constraints in forall branches for black positions:
-    black_position_output_gates = []
+    if (len(self.parsed.black_initial_positions) != 0):
 
-    for position in self.parsed.black_initial_positions:
-      binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
-      self.gates_generator.and_gate(binary_format_clause)
-      black_position_output_gates.append(self.gates_generator.output_gate)
+       # Constraints in forall branches for black positions:
+       black_position_output_gates = []
+       for position in self.parsed.black_initial_positions:
+         binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
+         self.gates_generator.and_gate(binary_format_clause)
+         black_position_output_gates.append(self.gates_generator.output_gate)
 
-    self.encoding.append(['# Or for all black forall position clauses: '])
-    self.gates_generator.or_gate(black_position_output_gates)
+       self.encoding.append(['# Or for all black forall position clauses: '])
+       self.gates_generator.or_gate(black_position_output_gates)
 
-    black_final_output_gate = self.gates_generator.output_gate
+       black_final_output_gate = self.gates_generator.output_gate
 
-    self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
-    self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
-    self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
+       self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
+       self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
+       self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+       initial_step_output_gates.append(self.gates_generator.output_gate)
 
-    # Constraints in forall branches for white positions:
-    white_position_output_gates = []
+    if (len(self.parsed.white_initial_positions) != 0):
 
-    for position in self.parsed.white_initial_positions:
-      binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
-      self.gates_generator.and_gate(binary_format_clause)
-      white_position_output_gates.append(self.gates_generator.output_gate)
+      # Constraints in forall branches for white positions:
+      white_position_output_gates = []
 
-    self.encoding.append(['# Or for all white forall position clauses: '])
-    self.gates_generator.or_gate(white_position_output_gates)
+      for position in self.parsed.white_initial_positions:
+        binary_format_clause = self.generate_binary_format(self.forall_position_variables,position)
+        self.gates_generator.and_gate(binary_format_clause)
+        white_position_output_gates.append(self.gates_generator.output_gate)
 
-    white_final_output_gate = self.gates_generator.output_gate
+      self.encoding.append(['# Or for all white forall position clauses: '])
+      self.gates_generator.or_gate(white_position_output_gates)
 
-    self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
-    self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
-    self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
+      white_final_output_gate = self.gates_generator.output_gate
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+      self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
+      self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
+      self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
 
-    # Finally for all other forall branches, the position is unoccupied:
-    self.encoding.append(['# for all other branches the occupied is 0: '])
-    self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
-    self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+      initial_step_output_gates.append(self.gates_generator.output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+    if (len(initial_step_output_gates) != 0):
+
+      # Finally for all other forall branches, the position is unoccupied:
+      self.encoding.append(['# for all other branches the occupied is 0: '])
+      self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
+      self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+
+      initial_step_output_gates.append(self.gates_generator.output_gate)
+    else:
+      self.encoding.append(['# In all branches the occupied is 0: '])
+      self.gates_generator.and_gate([-self.predicate_variables[0][0]])
+
+      initial_step_output_gates.append(self.gates_generator.output_gate)
 
     # Now final output gate for the initial state:
     self.gates_generator.and_gate(initial_step_output_gates)
     self.initial_output_gate = self.gates_generator.output_gate
+
 
 
   # Generating goal constraints:
@@ -236,26 +245,27 @@ class CompactPathBasedGoal:
     # Specifying neighbours:
     self.encoding.append(['# Specifying neighbours: '])
     for i in range(self.parsed.num_positions):
+      # We do not need to specify white position neighbours:
+      # NOTE: Careful it is only for hex
+      if (i in self.parsed.white_initial_positions):
+        continue
       binary_format_clause = self.generate_binary_format(self.forall_position_variables,i)
       self.gates_generator.and_gate(binary_format_clause)
       if_condition_output_gate = self.gates_generator.output_gate
       neighbour_output_gates = []
       self.encoding.append(['# neighbour clauses: '])
       # Neighbours of current position:
-      temp_neighbours = list(self.parsed.neighbour_dict[i])
-      # We pop each neighbour, if none available then itself is a neighbour:
-      for cur_neighbour_index in range(7):
-        if (len(temp_neighbours) != 0):
-          cur_neighbour = temp_neighbours.pop(0)
-        else:
-          cur_neighbour = i
-        # Binary format for current_neighbour:
-        temp_binary_format_clause = self.generate_binary_format(self.neighbour_variables[cur_neighbour_index],cur_neighbour)
+      #temp_neighbours = list(self.parsed.neighbour_dict[i])
+
+      # For each neighbour we generate a clause:
+      for cur_neighbour in self.parsed.neighbour_dict[i]:
+        temp_binary_format_clause = self.generate_binary_format(self.neighbour,cur_neighbour)
         self.gates_generator.and_gate(temp_binary_format_clause)
         neighbour_output_gates.append(self.gates_generator.output_gate)
 
-      # Now conjuction of all nieghbour clauses:
-      self.gates_generator.and_gate(neighbour_output_gates)
+      # Disjunction of output gates is true:
+      self.gates_generator.or_gate(neighbour_output_gates)
+
 
       # If then clause for the neighbour implication:
       self.encoding.append(['# if then clause : '])
@@ -325,15 +335,19 @@ class CompactPathBasedGoal:
     self.gates_generator.complete_equality_gate(self.goal_path_variables[-2], self.forall_position_variables)
     if_condition_output_gate = self.gates_generator.output_gate
 
-    # Now equality for the neighbour variables:
-    self.encoding.append(['# Equality clause for the neighbour path variables and neighbours variables i.e., the last position variables: '])
-    temp_neighbour_equality_output_gates = []
-    for neighbour_index in range(7):
-      self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.neighbour_variables[neighbour_index])
-      temp_neighbour_equality_output_gates.append(self.gates_generator.output_gate)
+    # Equality for neighbour variables and next position:
+    self.encoding.append(['# Equality clause for the neighbour path variables and neighbour variables: '])
+    temp_neighbour_equality_output_gate = []
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.neighbour)
+    temp_neighbour_equality_output_gate = self.gates_generator.output_gate
 
-    self.encoding.append(['# Disjunction clause for neighbour equality clauses, the last path variable is equal to one of the neighbours: '])
-    self.gates_generator.or_gate(temp_neighbour_equality_output_gates)
+    # Equality for next position with current position:
+    self.encoding.append(['# Equality clause for the neighbour path variables and current path variables: '])
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.goal_path_variables[-2])
+
+    # Disjunction of above is true, either next position is a neighbour or itself:
+    self.encoding.append(['# One of the above equality clauses is true: '])
+    self.gates_generator.or_gate([temp_neighbour_equality_output_gate, self.gates_generator.output_gate])
 
     neighbour_equality_output_gate = self.gates_generator.output_gate
 
@@ -514,7 +528,7 @@ class CompactPathBasedGoal:
 
 
     # Depth for flat path based representation:
-    self.safe_max_path_length = math.ceil((parsed.num_positions)/2)
+    self.safe_max_path_length = len(self.parsed.black_initial_positions) + int((self.parsed.depth + 1)/2)
     self.path_depth = math.ceil(math.log2(self.safe_max_path_length))
 
     assert(self.safe_max_path_length >= 2)
@@ -531,14 +545,12 @@ class CompactPathBasedGoal:
     for i in range(3*(self.path_depth)):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
 
-    # Allocating variables for representing 7 neighbour for each position (including itself):
-    self.neighbour_variables = []
-    for i in range(7):
-      self.neighbour_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
+    # One neighbour is sufficeint for path based:
+    self.neighbour = self.encoding_variables.get_vars(self.num_position_variables)
 
     if (parsed.args.debug == 1):
       print("Goal forall path variables: ",self.forall_path_variables)
-      print("Neighbour variables: ", self.neighbour_variables)
+      print("Neighbour variables: ", self.neighbour)
 
 
     # Generating quantifer blocks:
