@@ -326,6 +326,22 @@ class PathBasedGoal:
     goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
+    # TODO: For each set of goal path variables, create a disjunction with move variables:
+    if (self.parsed.args.renumber_positions == 2):
+      self.encoding.append(['# Equality clauses between goal path variables and black move variables: '])
+      for i in range(self.safe_max_path_length):
+        single_path_equality_output_gates = []
+        for j in range(self.parsed.depth):
+          # We only consider black moves:
+          if (j % 2 == 1):
+            continue
+          self.gates_generator.complete_equality_gate(self.goal_path_variables[i], self.move_variables[j])
+          single_path_equality_output_gates.append(self.gates_generator.output_gate)
+        # Generating disjunction between equalities:
+        self.gates_generator.or_gate(single_path_equality_output_gates)
+        goal_step_output_gates.append(self.gates_generator.output_gate)
+
+
     start_border_output_gates = []
     self.encoding.append(['# Start boarder clauses : '])
     # Specifying the start borders:
