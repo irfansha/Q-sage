@@ -21,15 +21,20 @@ def generate_encoding(parsed_instance):
     encoding = cpbg(parsed_instance)
 
   # We print QCIR format directly to the file:
-  if (parsed_instance.args.encoding_format == 1):
+  if (parsed_instance.args.encoding_format == 1 ):
     encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
-  else:
+  elif(parsed_instance.args.encoding_format == 2):
     # For QDIMACS, we write the encoding to an intermediate file and change
     # to right format:
     encoding.print_encoding_tofile(parsed_instance.args.intermediate_encoding_out)
     converter_tool_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'qcir_to_dimacs_convertor' , 'qcir2qdimacs')
     # Calling the tool
     os.system(converter_tool_path + ' ' + parsed_instance.args.intermediate_encoding_out + ' > ' + parsed_instance.args.encoding_out)
+  elif(parsed_instance.args.encoding_format == 3):
+    encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
+  else:
+    print("For now printing other encodings to file as well, work in progress!")
+    encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
 
   # External preprocessing:
   if (parsed_instance.args.preprocessing == 1):

@@ -38,7 +38,12 @@ if __name__ == '__main__':
                                0 = only generate encoding
                                1 = existence of winning strategy
                                2 = extract first step of winning strategy if found'''),default = 0)
-  parser.add_argument("--encoding_format", type=int, help="Encoding format: [1 = QCIR14 2 = QDIMACS], default 1",default = 2)
+  parser.add_argument("--encoding_format", type=int, help=textwrap.dedent('''
+                                       Encoding format:
+                                       1 = QCIR14
+                                       2 = QDIMACS (default)
+                                       3 = DQCIR
+                                       4 = DQDIMACS'''),default = 2)
   parser.add_argument("--encoding_out", help="output encoding file",default = 'intermediate_files/encoding')
   parser.add_argument("--intermediate_encoding_out", help="output intermediate encoding file",default = 'intermediate_files/intermediate_encoding')
   parser.add_argument("--solver", type=int, help=textwrap.dedent('''

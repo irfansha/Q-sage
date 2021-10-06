@@ -76,6 +76,87 @@ class PathBasedGoal:
     self.quantifier_block.append(['# Exists neighbour variables: '])
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
 
+  # Generates quanifier blocks for DQBF instead of QBF:
+  def generate_quantifier_blocks_dqbf(self):
+    # Print all the forall variables in the outer most layer:
+    self.quantifier_block.append(['# All forall varaibles: '])
+    all_forall_vars = []
+    all_move_white_variables = []
+    for i in range(self.parsed.depth):
+      # Odd indexes are universal white moves:
+      if (i %2 == 1):
+        self.quantifier_block.append(['# Move variables for time step: ' + str(i) ])
+        self.quantifier_block.append(['# forall(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
+        all_move_white_variables.extend(self.move_variables[i])
+    # Including position forall variables:
+    all_forall_vars.extend(all_move_white_variables)
+    all_forall_vars.extend(self.forall_position_variables)
+    self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in all_forall_vars) + ')'])
+    # Now printing all move variables with corresponding move variable dependencies:
+    self.quantifier_block.append(['# existential move varaibles with dependencies: '])
+    for i in range(self.parsed.depth):
+      # even indexes are black existential moves:
+      if (i%2 == 0):
+        self.quantifier_block.append(['# Move variables for time step: ' + str(i) ])
+        self.quantifier_block.append(['# exists(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
+        cur_variables = self.move_variables[i]
+        cur_forall_variables = []
+        for j in range(i):
+          # Untill the depth of current layer, we consider all move forall variables:
+          if (j%2 == 1):
+            cur_forall_variables.extend(self.move_variables[j])
+        # For each black move variable we print the dependencies:
+        for var in cur_variables:
+          dep_var_list = [var]
+          dep_var_list.extend(cur_forall_variables)
+          self.quantifier_block.append(['depend(' + ', '.join(str(x) for x in dep_var_list) + ')'])
+    # Dependencies for the goal condition variables,
+    # goal variables before forall position variables:
+    self.quantifier_block.append(['# goal path variables: '])
+    all_goal_vars = []
+    for vars in self.goal_path_variables:
+      all_goal_vars.extend(vars)
+    self.quantifier_block.append(['# exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
+
+    # Grounded goal boolean variables before forall position variables:
+    self.quantifier_block.append(['# goal path boolean variables: '])
+    self.quantifier_block.append(['# exists(' + ', '.join(str(x) for x in self.goal_path_boolean_variables) + ')'])
+    all_goal_vars.extend(self.goal_path_boolean_variables)
+
+    for var in all_goal_vars:
+      dep_var_list = [var]
+      dep_var_list.extend(all_move_white_variables)
+      self.quantifier_block.append(['depend(' + ', '.join(str(x) for x in dep_var_list) + ')'])
+
+    # Finally predicate variables for each time step:
+    self.quantifier_block.append(['# Predicate variables: '])
+    for i in range(self.parsed.depth):
+      self.quantifier_block.append(['#exists(' + ', '.join(str(x) for x in self.predicate_variables[i]) + ')'])
+      # Dependencies of predicate variables, similar to black move variables:
+      cur_forall_variables = []
+      for j in range(i):
+        # Untill the depth of current layer, we consider all move forall variables:
+        if (j%2 == 1):
+          cur_forall_variables.extend(self.move_variables[j])
+      # Also adding forall positional variables:
+      cur_forall_variables.extend(self.forall_position_variables)
+
+      for var in self.predicate_variables[i]:
+        dep_var_list = [var]
+        dep_var_list.extend(cur_forall_variables)
+        self.quantifier_block.append(['depend(' + ', '.join(str(x) for x in dep_var_list) + ')'])
+
+    # Exists neighbour variables:
+    self.quantifier_block.append(['# Last goal variables depend on all of them: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.predicate_variables[self.parsed.depth]) + ')'])
+
+
+    # Exists neighbour variables:
+    self.quantifier_block.append(['# Exists neighbour variables depend on all of them: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
+
+
+
   def generate_black_transition(self, time_step):
     self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
 
@@ -513,7 +594,11 @@ class PathBasedGoal:
 
 
     # Generating quantifer blocks:
-    self.generate_quantifier_blocks()
+    if (parsed.args.encoding_format == 1 or parsed.args.encoding_format == 2):
+      self.generate_quantifier_blocks()
+    else:
+      # 3, 4 are dqbf encodings:
+      self.generate_quantifier_blocks_dqbf()
 
     self.gates_generator = ggen(self.encoding_variables, self.encoding)
 
