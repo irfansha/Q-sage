@@ -115,10 +115,11 @@ class Parse:
           # we do not need to check already black position in winning configurations:
           if (position not in self.black_initial_positions):
             temp_conf.append(position)
-        # We only append if winning configuration is non-empty:
-        if (len(temp_conf) != 0):
+        # We only append if winning configuration is non-empty and the length is atmost number of black turns:
+        if (len(temp_conf) != 0 and len(temp_conf) <= int((self.depth+1)/2)):
+          #print(temp_conf)
           self.black_win_configurations.append(temp_conf)
-      assert(len(self.black_win_configurations) != 0)
+      #assert(len(self.black_win_configurations) != 0)
 
 
     if args.debug == 1:
