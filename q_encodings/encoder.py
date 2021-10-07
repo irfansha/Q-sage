@@ -6,6 +6,42 @@ from q_encodings.path_based_goal import PathBasedGoal as pbg
 from q_encodings.compact_path_based_goal import CompactPathBasedGoal as cpbg
 import os
 
+def add_dependencies_to_qdimacs(parsed_instance, encoding):
+  # Read the encoding file:
+  f = open(parsed_instance.args.encoding_out, 'r')
+  lines = f.readlines()
+  f.close()
+
+  header = lines.pop(0)
+  previous_line = ''
+  for line in lines:
+    # Looking at the prefix:
+    if (line[0] == 'a' or line[0] == 'e'):
+      previous_line = line
+    else:
+      # this stops the previous line at the last existential layer
+      break
+
+  f = open(parsed_instance.args.encoding_out, 'w')
+
+  # Writing the header
+  f.write(header)
+  # Adding the dependencies:
+  for line in encoding.dqdimacs_prefix:
+    f.write(line + "\n")
+  # Adding the last existential line:
+  f.write(previous_line)
+  # Adding rest of the clauses:
+  for line in lines:
+    if (line[0] == 'a' or line[0] == 'e'):
+      continue
+    else:
+      f.write(line)
+  f.close()
+
+
+
+
 def generate_encoding(parsed_instance):
   if (parsed_instance.args.e == 'gg'):
     print("Generating grounded goal encoding")
@@ -33,8 +69,16 @@ def generate_encoding(parsed_instance):
   elif(parsed_instance.args.encoding_format == 3):
     encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
   else:
+    # For dqdimacs:
     print("For now printing other encodings to file as well, work in progress!")
-    encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
+    encoding.print_encoding_tofile(parsed_instance.args.intermediate_encoding_out)
+    converter_tool_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'qcir_to_dimacs_convertor' , 'qcir2qdimacs')
+    # Calling the tool
+    os.system(converter_tool_path + ' ' + parsed_instance.args.intermediate_encoding_out + ' > ' + parsed_instance.args.encoding_out)
+    add_dependencies_to_qdimacs(parsed_instance, encoding)
+
+
+
 
   # External preprocessing:
   if (parsed_instance.args.preprocessing == 1):

@@ -155,6 +155,69 @@ class PathBasedGoal:
     self.quantifier_block.append(['# Exists neighbour variables depend on all of them: '])
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
 
+  # Generates quanifier blocks for DQBF instead of QBF:
+  def generate_only_dqdimacs_prefix(self):
+    # Print all the forall variables in the outer most layer:
+    all_forall_vars = []
+    all_move_white_variables = []
+    for i in range(self.parsed.depth):
+      # Odd indexes are universal white moves:
+      if (i %2 == 1):
+        all_move_white_variables.extend(self.move_variables[i])
+    # Including position forall variables:
+    all_forall_vars.extend(all_move_white_variables)
+    all_forall_vars.extend(self.forall_position_variables)
+    self.dqdimacs_prefix.append('a ' + ' '.join(str(x) for x in all_forall_vars) + ' 0')
+    # Now printing all move variables with corresponding move variable dependencies:
+    for i in range(self.parsed.depth):
+      # even indexes are black existential moves:
+      if (i%2 == 0):
+        cur_variables = self.move_variables[i]
+        cur_forall_variables = []
+        for j in range(i):
+          # Untill the depth of current layer, we consider all move forall variables:
+          if (j%2 == 1):
+            cur_forall_variables.extend(self.move_variables[j])
+        # For each black move variable we print the dependencies:
+        for var in cur_variables:
+          dep_var_list = [var]
+          dep_var_list.extend(cur_forall_variables)
+          self.dqdimacs_prefix.append('d ' + ' '.join(str(x) for x in dep_var_list) + ' 0')
+    # Dependencies for the goal condition variables,
+    # goal variables before forall position variables:
+    all_goal_vars = []
+    for vars in self.goal_path_variables:
+      all_goal_vars.extend(vars)
+
+    # Grounded goal boolean variables before forall position variables:
+    all_goal_vars.extend(self.goal_path_boolean_variables)
+
+    for var in all_goal_vars:
+      dep_var_list = [var]
+      dep_var_list.extend(all_move_white_variables)
+      self.dqdimacs_prefix.append('d ' + ' '.join(str(x) for x in dep_var_list) + ' 0')
+
+    # Finally predicate variables for each time step:
+    for i in range(self.parsed.depth):
+      # Dependencies of predicate variables, similar to black move variables:
+      cur_forall_variables = []
+      for j in range(i):
+        # Untill the depth of current layer, we consider all move forall variables:
+        if (j%2 == 1):
+          cur_forall_variables.extend(self.move_variables[j])
+      # Also adding forall positional variables:
+      cur_forall_variables.extend(self.forall_position_variables)
+
+      for var in self.predicate_variables[i]:
+        dep_var_list = [var]
+        dep_var_list.extend(cur_forall_variables)
+        self.dqdimacs_prefix.append('d ' + ' '.join(str(x) for x in dep_var_list) + ' 0')
+
+    # Exists neighbour variables:
+    self.dqdimacs_prefix.append('e ' + ' '.join(str(x) for x in self.predicate_variables[self.parsed.depth]) + ' 0')
+
+    # Exists neighbour variables:
+    self.dqdimacs_prefix.append('e ' + ' '.join(str(x) for x in self.neighbour) + ' 0')
 
 
   def generate_black_transition(self, time_step):
@@ -529,6 +592,7 @@ class PathBasedGoal:
     self.parsed = parsed
     self.encoding_variables = vd()
     self.quantifier_block = []
+    self.dqdimacs_prefix = []
     self.encoding = []
     self.initial_output_gate = 0 # initial output gate can never be 0
     self.goal_output_gate = 0 # goal output gate can never be 0
@@ -596,9 +660,13 @@ class PathBasedGoal:
     # Generating quantifer blocks:
     if (parsed.args.encoding_format == 1 or parsed.args.encoding_format == 2):
       self.generate_quantifier_blocks()
-    else:
-      # 3, 4 are dqbf encodings:
+    elif(parsed.args.encoding_format == 3):
       self.generate_quantifier_blocks_dqbf()
+    else:
+      # For qdimacs, we need to first convert the qcir to qdimacs and add dependencies:
+      self.generate_quantifier_blocks()
+      self.generate_only_dqdimacs_prefix()
+
 
     self.gates_generator = ggen(self.encoding_variables, self.encoding)
 
