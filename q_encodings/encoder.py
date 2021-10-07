@@ -70,7 +70,6 @@ def generate_encoding(parsed_instance):
     encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
   else:
     # For dqdimacs:
-    print("For now printing other encodings to file as well, work in progress!")
     encoding.print_encoding_tofile(parsed_instance.args.intermediate_encoding_out)
     converter_tool_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'qcir_to_dimacs_convertor' , 'qcir2qdimacs')
     # Calling the tool
