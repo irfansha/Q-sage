@@ -8,6 +8,8 @@ class RunCaqe():
   def run_caqe(self):
     if (self.preprocessing == 2):
       command = self.solver_path + " --preprocessor=bloqqer --qdo " + self.input_file_path + " > " + self.output_file_path
+    elif(self.preprocessing == 3):
+      command = self.solver_path + " --preprocessor=hqspre --qdo " + self.input_file_path + " > " + self.output_file_path
     else:
       command = self.solver_path + " --qdo " + self.input_file_path + " > " + self.output_file_path
     try:

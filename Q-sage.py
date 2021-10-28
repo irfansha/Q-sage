@@ -49,8 +49,9 @@ if __name__ == '__main__':
   parser.add_argument("--solver", type=int, help=textwrap.dedent('''
                                        Solver:
                                        1 = quabs
-                                       2 = CAQE
-                                       3 = RaReQS'''),default = 2)
+                                       2 = CAQE (default)
+                                       3 = RaReQS
+                                       4 = Pedant'''),default = 2)
   parser.add_argument("--solver_out", help="solver output file",default = 'intermediate_files/solver_output')
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--run_tests", type=int, help="[0/1], default 0" ,default = 0)
@@ -68,7 +69,8 @@ if __name__ == '__main__':
                                        Preprocessing:
                                        0 = off
                                        1 = bloqqer (version 37)
-                                       2 = bloqqer-qdo'''),default = 2)
+                                       2 = bloqqer-qdo
+                                       3 = hqspre'''),default = 2)
   parser.add_argument("--preprocessed_encoding_out", help="output preprocessed encoding file",default = 'intermediate_files/preprocessed_encoding')
   parser.add_argument("--time_limit", type=float, help="Solving time limit in seconds, default 1800 seconds",default = 1800)
   parser.add_argument("--preprocessing_time_limit", type=int, help="Preprocessing time limit in seconds, default 900 seconds",default = 900)
