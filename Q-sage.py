@@ -2,6 +2,7 @@
 
 '''
 TODOS:
+  - Need to handle non-existence of white goals, first looking at tic-tac-toe game
   - Reduce the black search space further by only considering one levels of nighbours
     for each peice we can play.
   - Use D-CAQE to take advantage of selected dependency in the earlier rounds.
