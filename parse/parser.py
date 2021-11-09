@@ -84,15 +84,18 @@ class Parse:
 
 
     # Depending on encoding we parse the winning configurations:
-    if (args.e == 'pg' or args.e == 'cpg'):
+    if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ttt'):
       self.neighbour_dict = {}
       for neighbour_list in parsed_dict['#neighbours']:
         # The neighbours list contains itself as its first element, which is the key for the dict:
         cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
         temp_list = []
         for neighbour in neighbour_list:
-          cur_neighbour = self.rearranged_positions.index(neighbour)
-          temp_list.append(cur_neighbour)
+          if (neighbour != 'NA'):
+            cur_neighbour = self.rearranged_positions.index(neighbour)
+            temp_list.append(cur_neighbour)
+          else:
+            temp_list.append(neighbour)
         self.neighbour_dict[cur_position] = temp_list
       self.start_boarder = []
       for single_vertex in parsed_dict['#startboarder'][0]:

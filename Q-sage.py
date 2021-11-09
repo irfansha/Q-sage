@@ -33,7 +33,8 @@ if __name__ == '__main__':
                                   pg = path based goal (ungrounded)
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
-                                  ggt = grounded goal with time'''),default = 'gg')
+                                  ggt = grounded goal with time
+                                  ttt = tictactoe'''),default = 'gg')
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
                                0 = only generate encoding
