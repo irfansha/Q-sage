@@ -57,6 +57,10 @@ class TicTacToe:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
 
+    self.quantifier_block.append(['# black boolean variables for determining shape of line: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.black_position_boolean_vars) + ')'])
+
+
     '''
     # white forall goal variables before forall position variables:
     self.quantifier_block.append(['# white forall path variables: '])
@@ -266,31 +270,42 @@ class TicTacToe:
       for j in range(4):
         neighbour = self.parsed.neighbour_dict[i][j]
         if (neighbour == 'NA'):
-          neighbour_output_gates.append(-self.boolean_vars[j])
+          # If then clause for the neighbour implication:
+          self.encoding.append(['# if then clause : '])
+          # If the neighbour is not available the boolean not true:
+          self.gates_generator.if_then_gate(if_condition_output_gate,-self.boolean_vars[j])
+          neighbour_output_gates.append(self.gates_generator.output_gate)
         else:
           temp_binary_format_clause = self.generate_binary_format(self.neighbour,neighbour)
           self.encoding.append(['# neighbour clause for ' + str(j) + ':'])
           self.gates_generator.and_gate(temp_binary_format_clause)
-          self.encoding.append(['# conjunction of boolean variable and neighbour gate: '])
-          self.gates_generator.and_gate([self.boolean_vars[j], self.gates_generator.output_gate])
+          step_neighbour_gate = self.gates_generator.output_gate
+          # If the position equality and boolean variable is true, then the step neighbour must be forced:
+          self.encoding.append(['# conjunction of current forall branch and boolean variable: '])
+          self.gates_generator.and_gate([if_condition_output_gate, self.boolean_vars[j]])
+          step_if_condition_output_gate = self.gates_generator.output_gate
+          self.encoding.append(['# if the conjuction is true, then the neighbour value is forced: '])
+          self.gates_generator.if_then_gate(step_if_condition_output_gate, step_neighbour_gate)
           neighbour_output_gates.append(self.gates_generator.output_gate)
-      
-      # Disjunction of output gates is true:
-      self.gates_generator.or_gate(neighbour_output_gates)
 
-
-      # If then clause for the neighbour implication:
-      self.encoding.append(['# if then clause : '])
-      self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
+      # conjunction of output gates is true:
+      self.encoding.append(['# and clause for all 4 neighbour conditions : '])
+      self.gates_generator.and_gate(neighbour_output_gates)
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
-    # First add black win condition
-    # Disjunction of four types of lines:
-    line_output_gates = []
+
+    # First add black win condition:
+
+
+    # Disjunction of the black position boolean variables:
+    self.encoding.append(['# one of the black position boolean variables is true : '])
+    self.gates_generator.or_gate(self.black_position_boolean_vars)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
 
     # Clauses for each neighbour, a disjunction at the end:
     for j in range(4):
       self.encoding.append(['# Constraints for line ' + str(j) + ' :'])
+      step_single_line_output_gates = []
       # Path based equality constraints
       for i in range(self.safe_max_path_length - 1):
         self.encoding.append(['# Constratins for position ' + str(i) + ' :'])
@@ -317,7 +332,7 @@ class TicTacToe:
         self.encoding.append(['# if then clause : '])
         # The if condition for the path constraints:
         self.gates_generator.if_then_gate(cur_path_forall_equality_output_gate, self.gates_generator.output_gate)
-        step_single_line_output = self.gates_generator.output_gate
+        step_single_line_output_gates.append(self.gates_generator.output_gate)
 
       # The last path position also must be occupied and black:
       self.encoding.append(['# Constratins for position ' + str(self.safe_max_path_length - 1) + ' :'])
@@ -331,14 +346,14 @@ class TicTacToe:
       self.encoding.append(['# if then clause : '])
       # The if condition for the path constraints:
       self.gates_generator.if_then_gate(last_if_condition_output_gate, self.gates_generator.output_gate)
-      
-      # A conjunction between last condition and the rest:
-      self.gates_generator.and_gate([step_single_line_output, self.gates_generator.output_gate])
-      line_output_gates.append(self.gates_generator.output_gate)
+      step_single_line_output_gates.append(self.gates_generator.output_gate)
 
-    # disjunction between four line conditions:
-    self.gates_generator.or_gate(line_output_gates)
-    goal_step_output_gates.append(self.gates_generator.output_gate)
+      # A conjunction between last condition and the rest:
+      self.gates_generator.and_gate(step_single_line_output_gates)
+
+      # If the black position boolean variable is true, the corresponding line condition is true:
+      self.gates_generator.if_then_gate(self.black_position_boolean_vars[j], self.gates_generator.output_gate)
+      goal_step_output_gates.append(self.gates_generator.output_gate)
 
     restricted_black_position_gates = []
     # restrictions for black positions:
@@ -347,7 +362,7 @@ class TicTacToe:
       restricted_black_position_gates.append(self.gates_generator.output_gate)
 
     self.gates_generator.and_gate(restricted_black_position_gates)
-
+    goal_step_output_gates.append(self.gates_generator.output_gate)
 
     # Condition for down black win:
 
@@ -474,6 +489,10 @@ class TicTacToe:
 
     for i in range(self.safe_max_path_length):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
+
+    # Initializing the boolean variables for the shape of line above forall positions:
+    self.black_position_boolean_vars = self.encoding_variables.get_vars(4)
+
 
     '''
     self.forall_white_goal_path_variables = []
