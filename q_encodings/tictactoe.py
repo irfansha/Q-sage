@@ -61,7 +61,7 @@ class TicTacToe:
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.black_position_boolean_vars) + ')'])
 
 
-    '''
+
     # white forall goal variables before forall position variables:
     self.quantifier_block.append(['# white forall path variables: '])
     all_goal_vars = []
@@ -69,14 +69,29 @@ class TicTacToe:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
 
-
-    # white forall goal variables before forall position variables:
-    self.quantifier_block.append(['# exists forall path variables: '])
+    # white exists goal variables before forall position variables:
+    self.quantifier_block.append(['# white exists path variables: '])
     all_goal_vars = []
     for vars in self.exists_white_goal_path_variables:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
-    '''
+
+    # White grounded neighbours, for non-existence:
+    self.quantifier_block.append(['# white grounded neighbour variables: '])
+    for each_position_vars in self.white_goal_neighbours:
+      for each_nieghbour in each_position_vars:
+        self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in each_nieghbour) + ')'])
+
+    # White boolean variables:
+    self.quantifier_block.append(['# white neighbour boolean variables: '])
+    for each_position_vars in self.white_goal_boolean_vars:
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in each_position_vars) + ')'])
+
+    # White position variables:
+    self.quantifier_block.append(['# white position boolean variables: '])
+    for each_position_vars in self.white_goal_position_values:
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in each_position_vars) + ')'])
+
 
 
     # Forall position variables:
@@ -94,7 +109,8 @@ class TicTacToe:
 
     # Exists neighbour variables:
     self.quantifier_block.append(['# Exists neighbour variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
+    for i in range(4):
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbours[i]) + ')'])
 
 
   def generate_black_transition(self, time_step):
@@ -276,16 +292,15 @@ class TicTacToe:
           self.gates_generator.if_then_gate(if_condition_output_gate,-self.boolean_vars[j])
           neighbour_output_gates.append(self.gates_generator.output_gate)
         else:
-          temp_binary_format_clause = self.generate_binary_format(self.neighbour,neighbour)
+          temp_binary_format_clause = self.generate_binary_format(self.neighbours[j],neighbour)
           self.encoding.append(['# neighbour clause for ' + str(j) + ':'])
           self.gates_generator.and_gate(temp_binary_format_clause)
           step_neighbour_gate = self.gates_generator.output_gate
-          # If the position equality and boolean variable is true, then the step neighbour must be forced:
-          self.encoding.append(['# conjunction of current forall branch and boolean variable: '])
-          self.gates_generator.and_gate([if_condition_output_gate, self.boolean_vars[j]])
-          step_if_condition_output_gate = self.gates_generator.output_gate
-          self.encoding.append(['# if the conjuction is true, then the neighbour value is forced: '])
-          self.gates_generator.if_then_gate(step_if_condition_output_gate, step_neighbour_gate)
+          # If the position equality is true, then the step neighbour must be forced and boolean variable is true:
+          self.gates_generator.and_gate([step_neighbour_gate, self.boolean_vars[j]])
+          step_then_condition_output_gate = self.gates_generator.output_gate
+          self.encoding.append(['# if the equality is true, then the conjunction is true: '])
+          self.gates_generator.if_then_gate(if_condition_output_gate, step_then_condition_output_gate)
           neighbour_output_gates.append(self.gates_generator.output_gate)
 
       # conjunction of output gates is true:
@@ -293,16 +308,14 @@ class TicTacToe:
       self.gates_generator.and_gate(neighbour_output_gates)
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
-
-    # First add black win condition:
-
-
+    #'''
     # Disjunction of the black position boolean variables:
     self.encoding.append(['# one of the black position boolean variables is true : '])
     self.gates_generator.or_gate(self.black_position_boolean_vars)
     goal_step_output_gates.append(self.gates_generator.output_gate)
+    #'''
 
-    # Clauses for each neighbour, a disjunction at the end:
+    # Clauses for each neighbour:
     for j in range(4):
       self.encoding.append(['# Constraints for line ' + str(j) + ' :'])
       step_single_line_output_gates = []
@@ -316,7 +329,7 @@ class TicTacToe:
 
         # Equality for neighbour variables and next position:
         self.encoding.append(['# Equality clause for the neighbour path variables and neighbour variables: '])
-        self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbour)
+        self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbours[j])
         path_neighbour_equality_output_gate = self.gates_generator.output_gate
 
 
@@ -355,8 +368,11 @@ class TicTacToe:
       self.gates_generator.if_then_gate(self.black_position_boolean_vars[j], self.gates_generator.output_gate)
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
+
+
     restricted_black_position_gates = []
     # restrictions for black positions:
+    self.encoding.append(['# black position restriction clauses : '])
     for i in range(self.safe_max_path_length):
       lsc.add_circuit(self.gates_generator, self.goal_path_variables[i], self.parsed.num_positions)
       restricted_black_position_gates.append(self.gates_generator.output_gate)
@@ -364,14 +380,105 @@ class TicTacToe:
     self.gates_generator.and_gate(restricted_black_position_gates)
     goal_step_output_gates.append(self.gates_generator.output_gate)
 
-    # Condition for down black win:
+
+    # Equality between exists and forall white variables:
+    for i in range(self.safe_max_path_length):
+      self.encoding.append(['# Equality clause for the white forall path variables and white exists variables: '])
+      self.gates_generator.complete_equality_gate(self.forall_white_goal_path_variables[i], self.exists_white_goal_path_variables[i])
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Equality for the neighbours in the white positions:
+    self.encoding.append(['# Neighbours for white positions :'])
+    for i in range(self.safe_max_path_length - 1):
+      self.encoding.append(['# Equality clause for the current white exists path variables and forall position variables: '])
+      self.gates_generator.complete_equality_gate(self.exists_white_goal_path_variables[i], self.forall_position_variables)
+      cur_path_forall_equality_output_gate = self.gates_generator.output_gate
+
+      # Equality clauses for neighbours and boolean vars:
+      step_equality_output_gates = []
+      self.encoding.append(['# Equality clause for the neighbours and white neighbour variables: '])
+      for j in range(4):
+        self.gates_generator.complete_equality_gate(self.neighbours[j], self.white_goal_neighbours[i][j])
+        step_equality_output_gates.append(self.gates_generator.output_gate)
+      # Equality of the boolean variables can also be added:
+      self.gates_generator.complete_equality_gate(self.boolean_vars, self.white_goal_boolean_vars[i])
+      step_equality_output_gates.append(self.gates_generator.output_gate)
+
+      # Equality for the goal position variables can also be added:
+      self.gates_generator.complete_equality_gate(self.predicate_variables[-1], self.white_goal_position_values[i])
+      step_equality_output_gates.append(self.gates_generator.output_gate)
+
+      # Conjunction for all the neighbour equality clauses:
+      self.gates_generator.and_gate(step_equality_output_gates)
+
+      # If then clause for the neighbour and boolean equality:
+      self.gates_generator.if_then_gate(cur_path_forall_equality_output_gate, self.gates_generator.output_gate)
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    # Equality gate for the last position:
+    self.encoding.append(['# Equality clause for the current white exists path variables and forall position variables: '])
+    self.gates_generator.complete_equality_gate(self.exists_white_goal_path_variables[-1], self.forall_position_variables)
+    last_equality_if_clause = self.gates_generator.output_gate
+
+    self.encoding.append(['# Equality clause for the white position vars and goal position variables: '])
+    self.gates_generator.complete_equality_gate(self.white_goal_position_values[-1], self.predicate_variables[-1])
+
+    self.gates_generator.if_then_gate(last_equality_if_clause, self.gates_generator.output_gate)
+
+    goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
-
-    # Connect white forall and exists variables
-
+    #'''
     # Add non-existence of white win condition
+    # First clauses for white positions:
+    white_sequence_output_gates = []
+    for i in range(self.safe_max_path_length):
+      self.encoding.append(['# The goal position is occupied and the color is white: '])
+      self.gates_generator.and_gate([self.white_goal_position_values[i][0], self.white_goal_position_values[i][1]])
+      white_sequence_output_gates.append(self.gates_generator.output_gate)
 
+    self.gates_generator.and_gate(white_sequence_output_gates)
+    white_sequence_final_output_gate = self.gates_generator.output_gate
+
+    white_line_condition_output_gates = []
+
+    # disjunction between all four line conditions:
+    for j in range(4):
+      step_conjunction_output_gates = []
+      for i in range(self.safe_max_path_length - 1):
+        # Equality between neighbor and the next white position:
+        self.encoding.append(['# Equality between nieghbour and next white position:'])
+        self.gates_generator.complete_equality_gate(self.white_goal_neighbours[i][j], self.exists_white_goal_path_variables[i+1])
+        step_conjunction_output_gates.append(self.gates_generator.output_gate)
+
+      self.gates_generator.and_gate(step_conjunction_output_gates)
+      white_line_condition_output_gates.append(self.gates_generator.output_gate)
+
+    self.gates_generator.or_gate(white_line_condition_output_gates)
+
+    # Conjunction between the white sequence and line conditions:
+    self.gates_generator.and_gate([white_sequence_final_output_gate, self.gates_generator.output_gate])
+
+    # Negating for non-existence:
+    final_white_output_gate = -self.gates_generator.output_gate
+
+
+    # If then condition is needed, only considering valid white position sequences:
+    restricted_white_position_gates = []
+    # restrictions for black positions:
+    self.encoding.append(['# white exists branches restriction clauses : '])
+    for i in range(self.safe_max_path_length):
+      lsc.add_circuit(self.gates_generator, self.exists_white_goal_path_variables[i], self.parsed.num_positions)
+      restricted_white_position_gates.append(self.gates_generator.output_gate)
+
+    self.gates_generator.and_gate(restricted_white_position_gates)
+    if_valid_restricted_output_gate = self.gates_generator.output_gate
+
+
+    # if the condition for the restricted positions and the white constraints gate:
+    self.gates_generator.if_then_gate(if_valid_restricted_output_gate, final_white_output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+    #'''
 
     # Final goal gate:
     self.encoding.append(['# Final and gate for goal constraints: '])
@@ -494,7 +601,7 @@ class TicTacToe:
     self.black_position_boolean_vars = self.encoding_variables.get_vars(4)
 
 
-    '''
+
     self.forall_white_goal_path_variables = []
     for i in range(self.safe_max_path_length):
       self.forall_white_goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
@@ -502,7 +609,22 @@ class TicTacToe:
     self.exists_white_goal_path_variables = []
     for i in range(self.safe_max_path_length):
       self.exists_white_goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
-    '''
+
+    self.white_goal_neighbours = []
+    for i in range(self.safe_max_path_length-1):
+      step_neighbours = []
+      for j in range(4):
+        step_neighbours.append(self.encoding_variables.get_vars(self.num_position_variables))
+      self.white_goal_neighbours.append(step_neighbours)
+
+    self.white_goal_boolean_vars = []
+    for i in range(self.safe_max_path_length - 1):
+      self.white_goal_boolean_vars.append(self.encoding_variables.get_vars(4))
+
+    self.white_goal_position_values = []
+    for i in range(self.safe_max_path_length):
+      self.white_goal_position_values.append(self.encoding_variables.get_vars(2))
+
 
     # Allocating forall position variables:
     self.forall_position_variables = self.encoding_variables.get_vars(self.num_position_variables)
@@ -523,14 +645,15 @@ class TicTacToe:
     # Down, Side, Diagonal and Antidiagonal bits are needed to represent neighbours for path based:
     self.boolean_vars = self.encoding_variables.get_vars(4)
 
-    
-    # In addition to above variables with consider the neighbour variables to represent various neighbours:
-    self.neighbour = self.encoding_variables.get_vars(self.num_position_variables)
+    self.neighbours = []
+    # In addition to above variables with consider the neighbour variables to represent 4 neighbours:
+    for i in range(4):
+      self.neighbours.append(self.encoding_variables.get_vars(self.num_position_variables))
 
     if (parsed.args.debug == 1):
       print("Goal state variables: ",self.goal_path_variables)
       print("Down, side, diagonal, and antidiagonal variables: ", self.boolean_vars)
-      print("Neighbour variables: ", self.neighbour)
+      print("Neighbour variables: ", self.neighbours)
 
 
     # Generating quantifer blocks:
