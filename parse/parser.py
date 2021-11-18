@@ -67,6 +67,7 @@ class Parse:
     self.black_initial_positions = []
 
     self.black_win_configurations = []
+    self.white_win_configurations = []
 
     for initial in parsed_dict['#whiteinitials']:
       # Finding position of white initial var:
@@ -119,10 +120,31 @@ class Parse:
           if (position not in self.black_initial_positions):
             temp_conf.append(position)
         # We only append if winning configuration is non-empty and the length is atmost number of black turns:
-        if (len(temp_conf) != 0 and len(temp_conf) <= int((self.depth+1)/2)):
-          #print(temp_conf)
-          self.black_win_configurations.append(temp_conf)
+        if (args.game_type == 'hex'):
+          if (len(temp_conf) != 0 and len(temp_conf) <= int((self.depth+1)/2)):
+            #print(temp_conf)
+            self.black_win_configurations.append(temp_conf)
+        else:
+          if (len(temp_conf) != 0):
+            self.black_win_configurations.append(temp_conf)
       #assert(len(self.black_win_configurations) != 0)
+
+      for win_conf in parsed_dict['#whitewins']:
+        step_win_positions = []
+        black_position_flag = 0
+        for single_vextex in win_conf:
+          # Finding position of white win vars:
+          # position = parsed_dict['#positions'][0].index(single_vextex)
+          # Finding var position from rearranged positions instead:
+          position = self.rearranged_positions.index(single_vextex)
+          # we do not need to check already black position in winning configurations:
+          if (position in self.black_initial_positions):
+            black_position_flag = 1
+            continue
+          step_win_positions.append(position)
+        if (black_position_flag == 0):
+          self.white_win_configurations.append(step_win_positions)
+      #assert(len(self.white_win_configurations) != 0)
 
 
     if args.debug == 1:
@@ -139,3 +161,4 @@ class Parse:
         print("End boarder: ", self.end_boarder)
       else:
         print("Black win configurations: ", self.black_win_configurations)
+        print("White win configurations: ", self.white_win_configurations)

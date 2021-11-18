@@ -252,8 +252,17 @@ class TicTacToe:
 
       # Finally for all other forall branches, the position is unoccupied:
       self.encoding.append(['# for all other branches the occupied is 0: '])
-      self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
-      self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+      step_or_gates = []
+      if (len(self.parsed.black_initial_positions) != 0):
+        step_or_gates.append(black_final_output_gate)
+      if (len(self.parsed.white_initial_positions) != 0):
+        step_or_gates.append(white_final_output_gate)
+
+      if (len(self.parsed.black_initial_positions) == 0 and  len(self.parsed.white_initial_positions) == 0):
+        initial_step_output_gates.append(-self.predicate_variables[0][0])
+      else:
+        self.gates_generator.or_gate(step_or_gates)
+        self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
 
       initial_step_output_gates.append(self.gates_generator.output_gate)
     else:
@@ -592,7 +601,7 @@ class TicTacToe:
     # Allocating path variables for the goal:
     self.goal_path_variables = []
     # For tic-tac-toe is 3:
-    self.safe_max_path_length = 3
+    self.safe_max_path_length = parsed.args.goal_length
 
     for i in range(self.safe_max_path_length):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
