@@ -129,22 +129,23 @@ class Parse:
             self.black_win_configurations.append(temp_conf)
       #assert(len(self.black_win_configurations) != 0)
 
-      for win_conf in parsed_dict['#whitewins']:
-        step_win_positions = []
-        black_position_flag = 0
-        for single_vextex in win_conf:
-          # Finding position of white win vars:
-          # position = parsed_dict['#positions'][0].index(single_vextex)
-          # Finding var position from rearranged positions instead:
-          position = self.rearranged_positions.index(single_vextex)
-          # we do not need to check already black position in winning configurations:
-          if (position in self.black_initial_positions):
-            black_position_flag = 1
-            continue
-          step_win_positions.append(position)
-        if (black_position_flag == 0):
-          self.white_win_configurations.append(step_win_positions)
-      #assert(len(self.white_win_configurations) != 0)
+      if (args.game_type != 'hex'):
+        for win_conf in parsed_dict['#whitewins']:
+          step_win_positions = []
+          black_position_flag = 0
+          for single_vextex in win_conf:
+            # Finding position of white win vars:
+            # position = parsed_dict['#positions'][0].index(single_vextex)
+            # Finding var position from rearranged positions instead:
+            position = self.rearranged_positions.index(single_vextex)
+            # we do not need to check already black position in winning configurations:
+            if (position in self.black_initial_positions):
+              black_position_flag = 1
+              continue
+            step_win_positions.append(position)
+          if (black_position_flag == 0):
+            self.white_win_configurations.append(step_win_positions)
+        #assert(len(self.white_win_configurations) != 0)
 
 
     if args.debug == 1:
