@@ -2,6 +2,7 @@
 
 '''
 TODOS:
+  - Need to handle non-existence of white goals, first looking at tic-tac-toe game
   - Reduce the black search space further by only considering one levels of nighbours
     for each peice we can play.
   - Use D-CAQE to take advantage of selected dependency in the earlier rounds.
@@ -32,7 +33,14 @@ if __name__ == '__main__':
                                   pg = path based goal (ungrounded)
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
-                                  ggt = grounded goal with time'''),default = 'gg')
+                                  ggt = grounded goal with time
+                                  ttt = tictactoe'''),default = 'gg')
+  parser.add_argument("--game_type", help=textwrap.dedent('''
+                                  games (for specific optimizations):
+                                  hex = hex game (default)
+                                  ttt = tic-tac-toe
+                                  gomuku = gomuku'''),default = 'hex')
+  parser.add_argument("--goal_length", help="Goal line length for games such as tic-tac-toe and gomuku, default 3", type=int,default = 3)
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
                                0 = only generate encoding

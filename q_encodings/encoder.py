@@ -3,6 +3,7 @@
 from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
 from q_encodings.grounded_goal_with_time import GroundedGoalTimeEncoding as ggte
 from q_encodings.path_based_goal import PathBasedGoal as pbg
+from q_encodings.tictactoe import TicTacToe as ttt
 from q_encodings.compact_path_based_goal import CompactPathBasedGoal as cpbg
 import os
 
@@ -55,6 +56,9 @@ def generate_encoding(parsed_instance):
   elif (parsed_instance.args.e == 'cpg'):
     print("Generating compact path based goal encoding")
     encoding = cpbg(parsed_instance)
+  elif (parsed_instance.args.e == 'ttt'):
+    print("Generating TicTacToe encoding")
+    encoding = ttt(parsed_instance)
 
   # We print QCIR format directly to the file:
   if (parsed_instance.args.encoding_format == 1 ):
