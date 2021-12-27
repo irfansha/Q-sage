@@ -244,23 +244,23 @@ class GroundedGoalEncoding:
 
     goal_step_output_gates.append(self.gates_generator.output_gate)
 
-    # now adding clauses for the white winning configurations:
-    self.encoding.append(['# Clauses for negated white winning configurations: '])
-    win_configuration_step_output_gates = []
-    for win_configuration in self.parsed.white_win_configurations:
-      step_output_gates = []
-      for position in win_configuration:
-        self.gates_generator.and_gate([self.goal_state_variables[position][0], self.goal_state_variables[position][1]])
-        step_output_gates.append(-self.gates_generator.output_gate)
-      # Atleast one of the position must be not white:
-      self.gates_generator.or_gate(step_output_gates)
-      win_configuration_step_output_gates.append(self.gates_generator.output_gate)
+    if (self.parsed.args.game_type != 'hex'):
+      # now adding clauses for the white winning configurations:
+      self.encoding.append(['# Clauses for negated white winning configurations: '])
+      win_configuration_step_output_gates = []
+      for win_configuration in self.parsed.white_win_configurations:
+        step_output_gates = []
+        for position in win_configuration:
+          self.gates_generator.and_gate([self.goal_state_variables[position][0], self.goal_state_variables[position][1]])
+          step_output_gates.append(-self.gates_generator.output_gate)
+        # Atleast one of the position must be not white:
+        self.gates_generator.or_gate(step_output_gates)
+        win_configuration_step_output_gates.append(self.gates_generator.output_gate)
 
-    self.encoding.append(['# All the negated winning configurations are true: '])
-    self.gates_generator.and_gate(win_configuration_step_output_gates)
+      self.encoding.append(['# All the negated winning configurations are true: '])
+      self.gates_generator.and_gate(win_configuration_step_output_gates)
 
-    goal_step_output_gates.append(self.gates_generator.output_gate)
-
+      goal_step_output_gates.append(self.gates_generator.output_gate)
 
     # Final goal gate:
     self.encoding.append(['# Final and gate for goal constraints: '])
