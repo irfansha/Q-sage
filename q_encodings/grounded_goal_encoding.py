@@ -312,7 +312,7 @@ class GroundedGoalEncoding:
 
     self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
     # Restrictions on black moves are invalid if not powers of 2:
-    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables))):
+    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.black_move_restrictions == 1):
       self.gates_generator.and_gate([self.restricted_black_gate, self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
     else:
       self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
@@ -407,12 +407,12 @@ class GroundedGoalEncoding:
     self.generate_goal_gate()
 
     # Note: Improved version needs to change this with only open positions:
-    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables))):
+    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.black_move_restrictions == 1):
       self.generate_restricted_black_moves()
 
-      # we only generate restricted constraints outside the transitions if specified explicitly:
-      if (self.parsed.args.forall_move_restrictions == 'out'):
-        self.generate_restricted_white_moves()
+    # we only generate restricted constraints outside the transitions if specified explicitly:
+    if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.forall_move_restrictions == 'out'):
+      self.generate_restricted_white_moves()
 
     if (self.parsed.num_positions != int(math.pow(2, self.num_position_variables)) and self.parsed.args.restricted_position_constraints == 1):
       self.restricted_positions_gate = 0 # Can never be 0

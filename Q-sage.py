@@ -70,6 +70,7 @@ if __name__ == '__main__':
                                        1 = renumber open position to the front
                                        2 = extra equality clauses for the transformed board with only open positions (default 1)''') ,default = 1)
   parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 1" ,default = 1)
+  parser.add_argument("--black_move_restrictions", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
                                        in = let forall restrictions in each if condition
                                        out = forall restrictions outside the transition functions (default)
