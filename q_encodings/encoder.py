@@ -6,6 +6,7 @@ from q_encodings.path_based_goal import PathBasedGoal as pbg
 from q_encodings.tictactoe import TicTacToe as ttt
 from q_encodings.compact_path_based_goal import CompactPathBasedGoal as cpbg
 from q_encodings.compact_positional import CompactPositonal as cp
+from q_encodings.no_transitions_path_based import NoTransitionsPathBasedGoal as ntpbg
 import os
 
 def add_dependencies_to_qdimacs(parsed_instance, encoding):
@@ -63,7 +64,9 @@ def generate_encoding(parsed_instance):
   elif (parsed_instance.args.e == 'cp'):
     print("Generating Compact Positional encoding")
     encoding = cp(parsed_instance)
-
+  elif (parsed_instance.args.e == 'ntpg'):
+    print("Generating no transition path based goal encoding")
+    encoding = ntpbg(parsed_instance)
 
   # We print QCIR format directly to the file:
   if (parsed_instance.args.encoding_format == 1 ):
