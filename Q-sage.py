@@ -34,7 +34,10 @@ if __name__ == '__main__':
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time
-                                  ttt = tictactoe'''),default = 'gg')
+                                  ttt = tictactoe
+                                  cp = compact positional
+                                  cgcp = compact goal compact positional
+                                  ntpg = path based goal, without transition function'''),default = 'gg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
                                   hex = hex game (default)

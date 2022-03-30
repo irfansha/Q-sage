@@ -12,7 +12,7 @@ def natural_keys(text):
 
 def run_tests(args):
   print("Running tests")
-  if (args.e == 'pg' or args.e == 'cpg'):
+  if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ntpg'):
     cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases_ungrounded', '*')
   else:
     cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases', '*')
