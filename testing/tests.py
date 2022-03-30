@@ -1,8 +1,10 @@
 # Irfansha Shaik, 07.09.2021, Aarhus.
 
 import glob
+import os
 import re
-import os, subprocess
+import subprocess
+
 
 def atoi(text):
   return int(text) if text.isdigit() else text
@@ -13,7 +15,7 @@ def natural_keys(text):
 def run_tests(args):
   print("Running tests")
   if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ntpg'):
-    cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases_ungrounded', '*')
+    cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases_ungrounded_new_boards', '*')
   else:
     cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases', '*')
   files_list = glob.glob(cur_path)
@@ -31,4 +33,7 @@ def run_tests(args):
     f.close()
     for line in lines:
       print(line.strip("\n"))
+      if ("winning strategy not found" in line):
+        print("Error: Tests failed")
+        return
     print("--------------------------------------------------------------------------------------------")
