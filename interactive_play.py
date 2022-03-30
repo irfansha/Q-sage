@@ -1,9 +1,10 @@
 # Irfansha Shaik, 01.09.2021, Aarhus.
 
-import subprocess
-import argparse, textwrap
+import argparse
 import math
 import random
+import subprocess
+import textwrap
 
 
 def parse(problem_path):
@@ -138,10 +139,11 @@ if __name__ == '__main__':
                                   encoding to run by Q-sage:
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time'''),default = 'gg')
-  parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 1" ,default = 1)
+  parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
                                        in = let forall restrictions in each if condition
-                                       out = forall restrictions outside the transition functions (default)'''), default = 'out')
+                                       out = forall restrictions outside the transition functions
+                                       none = no restrictions (default)'''), default = 'none')
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 1", type=int,default = 1)
 
   args = parser.parse_args()
