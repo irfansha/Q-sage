@@ -8,16 +8,17 @@ TODOS:
   - Use D-CAQE to take advantage of selected dependency in the earlier rounds.
 '''
 
+import argparse
+import datetime
 import os
+import subprocess
+import textwrap
 import time
-import argparse, textwrap
+
 import q_encodings.encoder as ge
-from parse.parser import Parse as ps
 import run.run_solver as rs
 import testing.tests as ts
-import subprocess
-import datetime
-
+from parse.parser import Parse as ps
 
 # Main:
 if __name__ == '__main__':
@@ -72,12 +73,12 @@ if __name__ == '__main__':
                                        0 = None
                                        1 = renumber open position to the front
                                        2 = extra equality clauses for the transformed board with only open positions (default 1)''') ,default = 1)
-  parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 1" ,default = 1)
+  parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--black_move_restrictions", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
                                        in = let forall restrictions in each if condition
                                        out = forall restrictions outside the transition functions (default)
-                                       none = no restrictions'''), default = 'out')
+                                       none = no restrictions'''), default = 'none')
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
