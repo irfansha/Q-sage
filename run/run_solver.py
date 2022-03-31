@@ -1,9 +1,10 @@
 # Irfansha Shaik, 14.08.2021, Aarhus.
 
-from run.run_quabs import RunQuabs as rq
 from run.run_caqe import RunCaqe as rc
-from run.run_rareqs import RunRareqs as rr
 from run.run_pedant import RunPedant as rp
+from run.run_quabs import RunQuabs as rq
+from run.run_rareqs import RunRareqs as rr
+
 
 def run_single_solver(encoding):
   # For ease of access declaring locally:
