@@ -109,6 +109,7 @@ class Parse:
         self.end_boarder.append(position)
 
     else:
+      self.max_win_config_length = 0
       for win_conf in parsed_dict['#blackwins']:
         temp_conf = []
         for single_vextex in win_conf:
@@ -119,14 +120,17 @@ class Parse:
           # we do not need to check already black position in winning configurations:
           if (position not in self.black_initial_positions):
             temp_conf.append(position)
+          if (position in self.white_initial_positions):
+            # resetting if white position is found
+            temp_conf = []
+            break
         # We only append if winning configuration is non-empty and the length is atmost number of black turns:
-        if (args.game_type == 'hex'):
-          if (len(temp_conf) != 0 and len(temp_conf) <= int((self.depth+1)/2)):
-            #print(temp_conf)
-            self.black_win_configurations.append(temp_conf)
-        else:
-          if (len(temp_conf) != 0):
-            self.black_win_configurations.append(temp_conf)
+        if (len(temp_conf) != 0 and len(temp_conf) <= int((self.depth+1)/2)):
+          #print(temp_conf)
+          self.black_win_configurations.append(temp_conf)
+          if (len(temp_conf) > self.max_win_config_length):
+            self.max_win_config_length = len(temp_conf)
+          print(win_conf, temp_conf)
       #assert(len(self.black_win_configurations) != 0)
 
       if (args.game_type != 'hex'):

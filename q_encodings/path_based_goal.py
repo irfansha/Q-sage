@@ -2,11 +2,11 @@
 
 # TODO: Adding additional clauses between path variables and move variables:
 
-from utils.variables_dispatcher import VarDispatcher as vd
-from utils.gates import GatesGen as ggen
 import math
-import utils.lessthen_cir as lsc
 
+import utils.lessthen_cir as lsc
+from utils.gates import GatesGen as ggen
+from utils.variables_dispatcher import VarDispatcher as vd
 
 
 class PathBasedGoal:
