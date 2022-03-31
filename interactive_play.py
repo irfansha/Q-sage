@@ -139,6 +139,11 @@ if __name__ == '__main__':
                                   encoding to run by Q-sage:
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time'''),default = 'gg')
+  parser.add_argument("--renumber_positions", type=int, help=textwrap.dedent('''
+                                       renumber positions for tighter lessthan constraints:
+                                       0 = None
+                                       1 = renumber open position to the front
+                                       2 = extra equality clauses for the transformed board with only open positions (default 1)''') ,default = 1)
   parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
                                        in = let forall restrictions in each if condition
@@ -178,7 +183,7 @@ if __name__ == '__main__':
     temp_input_file = "intermediate_files/interactive_problem_file"
     # Writing to temporary intermediate file:
     print_to_file(temp_input_file, parsed_dict, args)
-    command = "python3 Q-sage.py --run 2 --ignore_file_depth 1 --depth " + str(depth) + ' --restricted_position_constraints ' + str(args.restricted_position_constraints) +  ' --forall_move_restrictions ' + args.forall_move_restrictions + ' -e ' + args.e + " --problem " + temp_input_file + " > intermediate_files/interactive_output"
+    command = "python3 Q-sage.py --run 2 --ignore_file_depth 1 --depth " + str(depth) + ' --restricted_position_constraints ' + str(args.restricted_position_constraints) + ' --renumber_positions ' + str(args.renumber_positions)  + ' --forall_move_restrictions ' + args.forall_move_restrictions + ' -e ' + args.e + " --problem " + temp_input_file + " > intermediate_files/interactive_output"
     subprocess.run([command], shell = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT ,check=True)
     winning_move = read_winning_move("intermediate_files/interactive_output")
     if (winning_move == -1):
