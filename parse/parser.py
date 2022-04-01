@@ -130,7 +130,6 @@ class Parse:
           self.black_win_configurations.append(temp_conf)
           if (len(temp_conf) > self.max_win_config_length):
             self.max_win_config_length = len(temp_conf)
-          print(win_conf, temp_conf)
       #assert(len(self.black_win_configurations) != 0)
 
       if (args.game_type != 'hex'):
