@@ -217,6 +217,7 @@ class ExplicitGoalEncoding:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
 
+    # If no winning configurations, we do not need goal constraints:
     if len(self.parsed.black_win_configurations) != 0:
       # First adding clauses for making witness variables black:
       step_witness_equality_output_gates = []
