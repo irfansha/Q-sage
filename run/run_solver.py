@@ -39,7 +39,11 @@ def run_single_solver(encoding):
     # if already solved, just print any open position:
     if encoding.parsed.solved == 1:
       print("The problem already solved")
-      print("First winning move:", encoding.parsed.rearranged_positions[0])
+      print(encoding.parsed.black_initial_positions, encoding.parsed.white_initial_positions)
+      for i in range(len(encoding.parsed.positions)):
+        if (i not in encoding.parsed.black_initial_positions and i not in encoding.parsed.white_initial_positions):
+          print("First winning move1:", encoding.parsed.positions[i])
+          break
     else:
       move_string = ''
       for val in encoding.move_variables[0]:
