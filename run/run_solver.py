@@ -24,7 +24,7 @@ def run_single_solver(encoding):
     #sol_map = instance.sol_map
 
   # Checking existence of plan:
-  if instance.sat == 1:
+  if instance.sat == 1 or encoding.parsed.solved == 1:
     print("Plan found")
   elif instance.sat == -1:
     print("====> ERROR from solver <====")
@@ -35,11 +35,17 @@ def run_single_solver(encoding):
 
   # If plan extraction is enabled:
   if (args.run == 2):
-    move_string = ''
-    for val in encoding.move_variables[0]:
-      move_string += str(sol_map[val])
-      # Action index, powers of two:
-    action_index = int(move_string, 2)
-    #print("First winning move:", encoding.parsed.positions[action_index])
-    # parsing using rearranged positions:
-    print("First winning move:", encoding.parsed.rearranged_positions[action_index])
+
+    # if already solved, just print any open position:
+    if encoding.parsed.solved == 1:
+      print("The problem already solved")
+      print("First winning move:", encoding.parsed.rearranged_positions[0])
+    else:
+      move_string = ''
+      for val in encoding.move_variables[0]:
+        move_string += str(sol_map[val])
+        # Action index, powers of two:
+      action_index = int(move_string, 2)
+      #print("First winning move:", encoding.parsed.positions[action_index])
+      # parsing using rearranged positions:
+      print("First winning move:", encoding.parsed.rearranged_positions[action_index])

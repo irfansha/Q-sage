@@ -218,37 +218,37 @@ class ExplicitGoalEncoding:
     self.encoding.append(['# Goal state: '])
 
     # If no winning configurations, we do not need goal constraints:
-    if len(self.parsed.black_win_configurations) != 0:
-      # First adding clauses for making witness variables black:
-      step_witness_equality_output_gates = []
-      for i in range(self.max_witness_length):
-        # equality with forall variables:
-        self.gates_generator.complete_equality_gate(self.witness_variables[i], self.forall_position_variables)
-        step_witness_equality_output_gates.append(self.gates_generator.output_gate)
+    #if len(self.parsed.black_win_configurations) != 0:
+    # First adding clauses for making witness variables black:
+    step_witness_equality_output_gates = []
+    for i in range(self.max_witness_length):
+      # equality with forall variables:
+      self.gates_generator.complete_equality_gate(self.witness_variables[i], self.forall_position_variables)
+      step_witness_equality_output_gates.append(self.gates_generator.output_gate)
     
-      # if one of the equality is true then the final state must be a black position:
-      self.gates_generator.or_gate(step_witness_equality_output_gates)
-      if_witness_equality_output_gate = self.gates_generator.output_gate
-      self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
-      self.gates_generator.if_then_gate(if_witness_equality_output_gate, self.gates_generator.output_gate)
-      goal_step_output_gates.append(self.gates_generator.output_gate)
+    # if one of the equality is true then the final state must be a black position:
+    self.gates_generator.or_gate(step_witness_equality_output_gates)
+    if_witness_equality_output_gate = self.gates_generator.output_gate
+    self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
+    self.gates_generator.if_then_gate(if_witness_equality_output_gate, self.gates_generator.output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
 
-      # now adding clauses for the winning configurations:
-      self.encoding.append(['# Clauses for black winning configurations: '])
-      win_configuration_step_output_gates = []
-      for win_configuration in self.parsed.black_win_configurations:
-        temp_list = []
-        for i in range(len(win_configuration)):
-          win_binary_format_clause = self.generate_binary_format(self.witness_variables[i],win_configuration[i])
-          self.gates_generator.and_gate(win_binary_format_clause)
-          temp_list.append(self.gates_generator.output_gate)
-        self.gates_generator.and_gate(temp_list)
-        win_configuration_step_output_gates.append(self.gates_generator.output_gate)
+    # now adding clauses for the winning configurations:
+    self.encoding.append(['# Clauses for black winning configurations: '])
+    win_configuration_step_output_gates = []
+    for win_configuration in self.parsed.black_win_configurations:
+      temp_list = []
+      for i in range(len(win_configuration)):
+        win_binary_format_clause = self.generate_binary_format(self.witness_variables[i],win_configuration[i])
+        self.gates_generator.and_gate(win_binary_format_clause)
+        temp_list.append(self.gates_generator.output_gate)
+      self.gates_generator.and_gate(temp_list)
+      win_configuration_step_output_gates.append(self.gates_generator.output_gate)
 
-      self.encoding.append(['# Atleast one of the winning configurations to be true: '])
-      self.gates_generator.or_gate(win_configuration_step_output_gates)
+    self.encoding.append(['# Atleast one of the winning configurations to be true: '])
+    self.gates_generator.or_gate(win_configuration_step_output_gates)
 
-      goal_step_output_gates.append(self.gates_generator.output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
     # Final goal gate:
