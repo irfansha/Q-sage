@@ -7,6 +7,8 @@ from q_encodings.compact_goal_compact_positional import \
 from q_encodings.compact_path_based_goal import CompactPathBasedGoal as cpbg
 from q_encodings.compact_positional import CompactPositonal as cp
 from q_encodings.explicit_goal_encoding import ExplicitGoalEncoding as ege
+from q_encodings.explicit_goal_witness_based import \
+    ExplicitGoalWitnessBased as egwb
 from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
 from q_encodings.grounded_goal_with_time import \
     GroundedGoalTimeEncoding as ggte
@@ -56,9 +58,12 @@ def generate_encoding(parsed_instance):
   if (parsed_instance.args.e == 'gg'):
     print("Generating grounded goal encoding")
     encoding = gge(parsed_instance)
-  if (parsed_instance.args.e == 'eg'):
+  elif (parsed_instance.args.e == 'eg'):
     print("Generating explicit goal encoding")
     encoding = ege(parsed_instance)
+  elif (parsed_instance.args.e == 'ew'):
+    print("Generating explicit goal witness based encoding")
+    encoding = egwb(parsed_instance)
   elif (parsed_instance.args.e == 'ggt'):
     print("Generating grounded goal encoding with time")
     encoding = ggte(parsed_instance)
