@@ -35,6 +35,8 @@ if __name__ == '__main__':
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time
+                                  eg = explicit goal encoding
+                                  ew = explicit goal witness based
                                   ttt = tictactoe
                                   cp = compact positional
                                   cgcp = compact goal compact positional

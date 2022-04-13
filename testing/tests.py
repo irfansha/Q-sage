@@ -23,7 +23,7 @@ def run_tests(args):
   for testcase in files_list:
     print("Running for the testcase:", testcase)
     print("--------------------------------------------------------------------------------------------")
-    command = "python3 interactive_play.py --ignore_file_depth 0 --player random -e " + args.e + " --forall_move_restrictions " + args.forall_move_restrictions + " --restricted_position_constraints " + str(args.restricted_position_constraints) + " --seed " + str(args.seed) +  " --problem " + testcase + " > intermediate_files/testing_output"
+    command = "python3 interactive_play.py --ignore_file_depth 0 --player random -e " + args.e + ' --renumber_positions ' + str(args.renumber_positions) + " --forall_move_restrictions " + args.forall_move_restrictions + " --restricted_position_constraints " + str(args.restricted_position_constraints) + " --seed " + str(args.seed) +  " --problem " + testcase + " > intermediate_files/testing_output"
     subprocess.run([command], shell = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT ,check=True)
 
     # Checking if the rercent testrun is successful:
