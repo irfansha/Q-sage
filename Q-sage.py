@@ -37,6 +37,7 @@ if __name__ == '__main__':
                                   ggt = grounded goal with time
                                   eg = explicit goal encoding
                                   ew = explicit goal witness based
+                                  iw = iteratice squaring witness based
                                   ttt = tictactoe
                                   cp = compact positional
                                   cgcp = compact goal compact positional

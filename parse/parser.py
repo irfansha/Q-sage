@@ -16,6 +16,9 @@ class Parse:
 
     parsed_dict = {}
 
+    # flag for already solved:
+    self.solved = 0
+
     for line in lines:
       stripped_line = line.strip("\n").strip(" ").split(" ")
       # we ignore if it is a comment:
@@ -85,7 +88,7 @@ class Parse:
 
 
     # Depending on encoding we parse the winning configurations:
-    if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ttt' or args.e == 'cp' or args.e == 'cgcp' or args.e == 'ntpg'):
+    if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ttt' or args.e == 'cp' or args.e == 'cgcp' or args.e == 'ntpg' or args.e == 'iw'):
       self.neighbour_dict = {}
       for neighbour_list in parsed_dict['#neighbours']:
         # The neighbours list contains itself as its first element, which is the key for the dict:
@@ -109,9 +112,6 @@ class Parse:
         self.end_boarder.append(position)
 
     else:
-
-      # flag for already solved:
-      self.solved = 0
 
       self.max_win_config_length = 0
       for win_conf in parsed_dict['#blackwins']:
