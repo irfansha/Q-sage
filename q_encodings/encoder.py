@@ -12,6 +12,8 @@ from q_encodings.explicit_goal_witness_based import \
 from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
 from q_encodings.grounded_goal_with_time import \
     GroundedGoalTimeEncoding as ggte
+from q_encodings.iterative_squaring_witness_based import \
+    IterativeSquaringWitnessBased as iswb
 from q_encodings.no_transitions_path_based import \
     NoTransitionsPathBasedGoal as ntpbg
 from q_encodings.path_based_goal import PathBasedGoal as pbg
@@ -64,6 +66,9 @@ def generate_encoding(parsed_instance):
   elif (parsed_instance.args.e == 'ew'):
     print("Generating explicit goal witness based encoding")
     encoding = egwb(parsed_instance)
+  elif (parsed_instance.args.e == 'iw'):
+    print("Generating iterative goal witness based encoding")
+    encoding = iswb(parsed_instance)
   elif (parsed_instance.args.e == 'ggt'):
     print("Generating grounded goal encoding with time")
     encoding = ggte(parsed_instance)
