@@ -76,10 +76,6 @@ class CompactPathBasedGoal:
     for i in range(self.parsed.depth+1):
       self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.predicate_variables[i]) + ')'])
 
-    # Exists neighbour variables:
-    self.quantifier_block.append(['# Exists neighbour variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.neighbour) + ')'])
-
   def generate_black_transition(self, time_step):
     self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
 
@@ -521,12 +517,8 @@ class CompactPathBasedGoal:
     for i in range(3*(self.path_depth)):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
 
-    # One neighbour is sufficeint for path based:
-    self.neighbour = self.encoding_variables.get_vars(self.num_position_variables)
-
     if (parsed.args.debug == 1):
       print("Goal forall path variables: ",self.forall_path_variables)
-      print("Neighbour variables: ", self.neighbour)
 
 
     # Generating quantifer blocks:
