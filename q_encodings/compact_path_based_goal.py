@@ -242,36 +242,6 @@ class CompactPathBasedGoal:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
 
-    # Specifying neighbours:
-    self.encoding.append(['# Specifying neighbours: '])
-    for i in range(self.parsed.num_positions):
-      # We do not need to specify white position neighbours:
-      # NOTE: Careful it is only for hex
-      if (i in self.parsed.white_initial_positions):
-        continue
-      binary_format_clause = self.generate_binary_format(self.forall_position_variables,i)
-      self.gates_generator.and_gate(binary_format_clause)
-      if_condition_output_gate = self.gates_generator.output_gate
-      neighbour_output_gates = []
-      self.encoding.append(['# neighbour clauses: '])
-      # Neighbours of current position:
-      #temp_neighbours = list(self.parsed.neighbour_dict[i])
-
-      # For each neighbour we generate a clause:
-      for cur_neighbour in self.parsed.neighbour_dict[i]:
-        temp_binary_format_clause = self.generate_binary_format(self.neighbour,cur_neighbour)
-        self.gates_generator.and_gate(temp_binary_format_clause)
-        neighbour_output_gates.append(self.gates_generator.output_gate)
-
-      # Disjunction of output gates is true:
-      self.gates_generator.or_gate(neighbour_output_gates)
-
-
-      # If then clause for the neighbour implication:
-      self.encoding.append(['# if then clause : '])
-      self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
-      goal_step_output_gates.append(self.gates_generator.output_gate)
-
 
     # Generating equality constraints for zero layer:
     self.encoding.append(['# Constraints in zero layer, connecting with start and end path positions :'])
@@ -330,36 +300,58 @@ class CompactPathBasedGoal:
     # Finally neighbour constraints for the final two positions:
 
     self.encoding.append(['# Constratins for neighbours :'])
+    # Connections with nieghbour information:
+    # symbolic witness positions are connected:
+    # iterating through each possible position value:
+    for i in range(self.parsed.num_positions):
+      self.encoding.append(['# position clauses: '])
+      binary_format_clause = self.generate_binary_format(self.goal_path_variables[-2],i)
+      self.gates_generator.and_gate(binary_format_clause)
+      if_condition_output_gate = self.gates_generator.output_gate
+      neighbour_output_gates = []
+      self.encoding.append(['# neighbour clauses: '])
+
+      # For each neighbour we generate a clause:
+      for cur_neighbour in self.parsed.neighbour_dict[i]:
+        temp_binary_format_clause = self.generate_binary_format(self.goal_path_variables[-1],cur_neighbour)
+        self.gates_generator.and_gate(temp_binary_format_clause)
+        neighbour_output_gates.append(self.gates_generator.output_gate)
+
+      # For allowing shorter paths, we say the position is also its neighbour:
+      temp_binary_format_clause = self.generate_binary_format(self.goal_path_variables[-1],i)
+      self.gates_generator.and_gate(temp_binary_format_clause)
+      neighbour_output_gates.append(self.gates_generator.output_gate)
+
+      # One of the values must be true, so a disjunction:
+      self.gates_generator.or_gate(neighbour_output_gates)
+
+      # If then clause for the neighbour implication:
+      self.encoding.append(['# if then clause : '])
+      self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    # in the branches of inner most positions, the positions must be black:
     self.encoding.append(['# Equality clause for the last second path variables and forall position variables: '])
-    # Here neighbour constraints are for S[-2] and S[-1]:
     self.gates_generator.complete_equality_gate(self.goal_path_variables[-2], self.forall_position_variables)
-    if_condition_output_gate = self.gates_generator.output_gate
+    if_second_inner_position_gate = self.gates_generator.output_gate
 
-    # Equality for neighbour variables and next position:
-    self.encoding.append(['# Equality clause for the neighbour path variables and neighbour variables: '])
-    temp_neighbour_equality_output_gate = []
-    self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.neighbour)
-    temp_neighbour_equality_output_gate = self.gates_generator.output_gate
+    self.encoding.append(['# Equality clause for the inner most path variables and forall position variables: '])
+    self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.forall_position_variables)
+    if_inner_most_position_gate = self.gates_generator.output_gate
 
-    # Equality for next position with current position:
-    self.encoding.append(['# Equality clause for the neighbour path variables and current path variables: '])
-    self.gates_generator.complete_equality_gate(self.goal_path_variables[-1], self.goal_path_variables[-2])
-
-    # Disjunction of above is true, either next position is a neighbour or itself:
-    self.encoding.append(['# One of the above equality clauses is true: '])
-    self.gates_generator.or_gate([temp_neighbour_equality_output_gate, self.gates_generator.output_gate])
-
-    neighbour_equality_output_gate = self.gates_generator.output_gate
+    self.gates_generator.or_gate([if_second_inner_position_gate, if_inner_most_position_gate])
+    if_both_inner_positions_gate = self.gates_generator.output_gate
 
     # the position must be occupied and the color must be black:
     self.encoding.append(['# The goal position is occupied and the color is black and conjuction with neighbour equality gate: '])
-    self.gates_generator.and_gate([neighbour_equality_output_gate, self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
+    self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
     constraints_output_gate = self.gates_generator.output_gate
 
     self.encoding.append(['# if then clause : '])
     # The if condition for the path constraints:
-    self.gates_generator.if_then_gate(if_condition_output_gate, constraints_output_gate)
+    self.gates_generator.if_then_gate(if_both_inner_positions_gate, constraints_output_gate)
     goal_step_output_gates.append(self.gates_generator.output_gate)
+
 
 
     start_border_output_gates = []
