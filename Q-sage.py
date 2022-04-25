@@ -82,6 +82,7 @@ if __name__ == '__main__':
                                        in = let forall restrictions in each if condition
                                        out = forall restrictions outside the transition functions (default)
                                        none = no restrictions'''), default = 'none')
+  parser.add_argument("--stuttering", help="[b/nb] With boolean stuttering or without, default = b ",default = "b")
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
