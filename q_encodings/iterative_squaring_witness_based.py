@@ -1,6 +1,8 @@
 # Irfansha Shaik, 13.04.2022, Aarhus.
 
 
+#TODO: Stuttering and path length constraints can be added.
+
 import math
 
 import utils.lessthen_cir as lsc
