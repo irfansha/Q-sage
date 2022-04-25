@@ -1,10 +1,10 @@
 # Irfansha Shaik, 12.09.2021, Aarhus.
 
-from utils.variables_dispatcher import VarDispatcher as vd
-from utils.gates import GatesGen as ggen
 import math
-import utils.lessthen_cir as lsc
 
+import utils.lessthen_cir as lsc
+from utils.gates import GatesGen as ggen
+from utils.variables_dispatcher import VarDispatcher as vd
 
 
 class CompactPathBasedGoal:
@@ -359,22 +359,6 @@ class CompactPathBasedGoal:
     self.encoding.append(['# if then clause : '])
     # The if condition for the path constraints:
     self.gates_generator.if_then_gate(if_condition_output_gate, constraints_output_gate)
-    goal_step_output_gates.append(self.gates_generator.output_gate)
-
-
-
-    # The last path position also must be occupied and black:
-    self.encoding.append(['# Constratins for end position :'])
-    self.encoding.append(['# Equality clause for the current path variables and forall position variables: '])
-    self.gates_generator.complete_equality_gate(self.end_path_varaibles, self.forall_position_variables)
-    last_if_condition_output_gate = self.gates_generator.output_gate
-    # the position must be occupied and the color must be black:
-    self.encoding.append(['# The goal position is occupied and the color is black: '])
-    self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
-
-    self.encoding.append(['# if then clause : '])
-    # The if condition for the path constraints:
-    self.gates_generator.if_then_gate(last_if_condition_output_gate, self.gates_generator.output_gate)
     goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
