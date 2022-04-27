@@ -411,9 +411,13 @@ class PathBasedGoal:
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
-    # First goal boolean variable is always positive:
-    goal_step_output_gates.append(self.goal_path_boolean_variables[0])
+    assert(self.parsed.lower_bound_path_length <= self.safe_max_path_length)
 
+    # First  lower bound -1 goal boolean variable are always positive:
+    for i in range(self.parsed.lower_bound_path_length - 1):
+      goal_step_output_gates.append(self.goal_path_boolean_variables[i])
+
+    #print(self.parsed.lower_bound_path_length - 1)
 
     # Path based equality constraints
     for i in range(self.safe_max_path_length - 1):

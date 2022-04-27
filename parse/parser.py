@@ -2,6 +2,8 @@
 
 import os
 
+import utils.stuttering_bounds as sb
+
 # Board vertexs are numbered from 0
 
 
@@ -110,6 +112,8 @@ class Parse:
       for single_vertex in parsed_dict['#endboarder'][0]:
         position = self.rearranged_positions.index(single_vertex)
         self.end_boarder.append(position)
+
+      self.lower_bound_path_length = sb.lower_bound(self)
 
     else:
 
