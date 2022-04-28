@@ -91,18 +91,7 @@ class Parse:
 
     # Depending on encoding we parse the winning configurations:
     if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ttt' or args.e == 'cp' or args.e == 'cgcp' or args.e == 'ntpg' or args.e == 'iw'):
-      self.neighbour_dict = {}
-      for neighbour_list in parsed_dict['#neighbours']:
-        # The neighbours list contains itself as its first element, which is the key for the dict:
-        cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
-        temp_list = []
-        for neighbour in neighbour_list:
-          if (neighbour != 'NA'):
-            cur_neighbour = self.rearranged_positions.index(neighbour)
-            temp_list.append(cur_neighbour)
-          else:
-            temp_list.append(neighbour)
-        self.neighbour_dict[cur_position] = temp_list
+
       self.start_boarder = []
       for single_vertex in parsed_dict['#startboarder'][0]:
         position = self.rearranged_positions.index(single_vertex)
@@ -112,6 +101,26 @@ class Parse:
       for single_vertex in parsed_dict['#endboarder'][0]:
         position = self.rearranged_positions.index(single_vertex)
         self.end_boarder.append(position)
+
+
+      self.neighbour_dict = {}
+      for neighbour_list in parsed_dict['#neighbours']:
+        # The neighbours list contains itself as its first element, which is the key for the dict:
+        cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
+        temp_list = []
+        for neighbour in neighbour_list:
+          if (neighbour != 'NA'):
+            cur_neighbour = self.rearranged_positions.index(neighbour)
+            if (cur_position in self.start_boarder and cur_neighbour in self.start_boarder):
+              continue
+            elif (cur_position in self.end_boarder and cur_neighbour in self.end_boarder):
+              continue
+            else:
+              temp_list.append(cur_neighbour)
+          else:
+            temp_list.append(neighbour)
+        if (len(temp_list)  != 0):
+          self.neighbour_dict[cur_position] = temp_list
 
       self.lower_bound_path_length = sb.lower_bound(self)
 

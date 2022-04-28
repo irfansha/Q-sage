@@ -387,6 +387,9 @@ class PathBasedGoal:
       # NOTE: Careful it is only for hex
       if (i in self.parsed.white_initial_positions):
         continue
+      # if the neighbours are not present:
+      if (i not in self.parsed.neighbour_dict):
+        continue
       binary_format_clause = self.generate_binary_format(self.forall_position_variables,i)
       self.gates_generator.and_gate(binary_format_clause)
       if_condition_output_gate = self.gates_generator.output_gate
