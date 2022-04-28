@@ -1,11 +1,11 @@
 # Irfansha Shaik, 11.01.2022, Aarhus.
 
 
-from utils.variables_dispatcher import VarDispatcher as vd
-from utils.gates import GatesGen as ggen
 import math
-import utils.lessthen_cir as lsc
 
+import utils.lessthen_cir as lsc
+from utils.gates import GatesGen as ggen
+from utils.variables_dispatcher import VarDispatcher as vd
 
 
 class CompactPositonal:
@@ -151,6 +151,8 @@ class CompactPositonal:
       # Now specifying the implication for each pair:
       # iterating through each possible position value:
       for i in range(self.parsed.num_available_moves):
+        if (i not in self.parsed.neighbour_dict):
+          continue
         self.encoding.append(['# position clauses: '])
         binary_format_clause = self.generate_binary_format(cur_position,i)
         self.gates_generator.and_gate(binary_format_clause)
@@ -164,10 +166,13 @@ class CompactPositonal:
           self.gates_generator.and_gate(temp_binary_format_clause)
           neighbour_output_gates.append(self.gates_generator.output_gate)
 
-        # For allowing shorter paths, we say the position is also its neighbour:
-        temp_binary_format_clause = self.generate_binary_format(next_position,i)
-        self.gates_generator.and_gate(temp_binary_format_clause)
-        neighbour_output_gates.append(self.gates_generator.output_gate)
+
+        # We only add stuttering above lower bound:
+        if (index >= self.parsed.lower_bound_path_length-1):
+          # For allowing shorter paths, we say the position is also its neighbour:
+          temp_binary_format_clause = self.generate_binary_format(next_position,i)
+          self.gates_generator.and_gate(temp_binary_format_clause)
+          neighbour_output_gates.append(self.gates_generator.output_gate)
 
         # One of the values must be true, so a disjunction:
         self.gates_generator.or_gate(neighbour_output_gates)
@@ -178,7 +183,9 @@ class CompactPositonal:
         self.step_output_gates.append(self.gates_generator.output_gate)
 
     # Allowing stuttering, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
-    for i in range(self.safe_max_path_length-2):
+    # only stuttering above the lower bound:
+    #print(self.parsed.lower_bound_path_length-1, self.safe_max_path_length-2)
+    for i in range(self.parsed.lower_bound_path_length-1, self.safe_max_path_length-2):
       # First equality:
       self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
       first_equality_output_gate = self.gates_generator.output_gate
