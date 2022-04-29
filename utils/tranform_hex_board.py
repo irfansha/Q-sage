@@ -119,6 +119,24 @@ if __name__ == '__main__':
       return_neighbours.remove(pos)
     new_neighbours_dict[pos] = return_neighbours
 
+
+  # Simplifying graph by edges:
+  for key,neighbour_list in new_neighbours_dict.items():
+    if (key not in start_boarder and key not in end_boarder):
+      continue
+    temp = []
+    for neighbour in neighbour_list:
+      if (key in start_boarder and neighbour in start_boarder):
+        #print("start", rearranged_positions[key], rearranged_positions[neighbour])
+        continue
+      if (key in end_boarder and neighbour in end_boarder):
+        #print("end", rearranged_positions[key], rearranged_positions[neighbour])
+        continue
+      else:
+        temp.append(neighbour)
+    new_neighbours_dict[key] = temp
+
+
   print("#blackinitials")
   print("#whiteinitials")
   print("#times")
