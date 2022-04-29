@@ -89,86 +89,37 @@ class Parse:
       self.black_initial_positions.append(position)
 
 
-    # Depending on encoding we parse the winning configurations:
-    if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ttt' or args.e == 'cp' or args.e == 'cgcp' or args.e == 'ntpg' or args.e == 'iw'):
+    # parsing the winning configurations:
+    self.start_boarder = []
+    for single_vertex in parsed_dict['#startboarder'][0]:
+      position = self.rearranged_positions.index(single_vertex)
+      self.start_boarder.append(position)
 
-      self.start_boarder = []
-      for single_vertex in parsed_dict['#startboarder'][0]:
-        position = self.rearranged_positions.index(single_vertex)
-        self.start_boarder.append(position)
-
-      self.end_boarder = []
-      for single_vertex in parsed_dict['#endboarder'][0]:
-        position = self.rearranged_positions.index(single_vertex)
-        self.end_boarder.append(position)
+    self.end_boarder = []
+    for single_vertex in parsed_dict['#endboarder'][0]:
+      position = self.rearranged_positions.index(single_vertex)
+      self.end_boarder.append(position)
 
 
-      self.neighbour_dict = {}
-      for neighbour_list in parsed_dict['#neighbours']:
-        # The neighbours list contains itself as its first element, which is the key for the dict:
-        cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
-        temp_list = []
-        for neighbour in neighbour_list:
-          if (neighbour != 'NA'):
-            cur_neighbour = self.rearranged_positions.index(neighbour)
-            temp_list.append(cur_neighbour)
-          else:
-            temp_list.append(neighbour)
-        if (len(temp_list)  != 0):
-          self.neighbour_dict[cur_position] = temp_list
+    self.neighbour_dict = {}
+    for neighbour_list in parsed_dict['#neighbours']:
+      # The neighbours list contains itself as its first element, which is the key for the dict:
+      cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
+      temp_list = []
+      for neighbour in neighbour_list:
+        if (neighbour != 'NA'):
+          cur_neighbour = self.rearranged_positions.index(neighbour)
+          temp_list.append(cur_neighbour)
+        else:
+          temp_list.append(neighbour)
+      if (len(temp_list)  != 0):
+        self.neighbour_dict[cur_position] = temp_list
 
       self.lower_bound_path_length = sb.lower_bound(self)
 
-    else:
-
-      self.max_win_config_length = 0
-      for win_conf in parsed_dict['#blackwins']:
-        temp_conf = []
-        count = 0
-        for single_vextex in win_conf:
-          # Finding position of black win vars:
-          # position = parsed_dict['#positions'][0].index(single_vextex)
-          # Finding var position from rearranged positions instead:
-          position = self.rearranged_positions.index(single_vextex)
-          # we do not need to check already black position in winning configurations:
-          if (position not in self.black_initial_positions):
-            temp_conf.append(position)
-          else:
-            count = count + 1
-          if (position in self.white_initial_positions):
-            # resetting if white position is found
-            temp_conf = []
-            break
-        # We only append if winning configuration is non-empty and the length is atmost number of black turns:
-        if (len(temp_conf) != 0 and len(temp_conf) <= int((self.depth+1)/2)):
-          #print(temp_conf)
-          self.black_win_configurations.append(temp_conf)
-          if (len(temp_conf) > self.max_win_config_length):
-            self.max_win_config_length = len(temp_conf)
-
-        # if the black path is already ready satisfied i.e., all the positions are black, add only the first black position as winning configuration:
-        if (count == len(win_conf)):
-          self.solved = 1
-
-      #assert(len(self.black_win_configurations) != 0)
-
-      if (args.game_type != 'hex'):
-        for win_conf in parsed_dict['#whitewins']:
-          step_win_positions = []
-          black_position_flag = 0
-          for single_vextex in win_conf:
-            # Finding position of white win vars:
-            # position = parsed_dict['#positions'][0].index(single_vextex)
-            # Finding var position from rearranged positions instead:
-            position = self.rearranged_positions.index(single_vextex)
-            # we do not need to check already black position in winning configurations:
-            if (position in self.black_initial_positions):
-              black_position_flag = 1
-              continue
-            step_win_positions.append(position)
-          if (black_position_flag == 0):
-            self.white_win_configurations.append(step_win_positions)
-        #assert(len(self.white_win_configurations) != 0)
+    # only for explicit goals, we generate the winning configurations:
+    if (args.e == 'ew' or args.e == 'eg'):
+      self.black_win_configurations, self.max_win_config_length = sb.all_short_simple_paths(self)
 
 
     if args.debug == 1:

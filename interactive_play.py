@@ -42,24 +42,18 @@ def print_to_file(file_path, parsed_dict, args):
   f.write("#positions\n")
   f.write(' '.join(parsed_dict["#positions"][0]) + '\n')
 
-  if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ntpg'):
-    f.write("#neighbours\n")
-    for win in parsed_dict["#neighbours"]:
-      f.write(' '.join(win) + '\n')
 
-    f.write("#startboarder\n")
-    f.write(' '.join(parsed_dict["#startboarder"][0]) + '\n')
+  f.write("#neighbours\n")
+  for win in parsed_dict["#neighbours"]:
+    f.write(' '.join(win) + '\n')
 
-    f.write("#endboarder\n")
-    f.write(' '.join(parsed_dict["#endboarder"][0]) + '\n')
-  else:
-    f.write("#blackturns\n")
-    f.write(' '.join(parsed_dict["#blackturns"][0]) + '\n')
+  f.write("#startboarder\n")
+  f.write(' '.join(parsed_dict["#startboarder"][0]) + '\n')
+
+  f.write("#endboarder\n")
+  f.write(' '.join(parsed_dict["#endboarder"][0]) + '\n')
 
 
-    f.write("#blackwins\n")
-    for win in parsed_dict["#blackwins"]:
-      f.write(' '.join(win) + '\n')
 
   f.close()
 
