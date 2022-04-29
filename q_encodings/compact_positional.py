@@ -151,8 +151,6 @@ class CompactPositonal:
       # Now specifying the implication for each pair:
       # iterating through each possible position value:
       for i in range(self.parsed.num_available_moves):
-        if (i not in self.parsed.neighbour_dict):
-          continue
         self.encoding.append(['# position clauses: '])
         binary_format_clause = self.generate_binary_format(cur_position,i)
         self.gates_generator.and_gate(binary_format_clause)

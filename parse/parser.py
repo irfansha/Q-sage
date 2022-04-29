@@ -111,12 +111,7 @@ class Parse:
         for neighbour in neighbour_list:
           if (neighbour != 'NA'):
             cur_neighbour = self.rearranged_positions.index(neighbour)
-            if (cur_position in self.start_boarder and cur_neighbour in self.start_boarder):
-              continue
-            elif (cur_position in self.end_boarder and cur_neighbour in self.end_boarder):
-              continue
-            else:
-              temp_list.append(cur_neighbour)
+            temp_list.append(cur_neighbour)
           else:
             temp_list.append(neighbour)
         if (len(temp_list)  != 0):
