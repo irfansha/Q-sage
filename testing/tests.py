@@ -14,10 +14,7 @@ def natural_keys(text):
 
 def run_tests(args):
   print("Running tests")
-  if (args.e == 'pg' or args.e == 'cpg' or args.e == 'ntpg' or args.e == 'cp'):
-    cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases_ungrounded_new_boards', '*')
-  else:
-    cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases', '*')
+  cur_path = os.path.join(args.planner_path, 'testcases', 'winning_testcases_ungrounded', '*')
   files_list = glob.glob(cur_path)
   files_list.sort(key=natural_keys)
   for testcase in files_list:
