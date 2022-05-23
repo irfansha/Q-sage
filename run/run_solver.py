@@ -36,20 +36,37 @@ def run_single_solver(encoding):
   # If plan extraction is enabled:
   if (args.run == 2):
 
-    # if already solved, just print any open position:
-    if encoding.parsed.solved == 1:
-      print("The problem already solved")
-      print(encoding.parsed.black_initial_positions, encoding.parsed.white_initial_positions)
-      for i in range(len(encoding.parsed.rearranged_positions)):
-        if (i not in encoding.parsed.black_initial_positions and i not in encoding.parsed.white_initial_positions):
-          print("First winning move:", encoding.parsed.rearranged_positions[i])
-          break
+    if (encoding.parsed.args.game_type == 'gomuku'):
+      x_index_string = ''
+      # computing x index value:
+      for i in range(encoding.num_single_index_move_variables):
+        x_index_string += str(sol_map[encoding.move_variables[0][i]])
+      x_index = int(x_index_string, 2)
+      y_index_string = ''
+      # computing y index value:
+      for i in range(encoding.num_single_index_move_variables, len(encoding.move_variables[0])):
+        y_index_string += str(sol_map[encoding.move_variables[0][i]])
+      y_index = int(y_index_string, 2)
+      # x_index is mapped to character starting from 'a' and
+      # y index is increased by 1 to match the indexes:
+      winning_move = chr(ord('a')+x_index) + str(y_index + 1)
+      print("First winning move:",winning_move)
+
     else:
-      move_string = ''
-      for val in encoding.move_variables[0]:
-        move_string += str(sol_map[val])
-        # Action index, powers of two:
-      action_index = int(move_string, 2)
-      #print("First winning move:", encoding.parsed.positions[action_index])
-      # parsing using rearranged positions:
-      print("First winning move:", encoding.parsed.rearranged_positions[action_index])
+      # if already solved, just print any open position:
+      if encoding.parsed.solved == 1:
+        print("The problem already solved")
+        print(encoding.parsed.black_initial_positions, encoding.parsed.white_initial_positions)
+        for i in range(len(encoding.parsed.rearranged_positions)):
+          if (i not in encoding.parsed.black_initial_positions and i not in encoding.parsed.white_initial_positions):
+            print("First winning move:", encoding.parsed.rearranged_positions[i])
+            break
+      else:
+        move_string = ''
+        for val in encoding.move_variables[0]:
+          move_string += str(sol_map[val])
+          # Action index, powers of two:
+        action_index = int(move_string, 2)
+        #print("First winning move:", encoding.parsed.positions[action_index])
+        # parsing using rearranged positions:
+        print("First winning move:", encoding.parsed.rearranged_positions[action_index])

@@ -12,6 +12,7 @@ from q_encodings.explicit_goal_witness_based import \
 from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
 from q_encodings.grounded_goal_with_time import \
     GroundedGoalTimeEncoding as ggte
+from q_encodings.index_based_gomuku import IndexBasedGomuku as ibg
 from q_encodings.iterative_squaring_witness_based import \
     IterativeSquaringWitnessBased as iswb
 from q_encodings.no_transitions_path_based import \
@@ -86,6 +87,9 @@ def generate_encoding(parsed_instance):
   elif (parsed_instance.args.e == 'ttt'):
     print("Generating TicTacToe encoding")
     encoding = ttt(parsed_instance)
+  elif (parsed_instance.args.e == 'ib' and parsed_instance.args.game_type == "gomuku"):
+    print("Generating Gomuku encoding")
+    encoding = ibg(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
     print("Generating Compact Positional encoding")
     encoding = cp(parsed_instance)
