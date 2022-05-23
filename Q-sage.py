@@ -25,7 +25,7 @@ if __name__ == '__main__':
   text = "A tool to generate ungrounded QBF encodings for 2-player positional games and computes winning statergy if requested."
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("-V", "--version", help="show program version", action="store_true")
-  parser.add_argument("--problem", help="problem file path", default = 'testcases/Hein_hex/hein_04_3x3-03.pg')
+  parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded_new_boards/hein_04_3x3-05.pg')
   parser.add_argument("--planner_path", help="path for Q-sage.py, allowing remote run", default = os.getcwd())
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
@@ -41,7 +41,7 @@ if __name__ == '__main__':
                                   ttt = tictactoe
                                   cp = compact positional
                                   cgcp = compact goal compact positional
-                                  ntpg = path based goal, without transition function'''),default = 'gg')
+                                  ntpg = path based goal, without transition function'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
                                   hex = hex game (default)
