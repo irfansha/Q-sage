@@ -53,12 +53,23 @@ class CompactGoalCompactPositonal:
       else:
         self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
 
-    # witness index variables:
-    self.quantifier_block.append(['# witness index variables: '])
+    # witness variables:
+    self.quantifier_block.append(['# witness variables: '])
     all_goal_vars = []
-    for vars in self.witness_index_variables:
+    for vars in self.witness_variables:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
+
+    # Start chain variables:
+    self.quantifier_block.append(['# Start variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.start_two_chain_positions[0]) + ')'])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.start_two_chain_positions[1]) + ')'])
+
+    # End chain variables:
+    self.quantifier_block.append(['# End variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.end_two_chain_positions[0]) + ')'])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.end_two_chain_positions[1]) + ')'])
+
 
     # Forall witness length variables:
     self.quantifier_block.append(['# Forall witness length variables: '])
@@ -69,11 +80,77 @@ class CompactGoalCompactPositonal:
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.exists_witness_variables[0]) + ')'])
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.exists_witness_variables[1]) + ')'])
 
+    # inner most chain variables:
+    self.quantifier_block.append(['# Inner most chain variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.inner_most_two_chain_positions[0]) + ')'])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.inner_most_two_chain_positions[1]) + ')'])
 
-    # Exists index variables:
-    self.quantifier_block.append(['# Exists index variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.exists_index_variables[0]) + ')'])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.exists_index_variables[1]) + ')'])
+
+
+  # Generate neighbour clauses:
+  def generate_neighbour_clauses(self, first, second):
+    step_neighbour_output_gates = []
+    # Connections with nieghbour information for the exists witness variables in the inner most layer:
+    # Now specifying the implication for each pair:
+    # iterating through each possible position value:
+    for i in range(self.parsed.num_available_moves):
+      self.encoding.append(['# position clauses: '])
+      binary_format_clause = self.generate_binary_format(first,i)
+      self.gates_generator.and_gate(binary_format_clause)
+      if_condition_output_gate = self.gates_generator.output_gate
+      neighbour_output_gates = []
+      self.encoding.append(['# neighbour clauses: '])
+
+      # For each neighbour we generate a clause:
+      for cur_neighbour in self.parsed.neighbour_dict[i]:
+        temp_binary_format_clause = self.generate_binary_format(second,cur_neighbour)
+        self.gates_generator.and_gate(temp_binary_format_clause)
+        neighbour_output_gates.append(self.gates_generator.output_gate)
+
+      # For allowing shorter paths, we say the position is also its neighbour:
+      temp_binary_format_clause = self.generate_binary_format(second,i)
+      self.gates_generator.and_gate(temp_binary_format_clause)
+      neighbour_output_gates.append(self.gates_generator.output_gate)
+
+      # One of the values must be true, so a disjunction:
+      self.gates_generator.or_gate(neighbour_output_gates)
+
+      # If then clause for the neighbour implication:
+      self.encoding.append(['# if then clause : '])
+      self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
+
+      step_neighbour_output_gates.append(self.gates_generator.output_gate)
+
+    self.gates_generator.and_gate(step_neighbour_output_gates)
+    return self.gates_generator.output_gate
+
+
+  def position_is_black(self,position):
+    # Position must be only black:
+    self.encoding.append(['# Positions can only have the black moves : '])
+    step_disjunction_output_gates = []
+    # Iterating through the black moves:
+    for i in range(self.parsed.depth):
+      if (i%2 == 0):
+        self.gates_generator.complete_equality_gate(position, self.move_variables[i])
+        step_disjunction_output_gates.append(self.gates_generator.output_gate)
+    # One of the equality must be true:
+    self.gates_generator.or_gate(step_disjunction_output_gates)
+    return self.gates_generator.output_gate
+
+
+  def position_is_white(self,position):
+    # Position must be only black:
+    self.encoding.append(['# Position is white moves : '])
+    step_disjunction_output_gates = []
+    # Iterating through the black moves:
+    for i in range(self.parsed.depth):
+      if (i%2 != 0):
+        self.gates_generator.complete_equality_gate(position, self.move_variables[i])
+        step_disjunction_output_gates.append(self.gates_generator.output_gate)
+    # One of the equality must be true:
+    self.gates_generator.or_gate(step_disjunction_output_gates)
+    return self.gates_generator.output_gate
 
 
 
@@ -100,21 +177,19 @@ class CompactGoalCompactPositonal:
       print("Move variables: ",self.move_variables)
 
 
-    # Allocating path index variables for the goal,
+    # Allocating path variables for the goal,
     # For now assuming the empty board:
-    self.witness_index_variables = []
+    self.witness_variables = []
     self.safe_max_path_length = int((self.parsed.depth + 1)/2)
 
-    # the log of max path length:
-    self.num_witness_path_variables = math.ceil(math.log2(self.safe_max_path_length))
-
     for i in range(self.safe_max_path_length):
-      self.witness_index_variables.append(self.encoding_variables.get_vars(self.num_witness_path_variables))
+      self.witness_variables.append(self.encoding_variables.get_vars(self.num_move_variables))
 
     if (parsed.args.debug == 1):
-      print("Goal state variables: ",self.witness_index_variables)
+      print("Goal state variables: ",self.witness_variables)
 
     # Log forall variables for length of the witness:
+    self.num_witness_path_variables = math.ceil(math.log2(self.safe_max_path_length))
     self.forall_witness_length_variables = self.encoding_variables.get_vars(self.num_witness_path_variables)
 
     if (parsed.args.debug == 1):
@@ -125,11 +200,23 @@ class CompactGoalCompactPositonal:
     for i in range(2):
       self.exists_witness_variables.append(self.encoding_variables.get_vars(self.num_move_variables))
 
-    # Two existential varibles for the index witness varaibles:
-    self.exists_index_variables = []
-    for i in range(2):
-      self.exists_index_variables.append(self.encoding_variables.get_vars(self.num_witness_path_variables))
 
+
+    # Start and ending two chain positions:
+    self.start_two_chain_positions = []
+    for i in range(2):
+      self.start_two_chain_positions.append(self.encoding_variables.get_vars(self.num_move_variables))
+
+
+    self.end_two_chain_positions = []
+    for i in range(2):
+      self.end_two_chain_positions.append(self.encoding_variables.get_vars(self.num_move_variables))
+
+    #'''
+    self.inner_most_two_chain_positions = []
+    for i in range(2):
+      self.inner_most_two_chain_positions.append(self.encoding_variables.get_vars(self.num_move_variables))
+    #'''
 
     # Generating quantifer blocks:
     self.generate_quantifier_blocks()
@@ -164,49 +251,83 @@ class CompactGoalCompactPositonal:
     self.gates_generator.or_gate(step_disjunction_output_gates)
     self.step_output_gates.append(self.gates_generator.output_gate)
 
+
     # The witness must make a path:
-    # The first index must constraint to the start border:
+    #-------------------------------------------------------------------------------------
     # Start boarder:
     start_border_output_gates = []
     for pos in self.parsed.start_boarder:
-      binary_format_clause = self.generate_binary_format(self.exists_witness_variables[0],pos)
+      binary_format_clause = self.generate_binary_format(self.witness_variables[0],pos)
       self.gates_generator.and_gate(binary_format_clause)
       start_border_output_gates.append(self.gates_generator.output_gate)
 
     self.encoding.append(['# disjunction of all start boarder positions : '])
     self.gates_generator.or_gate(start_border_output_gates)
-    start_border_disjunction_gate = self.gates_generator.output_gate
-
-    # First forall witness path:
-    start_branch_variables = self.generate_binary_format(self.forall_witness_length_variables, 0)
-    self.gates_generator.and_gate(start_branch_variables)
-    start_branch_output_gate = self.gates_generator.output_gate
-
-    self.gates_generator.if_then_gate(start_branch_output_gate, start_border_disjunction_gate)
-    self.step_output_gates.append(self.gates_generator.output_gate)
+    self.original_start_position_output_gate = self.gates_generator.output_gate
 
 
-    # End boarder:
-    end_border_output_gates = []
-    self.encoding.append(['# End boarder clauses : '])
-    # Specifying the end borders:
-    for pos in self.parsed.end_boarder:
-      binary_format_clause = self.generate_binary_format(self.exists_witness_variables[0],pos)
+    step_chain_output_gates = []
+
+    # If the first two chain boolean variable is true then the two chain positions must be start positions:
+    first_two_chain_start_border_output_gates = []
+    self.encoding.append(['# First two chain start boarder clauses : '])
+    # Specifying the start borders for first two chain position:
+    for pos in self.parsed.start_boarder:
+      binary_format_clause = self.generate_binary_format(self.start_two_chain_positions[0],pos)
       self.gates_generator.and_gate(binary_format_clause)
-      end_border_output_gates.append(self.gates_generator.output_gate)
+      first_two_chain_start_border_output_gates.append(self.gates_generator.output_gate)
 
-    self.encoding.append(['# disjunction of all end boarder positions : '])
-    self.gates_generator.or_gate(end_border_output_gates)
-    end_border_disjunction_gate = self.gates_generator.output_gate
+    self.encoding.append(['# disjunction of all first chain start boarder positions : '])
+    self.gates_generator.or_gate(first_two_chain_start_border_output_gates)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
 
-    # Last forall witness path:
-    end_branch_variables = self.generate_binary_format(self.forall_witness_length_variables, self.safe_max_path_length-1)
-    self.gates_generator.and_gate(end_branch_variables)
-    end_branch_output_gate = self.gates_generator.output_gate
 
-    self.gates_generator.if_then_gate(end_branch_output_gate, end_border_disjunction_gate)
+    # If the second two chain boolean variable is true then the two chain positions must be start positions:
+    second_two_chain_start_border_output_gates = []
+    self.encoding.append(['# Second two chain start boarder clauses : '])
+    # Specifying the start borders for first two chain position:
+    for pos in self.parsed.start_boarder:
+      binary_format_clause = self.generate_binary_format(self.start_two_chain_positions[1],pos)
+      self.gates_generator.and_gate(binary_format_clause)
+      second_two_chain_start_border_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# disjunction of all second chain start boarder positions : '])
+    self.gates_generator.or_gate(second_two_chain_start_border_output_gates)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[0], self.start_two_chain_positions[0]))
+    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[0], self.start_two_chain_positions[1]))
+
+    # both must be different:
+    self.gates_generator.complete_equality_gate(self.start_two_chain_positions[0],self.start_two_chain_positions[1])
+    step_chain_output_gates.append(-self.gates_generator.output_gate)
+
+    # if position is white it must also be black:
+    first_black_output_gate = self.position_is_black(self.start_two_chain_positions[0])
+    first_white_output_gate = self.position_is_white(self.start_two_chain_positions[0])
+
+    # if white then it must be black:
+    self.gates_generator.if_then_gate(first_white_output_gate, first_black_output_gate)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    # if position is white it must also be black:
+    second_black_output_gate = self.position_is_black(self.start_two_chain_positions[1])
+    second_white_output_gate = self.position_is_white(self.start_two_chain_positions[1])
+
+    # if white then it must be black:
+    self.gates_generator.if_then_gate(second_white_output_gate, second_black_output_gate)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+
+    # conjunction of the chain link:
+    self.gates_generator.and_gate(step_chain_output_gates)
+
+    # Disjunction linking the start boarder chain:
+    self.gates_generator.or_gate([self.gates_generator.output_gate, self.original_start_position_output_gate])
+
     self.step_output_gates.append(self.gates_generator.output_gate)
 
+    #-------------------------------------------------------------------------------------
 
     # Connecting the witness with the inner most witness variables:
     self.encoding.append(['# Connecting witness variables to inner most witness variables : '])
@@ -217,12 +338,12 @@ class CompactGoalCompactPositonal:
       self.gates_generator.and_gate(branch_variables)
       branch_output_gate = self.gates_generator.output_gate
 
-      # Equality for the index witness position with the first inner most witness variable:
-      self.gates_generator.complete_equality_gate(self.witness_index_variables[i], self.exists_index_variables[0])
+      # Equality for the witness position with the first inner most witness variable:
+      self.gates_generator.complete_equality_gate(self.witness_variables[i], self.exists_witness_variables[0])
       first_equality_output_gate = self.gates_generator.output_gate
 
-      # Equality for the next index witness position with the second inner most witness variable:
-      self.gates_generator.complete_equality_gate(self.witness_index_variables[i+1], self.exists_index_variables[1])
+      # Equality for the next witness position with the second inner most witness variable:
+      self.gates_generator.complete_equality_gate(self.witness_variables[i+1], self.exists_witness_variables[1])
       second_equality_output_gate = self.gates_generator.output_gate
 
       # If then gate for the implication:
@@ -230,58 +351,80 @@ class CompactGoalCompactPositonal:
       self.step_output_gates.append(self.gates_generator.output_gate)
 
     # Last position must be connected too:
-    # Specifying the last branch:
-    self.encoding.append(['# Specifying the last branch : '])
+    # Specifying the branch:
+    self.encoding.append(['# Specifying the branch : '])
     branch_variables = self.generate_binary_format(self.forall_witness_length_variables, self.safe_max_path_length-1)
     self.gates_generator.and_gate(branch_variables)
     branch_output_gate = self.gates_generator.output_gate
 
     # Equality for the witness position with the first inner most witness variable:
-    self.gates_generator.complete_equality_gate(self.witness_index_variables[self.safe_max_path_length-1], self.exists_index_variables[0])
+    self.gates_generator.complete_equality_gate(self.witness_variables[self.safe_max_path_length-1], self.exists_witness_variables[0])
     first_equality_output_gate = self.gates_generator.output_gate
 
     # If then gate for the implication:
     self.gates_generator.if_then_gate(branch_output_gate, first_equality_output_gate)
     self.step_output_gates.append(self.gates_generator.output_gate)
 
-    # Connections with nieghbour information for the exists witness variables in the inner most layer:
-    # Now specifying the implication for each pair:
-    # iterating through each possible position value:
-    for i in range(self.parsed.num_available_moves):
-      self.encoding.append(['# position clauses: '])
-      binary_format_clause = self.generate_binary_format(self.exists_witness_variables[0],i)
-      self.gates_generator.and_gate(binary_format_clause)
-      if_condition_output_gate = self.gates_generator.output_gate
-      neighbour_output_gates = []
-      self.encoding.append(['# neighbour clauses: '])
 
-      # For each neighbour we generate a clause:
-      for cur_neighbour in self.parsed.neighbour_dict[i]:
-        temp_binary_format_clause = self.generate_binary_format(self.exists_witness_variables[1],cur_neighbour)
-        self.gates_generator.and_gate(temp_binary_format_clause)
-        neighbour_output_gates.append(self.gates_generator.output_gate)
+    #------------------------------------------------------------------------------------------------------------------------------------
 
-      # For allowing shorter paths, we say the position is also its neighbour:
-      temp_binary_format_clause = self.generate_binary_format(self.exists_witness_variables[1],i)
-      self.gates_generator.and_gate(temp_binary_format_clause)
-      neighbour_output_gates.append(self.gates_generator.output_gate)
+    # Neighbour relation for inner most exitential witness variables:
+    inner_most_neighbour_output_gate = self.generate_neighbour_clauses(self.exists_witness_variables[0],self.exists_witness_variables[1])
+    # only when disabling the inner most connection:
+    #self.step_output_gates.append(inner_most_neighbour_output_gate)
 
-      # One of the values must be true, so a disjunction:
-      self.gates_generator.or_gate(neighbour_output_gates)
+    #'''
+    step_inner_chain_output_gates = []
 
-      # If then clause for the neighbour implication:
-      self.encoding.append(['# if then clause : '])
-      self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
-      self.step_output_gates.append(self.gates_generator.output_gate)
+    # connecting the first inner witness to chain variables:
+    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[0], self.inner_most_two_chain_positions[0]))
+    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[0], self.inner_most_two_chain_positions[1]))
 
-    # Allowing stuttering for indexes, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
+    # both must be different:
+    self.gates_generator.complete_equality_gate(self.inner_most_two_chain_positions[0],self.inner_most_two_chain_positions[1])
+    step_inner_chain_output_gates.append(-self.gates_generator.output_gate)
+
+
+    # if position is white it must also be black:
+    first_black_output_gate = self.position_is_black(self.inner_most_two_chain_positions[0])
+    first_white_output_gate = self.position_is_white(self.inner_most_two_chain_positions[0])
+
+    # if white then it must be black:
+    self.gates_generator.if_then_gate(first_white_output_gate, first_black_output_gate)
+    step_inner_chain_output_gates.append(self.gates_generator.output_gate)
+
+    # if position is white it must also be black:
+    second_black_output_gate = self.position_is_black(self.inner_most_two_chain_positions[1])
+    second_white_output_gate = self.position_is_white(self.inner_most_two_chain_positions[1])
+
+    # if white then it must be black:
+    self.gates_generator.if_then_gate(second_white_output_gate, second_black_output_gate)
+    step_inner_chain_output_gates.append(self.gates_generator.output_gate)
+
+    # connecting the other end:
+    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[1], self.inner_most_two_chain_positions[0]))
+    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[1], self.inner_most_two_chain_positions[1]))
+
+
+    # conjunction of the chain link:
+    self.gates_generator.and_gate(step_inner_chain_output_gates)
+
+    # Disjunction linking the start boarder chain:
+    self.gates_generator.or_gate([self.gates_generator.output_gate, inner_most_neighbour_output_gate])
+
+    self.step_output_gates.append(self.gates_generator.output_gate)
+    #'''
+
+    #------------------------------------------------------------------------------------------------------------------------------------
+
+    # Allowing stuttering, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
     for i in range(self.safe_max_path_length-2):
       # First equality:
-      self.gates_generator.complete_equality_gate(self.witness_index_variables[i], self.witness_index_variables[i+1])
+      self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
       first_equality_output_gate = self.gates_generator.output_gate
 
       # Second equality:
-      self.gates_generator.complete_equality_gate(self.witness_index_variables[i+1], self.witness_index_variables[i+2])
+      self.gates_generator.complete_equality_gate(self.witness_variables[i+1], self.witness_variables[i+2])
       second_equality_output_gate = self.gates_generator.output_gate
 
       # Now the implication:
@@ -289,40 +432,96 @@ class CompactGoalCompactPositonal:
       self.step_output_gates.append(self.gates_generator.output_gate)
 
 
-    # Specify the inner most witness variables based on the index:
-    self.encoding.append(['# Connecting inner most witness variables with black moves based on index : '])
-    for i in range(self.safe_max_path_length):
-      first_index_variables = self.generate_binary_format(self.exists_index_variables[0], i)
-      self.gates_generator.and_gate(first_index_variables)
-      first_index_output_gate = self.gates_generator.output_gate
+    #----------------------------------------------------------------------------------------------------
 
-      # equality with 2*i black move with first index variable:
-      self.gates_generator.complete_equality_gate(self.exists_witness_variables[0], self.move_variables[2*i])
-      self.gates_generator.if_then_gate(first_index_output_gate, self.gates_generator.output_gate)
-      self.step_output_gates.append(self.gates_generator.output_gate)
+    # End boarder:
+    end_border_output_gates = []
+    self.encoding.append(['# End boarder clauses : '])
+    # Specifying the end borders:
+    for pos in self.parsed.end_boarder:
+      binary_format_clause = self.generate_binary_format(self.witness_variables[-1],pos)
+      self.gates_generator.and_gate(binary_format_clause)
+      end_border_output_gates.append(self.gates_generator.output_gate)
 
-      second_index_variables = self.generate_binary_format(self.exists_index_variables[1], i)
-      self.gates_generator.and_gate(second_index_variables)
-      second_index_output_gate = self.gates_generator.output_gate
-
-      # equality with 2*i black move with second index variable:
-      self.gates_generator.complete_equality_gate(self.exists_witness_variables[1], self.move_variables[2*i])
-      self.gates_generator.if_then_gate(second_index_output_gate, self.gates_generator.output_gate)
-      self.step_output_gates.append(self.gates_generator.output_gate)
+    self.encoding.append(['# disjunction of all end boarder positions : '])
+    self.gates_generator.or_gate(end_border_output_gates)
+    self.original_end_position_output_gate = self.gates_generator.output_gate
 
 
-    # less than constraint for inner most index variables:
-    if (self.safe_max_path_length != int(math.pow(2, self.num_witness_path_variables))):
-      self.encoding.append(['# Restricted index witness variables: '])
-      for i in range(self.safe_max_path_length):
-        # restricting more moves:
-        lsc.add_circuit(self.gates_generator, self.witness_index_variables[i], self.safe_max_path_length)
-        # Can be added directly to the step output gates:
-        self.step_output_gates.append(self.gates_generator.output_gate)
+    step_chain_output_gates = []
+
+    # If the first two chain boolean variable is true then the two chain positions must be start positions:
+    first_two_chain_end_border_output_gates = []
+    self.encoding.append(['# First two chain end boarder clauses : '])
+    # Specifying the end borders for first two chain position:
+    for pos in self.parsed.end_boarder:
+      binary_format_clause = self.generate_binary_format(self.end_two_chain_positions[0],pos)
+      self.gates_generator.and_gate(binary_format_clause)
+      first_two_chain_end_border_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# disjunction of all first chain end boarder positions : '])
+    self.gates_generator.or_gate(first_two_chain_end_border_output_gates)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+
+    # If the second two chain boolean variable is true then the two chain positions must be start positions:
+    second_two_chain_end_border_output_gates = []
+    self.encoding.append(['# Second two chain end boarder clauses : '])
+    # Specifying the end borders for second two chain position:
+    for pos in self.parsed.end_boarder:
+      binary_format_clause = self.generate_binary_format(self.end_two_chain_positions[1],pos)
+      self.gates_generator.and_gate(binary_format_clause)
+      second_two_chain_end_border_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# disjunction of all second chain end boarder positions : '])
+    self.gates_generator.or_gate(second_two_chain_end_border_output_gates)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[-1], self.end_two_chain_positions[0]))
+    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[-1], self.end_two_chain_positions[1]))
+
+    # both must be different:
+    self.gates_generator.complete_equality_gate(self.end_two_chain_positions[0],self.end_two_chain_positions[1])
+    step_chain_output_gates.append(-self.gates_generator.output_gate)
+
+
+    # if position is white it must also be black:
+    first_black_output_gate = self.position_is_black(self.end_two_chain_positions[0])
+    first_white_output_gate = self.position_is_white(self.end_two_chain_positions[0])
+
+    # if white then it must be black:
+    self.gates_generator.if_then_gate(first_white_output_gate, first_black_output_gate)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    # if position is white it must also be black:
+    second_black_output_gate = self.position_is_black(self.end_two_chain_positions[1])
+    second_white_output_gate = self.position_is_white(self.end_two_chain_positions[1])
+
+    # if white then it must be black:
+    self.gates_generator.if_then_gate(second_white_output_gate, second_black_output_gate)
+    step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    # conjunction of the chain link:
+    self.gates_generator.and_gate(step_chain_output_gates)
+
+    # Disjunction linking the start boarder chain:
+    self.gates_generator.or_gate([self.gates_generator.output_gate, self.original_end_position_output_gate])
+
+    self.step_output_gates.append(self.gates_generator.output_gate)
+
+    #---------------------------------------------------------------------------------------------------
 
 
     # Black restrictions as option:
     if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.black_move_restrictions == 1):
+
+      # For the empty boards we can restrict the first move:
+      #if (self.parsed.num_available_moves % 2 == 0) :
+      #  lsc.add_circuit(self.gates_generator, self.move_variables[0], int((self.parsed.num_available_moves)/2))
+      #else:
+      #  lsc.add_circuit(self.gates_generator, self.move_variables[0], int((self.parsed.num_available_moves+1)/2))
+      #self.step_output_gates.append(self.gates_generator.output_gate)
+
       self.encoding.append(['# Restricted black moves: '])
       for i in range(self.parsed.depth):
         if (i%2 == 0):
