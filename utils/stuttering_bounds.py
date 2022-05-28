@@ -2,7 +2,7 @@ import networkx as nx
 
 
 def lower_bound(parser):
-
+  print("Computing lower bounds for stuttering")
   G = nx.Graph()
 
   for key,value_list in parser.neighbour_dict.items():
@@ -29,8 +29,49 @@ def lower_bound(parser):
   return min_length
 
 
-def all_short_simple_paths(parser):
 
+
+# Computes the unreachable nodes i.e., any node which cannot be in the path from a start node to an end node:
+def unreachable_nodes(parser):
+  G = nx.Graph()
+
+  for neighbour_list in parser.parsed_dict['#neighbours']:
+    for index in range(1,len(neighbour_list)):
+      G.add_edge(neighbour_list[0], neighbour_list[index])
+
+  if (parser.args.e == 'cgcp'):
+    max_path_length = len(parser.parsed_dict['#blackinitials']) + 2*int((parser.depth + 1)/2) + 1
+  else:
+    max_path_length = len(parser.parsed_dict['#blackinitials']) + int((parser.depth + 1)/2)
+
+  spl = dict(nx.all_pairs_shortest_path_length(G))
+
+  num_positions = len(parser.parsed_dict['#positions'][0])
+
+  #print(spl)
+  count = 0
+  unreachable_nodes_list = []
+  for pos in parser.parsed_dict['#positions'][0]:
+    # setting the min length to maximum value:
+    min_start_length = num_positions
+    for start in parser.parsed_dict['#startboarder'][0]:
+      if (min_start_length > spl[pos][start]):
+        min_start_length = spl[pos][start]
+    # setting the min length to maximum value:
+    min_end_length = num_positions
+    for end in parser.parsed_dict['#endboarder'][0]:
+      if (min_end_length > spl[pos][end]):
+        min_end_length = spl[pos][end]
+    if (min_start_length+min_end_length > max_path_length - 1):
+      unreachable_nodes_list.append(pos)
+      #print(pos,min_start_length,min_end_length)
+      count = count + 1
+  print("Removing unreachable nodes ... " + str(count) + " unreachable out of " + str(num_positions))
+  #print(num_positions, count)
+  return unreachable_nodes_list
+
+def all_short_simple_paths(parser):
+  print("Coumpting all minimal simple paths from start to end boarder")
   G = nx.Graph()
 
   for key,value_list in parser.neighbour_dict.items():

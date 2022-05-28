@@ -84,6 +84,7 @@ if __name__ == '__main__':
                                        out = forall restrictions outside the transition functions (default)
                                        none = no restrictions'''), default = 'none')
   parser.add_argument("--stuttering", help="[b/nb] With boolean stuttering or without, default = b ",default = "b")
+  parser.add_argument("--remove_unreachable_nodes", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
@@ -106,7 +107,7 @@ if __name__ == '__main__':
   print(args)
 
   if args.version:
-    print("Version 0.6")
+    print("Version 0.7")
 
   # Run tests include all testcase domains:
   if (args.run_tests == 1):
@@ -121,6 +122,10 @@ if __name__ == '__main__':
 
   parsed_instance = ps(args)
 
+  # If problem is unsolvable, we simply stop:
+  if parsed_instance.unsolvable == 1:
+    print("Plan not found")
+    exit()
 
   encoding = ge.generate_encoding(parsed_instance)
 

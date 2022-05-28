@@ -16,9 +16,12 @@ class Parse:
     f = open(problem_path, 'r')
     lines = f.readlines()
 
-    parsed_dict = {}
+    self.parsed_dict = {}
 
-    # flag for already solved:
+    # flag for unsat instance:
+    self.unsolvable = 0
+
+    # flag for solved instance:
     self.solved = 0
 
     for line in lines:
@@ -28,24 +31,65 @@ class Parse:
         continue
       if ("#" in line):
         new_key = line.strip("\n")
-        parsed_dict[new_key] = []
+        self.parsed_dict[new_key] = []
       else:
-        parsed_dict[new_key].append(stripped_line)
+        self.parsed_dict[new_key].append(stripped_line)
     
     if (args.debug == 1):
-      for key,value in parsed_dict.items():
+      for key,value in self.parsed_dict.items():
         print(key, value)
 
     if (args.ignore_file_depth == 0):
       # If no times are provided in the input file:
-      if (len(parsed_dict['#times']) == 0):
+      if (len(self.parsed_dict['#times']) == 0):
         self.depth = 0
       else:
-        self.depth = len(parsed_dict['#times'][0])
+        self.depth = len(self.parsed_dict['#times'][0])
     else:
       self.depth = args.depth
-    self.positions = parsed_dict['#positions'][0]
-    self.num_positions = len(parsed_dict['#positions'][0])
+
+    #'''
+    # It is possible to remove unreachable nodes from here:
+    if (self.args.game_type == "hex" and self.args.remove_unreachable_nodes == 1):
+      unreachable_nodes = sb.unreachable_nodes(self)
+
+      # removing the unreachable nodes from the problem:
+      # removing from positions:
+      for node in unreachable_nodes:
+        self.parsed_dict['#positions'][0].remove(node)
+
+      # if positions empty then instance is unsolved:
+      if (len(self.parsed_dict['#positions'][0]) == 0):
+        self.unsolvable = 1
+
+      # removing from neighours:
+      temp_neighbour_list = []
+      for neighbour_list in self.parsed_dict['#neighbours']:
+        if (neighbour_list[0] in unreachable_nodes):
+          continue
+        else:
+          temp_neighbours = []
+          for cur_node in neighbour_list:
+            if (cur_node in unreachable_nodes):
+              continue
+            else:
+              temp_neighbours.append(cur_node)
+          if (len(temp_neighbours) != 0):
+            temp_neighbour_list.append(temp_neighbours)
+      # updating the neighbours list:
+      self.parsed_dict['#neighbours'] = temp_neighbour_list
+      # removing from start positions:
+      for node in unreachable_nodes:
+        if (node in self.parsed_dict['#startboarder'][0]):
+          self.parsed_dict['#startboarder'][0].remove(node)
+      # removing from end positions:
+      for node in unreachable_nodes:
+        if (node in self.parsed_dict['#endboarder'][0]):
+          self.parsed_dict['#endboarder'][0].remove(node)
+    #'''
+
+    self.positions = self.parsed_dict['#positions'][0]
+    self.num_positions = len(self.parsed_dict['#positions'][0])
 
 
     if (self.args.game_type == "hex"):
@@ -53,17 +97,18 @@ class Parse:
       self.rearranged_positions = []
 
       if (args.renumber_positions == 1):
+        print("Renumbering positions")
         # first gathering open positions:
         for pos in self.positions:
-          if ([pos] not in parsed_dict['#blackinitials'] and [pos] not in parsed_dict['#whiteinitials']):
+          if ([pos] not in self.parsed_dict['#blackinitials'] and [pos] not in self.parsed_dict['#whiteinitials']):
             self.rearranged_positions.append(pos)
 
         self.num_available_moves = len(self.rearranged_positions)
 
         # now appending black and white initials:
-        for [pos] in parsed_dict['#blackinitials']:
+        for [pos] in self.parsed_dict['#blackinitials']:
           self.rearranged_positions.append(pos)
-        for [pos] in parsed_dict['#whiteinitials']:
+        for [pos] in self.parsed_dict['#whiteinitials']:
           self.rearranged_positions.append(pos)
       else:
         # simply using the original positions and num of available moves are all positions:
@@ -76,14 +121,14 @@ class Parse:
       self.black_win_configurations = []
       self.white_win_configurations = []
 
-      for initial in parsed_dict['#whiteinitials']:
+      for initial in self.parsed_dict['#whiteinitials']:
         # Finding position of white initial var:
         # position = parsed_dict['#positions'][0].index(initial[0])
         # Finding var position from rearranged positions instead:
         position = self.rearranged_positions.index(initial[0])
         self.white_initial_positions.append(position)
 
-      for initial in parsed_dict['#blackinitials']:
+      for initial in self.parsed_dict['#blackinitials']:
         # Finding position of black initial var:
         # position = parsed_dict['#positions'][0].index(initial[0])
         # Finding var position from rearranged positions instead:
@@ -93,18 +138,18 @@ class Parse:
 
       # parsing the winning configurations:
       self.start_boarder = []
-      for single_vertex in parsed_dict['#startboarder'][0]:
+      for single_vertex in self.parsed_dict['#startboarder'][0]:
         position = self.rearranged_positions.index(single_vertex)
         self.start_boarder.append(position)
 
       self.end_boarder = []
-      for single_vertex in parsed_dict['#endboarder'][0]:
+      for single_vertex in self.parsed_dict['#endboarder'][0]:
         position = self.rearranged_positions.index(single_vertex)
         self.end_boarder.append(position)
 
 
       self.neighbour_dict = {}
-      for neighbour_list in parsed_dict['#neighbours']:
+      for neighbour_list in self.parsed_dict['#neighbours']:
         # The neighbours list contains itself as its first element, which is the key for the dict:
         cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
         temp_list = []
@@ -117,7 +162,7 @@ class Parse:
         if (len(temp_list)  != 0):
           self.neighbour_dict[cur_position] = temp_list
 
-        self.lower_bound_path_length = sb.lower_bound(self)
+      self.lower_bound_path_length = sb.lower_bound(self)
 
       # only for explicit goals, we generate the winning configurations:
       if (args.e == 'ew' or args.e == 'eg'):
@@ -147,20 +192,20 @@ class Parse:
       self.num_available_moves = len(self.positions)
 
       # Rewriting intial positions for gomuku based on indexes:
-      for initial in parsed_dict['#whiteinitials']:
+      for initial in self.parsed_dict['#whiteinitials']:
         # resetting the base to a, to get from 0:
         x_index = ord(initial[0][0]) - ord('a')
         y_index = int(initial[0][1:]) - 1
         self.white_initial_positions.append((x_index,y_index))
 
-      for initial in parsed_dict['#blackinitials']:
+      for initial in self.parsed_dict['#blackinitials']:
         # resetting the base to a, to get from 0:
         x_index = ord(initial[0][0]) - ord('a')
         y_index = int(initial[0][1:]) - 1
         self.black_initial_positions.append((x_index,y_index))
 
       self.max_win_config_length = 0
-      for win_conf in parsed_dict['#blackwins']:
+      for win_conf in self.parsed_dict['#blackwins']:
         temp_conf = []
         for single_vertex in win_conf:
           # resetting the base to a, to get from 0:
