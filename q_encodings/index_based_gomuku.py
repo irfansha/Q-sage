@@ -2,6 +2,7 @@
 
 import math
 
+import utils.adder_cir as addc
 import utils.lessthen_cir as lsc
 from utils.gates import GatesGen as ggen
 from utils.variables_dispatcher import VarDispatcher as vd
@@ -50,12 +51,14 @@ class IndexBasedGomuku:
       else:
         self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
 
+    # witness index boolean variables:
+    self.quantifier_block.append(['# Witness direction boolean variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.index_line_boolean_variables) + ')'])
+
+
     # witness variables before forall position variables:
-    self.quantifier_block.append(['# witness variables: '])
-    all_goal_vars = []
-    for vars in self.witness_variables:
-      all_goal_vars.extend(vars)
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
+    self.quantifier_block.append(['# Starting witness index variables: '])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.witness_variables) + ')'])
 
     # Forall position variables:
     self.quantifier_block.append(['# Forall position variables: '])
@@ -214,48 +217,221 @@ class IndexBasedGomuku:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
 
-    # If no winning configurations, we do not need goal constraints:
-    #if len(self.parsed.black_win_configurations) != 0:
-    # First adding clauses for making witness variables black:
-    step_witness_equality_output_gates = []
-    for i in range(self.max_witness_length):
-      # equality with forall variables:
-      self.gates_generator.complete_equality_gate(self.witness_variables[i], self.forall_position_variables)
-      step_witness_equality_output_gates.append(self.gates_generator.output_gate)
-    
-    # if one of the equality is true then the final state must be a black position:
-    self.gates_generator.or_gate(step_witness_equality_output_gates)
-    if_witness_equality_output_gate = self.gates_generator.output_gate
+    self.encoding.append(['# Black position constraints: '])
     self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
-    self.gates_generator.if_then_gate(if_witness_equality_output_gate, self.gates_generator.output_gate)
+    self.black_position_output_gate = self.gates_generator.output_gate
+
+    # dividing the witness variables to two parts, x axis and y axis:
+    x_vars = self.witness_variables[:self.num_single_index_move_variables]
+    y_vars = self.witness_variables[self.num_single_index_move_variables:]
+
+    # x_vars and y_vars must be within bounds, so adding upper bounds:
+    self.encoding.append(['# bounds for x and y vars with board size: '])
+    lsc.add_circuit(self.gates_generator, x_vars, self.board_size)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+    lsc.add_circuit(self.gates_generator, y_vars, self.board_size)
     goal_step_output_gates.append(self.gates_generator.output_gate)
 
-    # now adding clauses for the winning configurations:
-    self.encoding.append(['# Clauses for black winning configurations: '])
-    win_configuration_step_output_gates = []
-    for win_configuration in self.parsed.black_win_configurations:
-      temp_list = []
-      for i in range(len(win_configuration)):
-      # generating binary format for indexes separately:
-        binary_format_clause1 = self.generate_binary_format(self.witness_variables[i][:self.num_single_index_move_variables],win_configuration[i][0])
-        self.gates_generator.and_gate(binary_format_clause1)
-        binary_output_gate1 = self.gates_generator.output_gate
-        binary_format_clause2 = self.generate_binary_format(self.witness_variables[i][self.num_single_index_move_variables:],win_configuration[i][1])
-        self.gates_generator.and_gate(binary_format_clause2)
-        binary_output_gate2 = self.gates_generator.output_gate
-        self.gates_generator.and_gate([binary_output_gate1,binary_output_gate2])
-        #win_binary_format_clause = self.generate_binary_format(self.witness_variables[i],win_configuration[i])
-        #self.gates_generator.and_gate(win_binary_format_clause)
-        temp_list.append(self.gates_generator.output_gate)
-      self.gates_generator.and_gate(temp_list)
-      win_configuration_step_output_gates.append(self.gates_generator.output_gate)
+    # Generate x increment list:
+    x_increment_list = []
+    # First appending itself:
+    x_increment_list.append(x_vars)
+    for i in range(self.max_witness_length-1):
+      temp_increment_output_gates = addc.adder_circuit(self.gates_generator,x_vars, i+1)
+      x_increment_list.append(temp_increment_output_gates)
+    #print(x_increment_list)
+    # Generate y increment list:
+    y_increment_list = []
+    # First appending itself:
+    y_increment_list.append(y_vars)
+    for i in range(self.max_witness_length-1):
+      temp_increment_output_gates = addc.adder_circuit(self.gates_generator,y_vars, i+1)
+      y_increment_list.append(temp_increment_output_gates)
+    #print(y_increment_list)
+    # Generate y decrement list:
+    y_decrement_list = []
+    # First appending itself:
+    y_decrement_list.append(y_vars)
+    for i in range(self.max_witness_length-1):
+      temp_decrement_output_gates = addc.subtractor_circuit(self.gates_generator,y_vars, i+1)
+      y_decrement_list.append(temp_decrement_output_gates)
+    #print(y_decrement_list)
 
-    self.encoding.append(['# Atleast one of the winning configurations to be true: '])
-    self.gates_generator.or_gate(win_configuration_step_output_gates)
+    # Upper bounds for x and y axis of the starting position in each of the following cases:
+    #----------------------------------------------------------------------------------------------------------------
+    #  constraints for down diagonal, the direction booleans are 00:
+    down_diagonal_output_gates = []
+    self.encoding.append(['# Constraints for down diagonal: '])
 
+    step_down_diagonal_output_gates = []
+    self.encoding.append(['# position equalities with forall variables: '])
+    #  equality output gates for down diagonal:
+    for i in range(self.max_witness_length):
+      cur_x = x_increment_list[i]
+      cur_y = y_decrement_list[i]
+      cur_full_position_variables = []
+      cur_full_position_variables.extend(cur_x)
+      cur_full_position_variables.extend(cur_y)
+      # equality with forall variables:
+      self.gates_generator.complete_equality_gate(cur_full_position_variables,self.forall_position_variables)
+      step_down_diagonal_output_gates.append(self.gates_generator.output_gate)
+
+    #  disjunction of the equality gates:
+    self.gates_generator.or_gate(step_down_diagonal_output_gates)
+    # If then condition, if the diagonal constraints hold then all such positions are black:
+    self.encoding.append(['# if then constraint, if the diagonal constraint holds then all such positions are black: '])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,self.black_position_output_gate)
+    down_diagonal_output_gates.append(self.gates_generator.output_gate)
+
+    #  y !< max - 1:
+    self.encoding.append(['# y vars lower bound with y !< max - 1: '])
+    lsc.add_circuit(self.gates_generator, y_vars, self.max_witness_length - 1)
+    y_vars_lower_bound_output_gate = -self.gates_generator.output_gate
+    down_diagonal_output_gates.append(y_vars_lower_bound_output_gate)
+
+    #  x < size - max + 1:
+    self.encoding.append(['# x vars upper bound with x < size - max + 1: '])
+    lsc.add_circuit(self.gates_generator, x_vars, self.board_size - self.max_witness_length + 1)
+    x_vars_upper_bound_output_gate = self.gates_generator.output_gate
+    down_diagonal_output_gates.append(x_vars_upper_bound_output_gate)
+
+    self.encoding.append(['# conjunction of all diagonal constraints: '])
+    self.gates_generator.and_gate(down_diagonal_output_gates)
+    final_diagonal_output_gate = self.gates_generator.output_gate
+
+    # down diagonal bits, 00:
+    self.encoding.append(['# down diagonal boolean variables, 00: '])
+    self.gates_generator.and_gate([-self.index_line_boolean_variables[0], -self.index_line_boolean_variables[1]])
+    # if then constraints, if the line chosen is diagonal then above constraints hold:
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,final_diagonal_output_gate)
     goal_step_output_gates.append(self.gates_generator.output_gate)
+    #----------------------------------------------------------------------------------------------------------------
+
+    #   constraints for vertical, the direction booleans are 01:
+    #----------------------------------------------------------------------------------------------------------------
+    self.encoding.append(['# Constraints for vertical line: '])
+    vertical_output_gates = []
+
+    step_vertical_output_gates = []
+    self.encoding.append(['# position equalities with forall variables: '])
+    #  equality output gates for vertical:
+    for i in range(self.max_witness_length):
+      cur_x = x_vars
+      cur_y = y_increment_list[i]
+      cur_full_position_variables = []
+      cur_full_position_variables.extend(cur_x)
+      cur_full_position_variables.extend(cur_y)
+      # equality with forall variables:
+      self.gates_generator.complete_equality_gate(cur_full_position_variables,self.forall_position_variables)
+      step_vertical_output_gates.append(self.gates_generator.output_gate)
+
+    #  disjunction of the equality gates:
+    self.gates_generator.or_gate(step_vertical_output_gates)
+    self.encoding.append(['# if then constraint, if the vertical constraint holds then all such positions are black: '])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,self.black_position_output_gate)
+    vertical_output_gates.append(self.gates_generator.output_gate)
+
+    #  y < size - max + 1:
+    self.encoding.append(['# y vars upper bound with y < size - max + 1: '])
+    lsc.add_circuit(self.gates_generator, y_vars, self.board_size - self.max_witness_length + 1)
+    y_vars_upper_bound_output_gate = self.gates_generator.output_gate
+    vertical_output_gates.append(y_vars_upper_bound_output_gate)
+
+    # If then condition, if the vertical constraints hold then all such positions are black:
+    self.encoding.append(['# conjunction of vertical constraints: '])
+    self.gates_generator.and_gate(vertical_output_gates)
+    final_vertical_output_gate = self.gates_generator.output_gate
+
+    # vertical bits, 01:
+    self.encoding.append(['# vertical line boolean variables, 01: '])
+    self.gates_generator.and_gate([-self.index_line_boolean_variables[0], self.index_line_boolean_variables[1]])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,final_vertical_output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+    #----------------------------------------------------------------------------------------------------------------
+
+    #----------------------------------------------------------------------------------------------------------------
+    #   constraints for horizontal, the direction booleans are 10:
+    self.encoding.append(['# Constraints for horizontal line: '])
+    horizontal_output_gates = []
+
+    step_horizontal_output_gates = []
+    self.encoding.append(['# position equalities with forall variables: '])
+    #  equality output gates for down diagonal:
+    for i in range(self.max_witness_length):
+      cur_x = x_increment_list[i]
+      cur_y = y_vars
+      cur_full_position_variables = []
+      cur_full_position_variables.extend(cur_x)
+      cur_full_position_variables.extend(cur_y)
+      # equality with forall variables:
+      self.gates_generator.complete_equality_gate(cur_full_position_variables,self.forall_position_variables)
+      step_horizontal_output_gates.append(self.gates_generator.output_gate)
+
+    #  disjunction of the equality gates:
+    self.gates_generator.or_gate(step_horizontal_output_gates)
+    # If then condition, if the horizontal constraints hold then all such positions are black:
+    self.encoding.append(['# if then constraint, if the horizontal constraint holds then all such positions are black: '])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,self.black_position_output_gate)
+    horizontal_output_gates.append(self.gates_generator.output_gate)
+
+    #  x < size - max + 1:
+    self.encoding.append(['# x vars upper bound with x < size - max + 1: '])
+    horizontal_output_gates.append(x_vars_upper_bound_output_gate)
+
+    self.encoding.append(['# conjunction of horizontal constraints: '])
+    self.gates_generator.and_gate(horizontal_output_gates)
+    final_horizontal_output_gate = self.gates_generator.output_gate
+
+    # horizontal bits, 10:
+    self.encoding.append(['# horizontal boolean variables, 10: '])
+    self.gates_generator.and_gate([self.index_line_boolean_variables[0], -self.index_line_boolean_variables[1]])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,final_horizontal_output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+    #----------------------------------------------------------------------------------------------------------------
 
 
+    #   constraints for up diagonal, the direction booleans are 11:
+    self.encoding.append(['# Constraints for up diagonal: '])
+    up_diagonal_output_gates = []
+
+    step_up_diagonal_output_gates = []
+    self.encoding.append(['# position equalities with forall variables: '])
+    #  equality output gates for up diagonal:
+    for i in range(self.max_witness_length):
+      cur_x = x_increment_list[i]
+      cur_y = y_increment_list[i]
+      cur_full_position_variables = []
+      cur_full_position_variables.extend(cur_x)
+      cur_full_position_variables.extend(cur_y)
+      # equality with forall variables:
+      self.gates_generator.complete_equality_gate(cur_full_position_variables,self.forall_position_variables)
+      step_up_diagonal_output_gates.append(self.gates_generator.output_gate)
+
+    #  disjunction of the equality gates:
+    self.gates_generator.or_gate(step_up_diagonal_output_gates)
+    # If then condition, if the diagonal constraints hold then all such positions are black:
+    self.encoding.append(['# if then constraint, if the diagonal constraint holds then all such positions are black: '])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,self.black_position_output_gate)
+    up_diagonal_output_gates.append(self.gates_generator.output_gate)
+
+    #  y < size - max + 1:
+    self.encoding.append(['# y vars upper bound with y < size - max + 1: '])
+    up_diagonal_output_gates.append(y_vars_upper_bound_output_gate)
+
+    #  x < size - max + 1:
+    self.encoding.append(['# x vars upper bound with x < size - max + 1: '])
+    up_diagonal_output_gates.append(x_vars_upper_bound_output_gate)
+
+    self.encoding.append(['# conjunction of diagonal constraints: '])
+    self.gates_generator.and_gate(up_diagonal_output_gates)
+    final_up_diagonal_output_gate = self.gates_generator.output_gate
+
+    # up diagonal bits, 11:
+    self.encoding.append(['# up diagonal boolean variables, 11: '])
+    self.gates_generator.and_gate([self.index_line_boolean_variables[0], self.index_line_boolean_variables[1]])
+    self.gates_generator.if_then_gate(self.gates_generator.output_gate,final_up_diagonal_output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+    #----------------------------------------------------------------------------------------------------------------
     # Final goal gate:
     self.encoding.append(['# Final and gate for goal constraints: '])
     self.gates_generator.and_gate(goal_step_output_gates)
@@ -357,15 +533,18 @@ class IndexBasedGomuku:
     if (parsed.args.debug == 1):
       print("Predicate variables: ",self.predicate_variables)
 
-    # Allocating witness variables:
-    self.witness_variables = []
+    # For index based gomuku, we only need the starting position and 2 bits for specifying which line it is:
+    self.index_line_boolean_variables = self.encoding_variables.get_vars(2)
+    # For now reusing the max winning configuration length, later need to specify explicitly:
     self.max_witness_length = parsed.max_win_config_length
 
-    for i in range(self.max_witness_length):
-      self.witness_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
+    # Allocating witness variables:
+    self.witness_variables = self.encoding_variables.get_vars(self.num_position_variables)
+
 
     if (parsed.args.debug == 1):
-      print("witness variables: ",self.witness_variables)
+      print("Index boolean variables: ",self.index_line_boolean_variables)
+      print("Starting position of winning line: ",self.witness_variables)
 
 
     # Generating quantifer blocks:
