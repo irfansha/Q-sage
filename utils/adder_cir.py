@@ -1,7 +1,7 @@
 # Irfansha Shaik, 29.12.2021, Aarhus
 
 # Requirement is that, the number of variables accommodates the sum of two numbers without oveflow
-def add_circuit(gg, vars, num):
+def adder_circuit(gg, vars, num):
     num_variables = len(vars)
     # Representation in binary requires number of variables:
     rep_string = '0' + str(num_variables) + 'b'
@@ -48,7 +48,7 @@ def add_circuit(gg, vars, num):
 
 # We use 2's complement for the subtractor,
 # We have requirement that the result is always positive and we never subtract with 0:
-def sub_circuit(gg, vars, num):
+def subtractor_circuit(gg, vars, num):
   num_variables = len(vars)
   # Representation in binary requires number of variables:
   rep_string = '0' + str(num_variables) + 'b'
@@ -71,6 +71,6 @@ def sub_circuit(gg, vars, num):
   # now calling the add circuit,
   # remember that in add circuit we ignore the overflow bit:
 
-  sum_output_gates = add_circuit(gg, vars, twos_complement_int)
+  sum_output_gates = adder_circuit(gg, vars, twos_complement_int)
 
   return sum_output_gates
