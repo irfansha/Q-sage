@@ -25,7 +25,7 @@ if __name__ == '__main__':
   text = "A tool to generate ungrounded QBF encodings for 2-player positional games and computes winning statergy if requested."
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("-V", "--version", help="show program version", action="store_true")
-  parser.add_argument("--problem", help="problem file path", default = 'testcases/Hein_hex/hein_04_3x3-03.pg')
+  parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded_new_boards/hein_04_3x3-05.pg')
   parser.add_argument("--planner_path", help="path for Q-sage.py, allowing remote run", default = os.getcwd())
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
@@ -41,7 +41,8 @@ if __name__ == '__main__':
                                   ttt = tictactoe
                                   cp = compact positional
                                   cgcp = compact goal compact positional
-                                  ntpg = path based goal, without transition function'''),default = 'gg')
+                                  ntpg = path based goal, without transition function
+                                  ib = index based (only for gomuku as of now)'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
                                   hex = hex game (default)
@@ -75,7 +76,7 @@ if __name__ == '__main__':
                                        renumber positions for tighter lessthan constraints:
                                        0 = None
                                        1 = renumber open position to the front
-                                       2 = extra equality clauses for the transformed board with only open positions (default 1)''') ,default = 1)
+                                       2 = extra equality clauses for the transformed board with only open positions (default 1)''') ,default = 0)
   parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--black_move_restrictions", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
@@ -83,6 +84,7 @@ if __name__ == '__main__':
                                        out = forall restrictions outside the transition functions (default)
                                        none = no restrictions'''), default = 'none')
   parser.add_argument("--stuttering", help="[b/nb] With boolean stuttering or without, default = b ",default = "b")
+  parser.add_argument("--remove_unreachable_nodes", type=int, help="[0/1], default 1" ,default = 1)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
@@ -105,7 +107,7 @@ if __name__ == '__main__':
   print(args)
 
   if args.version:
-    print("Version 0.6")
+    print("Version 0.7")
 
   # Run tests include all testcase domains:
   if (args.run_tests == 1):
@@ -120,6 +122,10 @@ if __name__ == '__main__':
 
   parsed_instance = ps(args)
 
+  # If problem is unsolvable, we simply stop:
+  if parsed_instance.unsolvable == 1:
+    print("Plan not found")
+    exit()
 
   encoding = ge.generate_encoding(parsed_instance)
 
