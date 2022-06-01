@@ -29,6 +29,59 @@ def lower_bound(parser):
   return min_length
 
 
+def tight_neighbours(parser):
+  print("Computing tight neighbours based on winning path position")
+
+  # computing simple paths:
+  G = nx.Graph()
+
+  for key,value_list in parser.neighbour_dict.items():
+    for value in value_list:
+      G.add_edge(key, value)
+
+  max_path_length = len(parser.black_initial_positions) + int((parser.depth + 1)/2)
+
+  all_simple_paths = []
+
+  for start in parser.start_boarder:
+    for end in parser.end_boarder:
+      paths = nx.all_simple_paths(G, source=start, target=end, cutoff=max_path_length-1)
+      plist = list(paths)
+      all_simple_paths.extend(plist)
+
+  # getting the minimal paths:
+  all_minimal_paths, max_length = all_short_simple_paths(parser)
+  #print(all_minimal_paths)
+
+  # only paths of minimals paths:
+  original_minimal_paths = []
+  for path in all_simple_paths:
+    # we only consider the minimal paths for tight nieghbours:
+    # using set to make sure there are no duplicates, which should not be there:
+    cur_path_set = list(set(path))
+    cur_path_set.sort()
+    assert(len(cur_path_set) == len(path))
+    if cur_path_set in all_minimal_paths:
+      #print(path)
+      original_minimal_paths.append(path)
+  #print(len(original_minimal_paths))
+
+  all_pairs_list = []
+  # grouping the pair of nodes for each time step:
+  for i in range(max_path_length-1):
+    cur_pairs_list = []
+    for path in original_minimal_paths:
+      if (len(path)-2 < i):
+        continue
+      else:
+        if ((path[i],path[i+1]) not in cur_pairs_list):
+          cur_pairs_list.append((path[i],path[i+1]))
+    cur_pairs_list.sort()
+    all_pairs_list.append(cur_pairs_list)
+
+  return all_pairs_list
+
+
 
 
 # Computes the unreachable nodes i.e., any node which cannot be in the path from a start node to an end node:
@@ -124,6 +177,8 @@ def all_short_simple_paths(parser):
         for small_path in final_small_paths:
           if (len(small_path) > max_length):
             max_length = len(small_path)
+          small_path = list(small_path)
+          small_path.sort()
           all_final_paths.append(list(small_path))
         #print(start, end)
         #print(final_small_paths)

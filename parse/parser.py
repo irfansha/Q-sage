@@ -164,6 +164,11 @@ class Parse:
 
       self.lower_bound_path_length = sb.lower_bound(self)
 
+      # tight nieghbours for cp encoding:
+      if (args.e == 'cp'):
+        tight_neighbour_pairs_list = sb.tight_neighbours(self)
+        #print(tight_neighbour_pairs_list)
+
       # only for explicit goals, we generate the winning configurations:
       if (args.e == 'ew' or args.e == 'eg'):
         self.black_win_configurations, self.max_win_config_length = sb.all_short_simple_paths(self)
