@@ -160,13 +160,17 @@ class CompactPositonal:
 
         # For each neighbour we generate a clause:
         for cur_neighbour in self.parsed.neighbour_dict[i]:
-          temp_binary_format_clause = self.generate_binary_format(next_position,cur_neighbour)
-          self.gates_generator.and_gate(temp_binary_format_clause)
-          neighbour_output_gates.append(self.gates_generator.output_gate)
+          # We only generate the neighbour clauses if there are tight neighbours when the pruning is on:
+          if (self.parsed.args.tight_neighbour_pruning == 1 and (i,cur_neighbour) not in self.parsed.tight_neighbour_pairs_list[index]):
+            continue
+          else:
+            temp_binary_format_clause = self.generate_binary_format(next_position,cur_neighbour)
+            self.gates_generator.and_gate(temp_binary_format_clause)
+            neighbour_output_gates.append(self.gates_generator.output_gate)
 
 
-        # We only add stuttering above lower bound:
-        if (index >= self.parsed.lower_bound_path_length-1):
+        # We only add stuttering above lower bound, or when the current node has no nieghbours and pruning is level 1:
+        if (index >= self.parsed.lower_bound_path_length-1 or (self.parsed.args.tight_neighbour_pruning == 1 and len(neighbour_output_gates) == 0)):
           # For allowing shorter paths, we say the position is also its neighbour:
           temp_binary_format_clause = self.generate_binary_format(next_position,i)
           self.gates_generator.and_gate(temp_binary_format_clause)

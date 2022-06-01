@@ -85,6 +85,7 @@ if __name__ == '__main__':
                                        none = no restrictions'''), default = 'none')
   parser.add_argument("--stuttering", help="[b/nb] With boolean stuttering or without, default = b ",default = "b")
   parser.add_argument("--remove_unreachable_nodes", type=int, help="[0/1], default 1" ,default = 1)
+  parser.add_argument("--tight_neighbour_pruning", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
