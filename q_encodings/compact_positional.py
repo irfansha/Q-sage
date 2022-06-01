@@ -187,7 +187,7 @@ class CompactPositonal:
     # Allowing stuttering, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
     # only stuttering above the lower bound:
     #print(self.parsed.lower_bound_path_length-1, self.safe_max_path_length-2)
-    for i in range(self.parsed.lower_bound_path_length-1, self.safe_max_path_length-2):
+    for i in range(self.safe_max_path_length-2):
       # First equality:
       self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
       first_equality_output_gate = self.gates_generator.output_gate

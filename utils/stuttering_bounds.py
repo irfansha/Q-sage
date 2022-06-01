@@ -51,7 +51,6 @@ def tight_neighbours(parser):
 
   # getting the minimal paths:
   all_minimal_paths, max_length = all_short_simple_paths(parser)
-  #print(all_minimal_paths)
 
   # only paths of minimals paths:
   original_minimal_paths = []
@@ -62,7 +61,6 @@ def tight_neighbours(parser):
     cur_path_set.sort()
     assert(len(cur_path_set) == len(path))
     if cur_path_set in all_minimal_paths:
-      #print(path)
       original_minimal_paths.append(path)
   #print(len(original_minimal_paths))
 
