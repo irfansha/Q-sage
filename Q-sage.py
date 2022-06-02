@@ -42,7 +42,8 @@ if __name__ == '__main__':
                                   cp = compact positional
                                   cgcp = compact goal compact positional
                                   ntpg = path based goal, without transition function
-                                  ib = index based (only for gomuku as of now)'''),default = 'pg')
+                                  ib = index based (only for gomuku as of now
+                                  wgttt = witness based gttt)'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
                                   hex = hex game (default)
