@@ -199,14 +199,19 @@ class GtttWitnessBased:
 
 
     # restricting first move with first moves:
-    first_black_output_gates = []
-    for pos in self.parsed.first_moves:
-      temp_format_gates = self.generate_binary_format(self.move_variables[0],pos)
-      self.gates_generator.and_gate(temp_format_gates)
-      first_black_output_gates.append(self.gates_generator.output_gate)
+    # if renumbering is done we give less than circuit,
+    # else we give the constraints explictly:
+    if (self.parsed.args.renumber_positions == 1):
+        lsc.add_circuit(self.gates_generator, self.move_variables[0], len(self.parsed.first_moves))
+    else:
+      first_black_output_gates = []
+      for pos in self.parsed.first_moves:
+        temp_format_gates = self.generate_binary_format(self.move_variables[0],pos)
+        self.gates_generator.and_gate(temp_format_gates)
+        first_black_output_gates.append(self.gates_generator.output_gate)
+      # disjunction of first black output gates:
+      self.gates_generator.or_gate(first_black_output_gates)
 
-    # disjunction of first black output gates:
-    self.gates_generator.or_gate(first_black_output_gates)
     self.step_output_gates.append(self.gates_generator.output_gate)
 
     # Final conjunction:
