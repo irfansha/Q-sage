@@ -4,6 +4,8 @@ import os
 
 import utils.stuttering_bounds as sb
 
+import parse.action as action_gen
+
 # Board vertexs are numbered from 0
 
 
@@ -38,15 +40,22 @@ class Parse:
     if (args.debug == 1):
       for key,value in self.parsed_dict.items():
         print(key, value)
-
-    if (args.ignore_file_depth == 0):
-      # If no times are provided in the input file:
-      if (len(self.parsed_dict['#times']) == 0):
-        self.depth = 0
+    # for general games, we do not have times yet but just the depth:
+    if (args.e == 'ib' and args.game_type == 'general'):
+      if(args.ignore_file_depth == 0):
+        self.depth = int(self.parsed_dict['#depth'][0][0])
       else:
-        self.depth = len(self.parsed_dict['#times'][0])
+        self.depth = args.depth
     else:
-      self.depth = args.depth
+      if (args.ignore_file_depth == 0):
+        # If no times are provided in the input file:
+        if (len(self.parsed_dict['#times']) == 0):
+          self.depth = 0
+        else:
+          self.depth = len(self.parsed_dict['#times'][0])
+      else:
+        self.depth = args.depth
+
 
     #'''
     # It is possible to remove unreachable nodes from here:
@@ -88,8 +97,9 @@ class Parse:
           self.parsed_dict['#endboarder'][0].remove(node)
     #'''
 
-    self.positions = self.parsed_dict['#positions'][0]
-    self.num_positions = len(self.parsed_dict['#positions'][0])
+    if ('#positions' in self.parsed_dict):
+      self.positions = self.parsed_dict['#positions'][0]
+      self.num_positions = len(self.parsed_dict['#positions'][0])
 
 
     if (self.args.game_type == "hex"):
@@ -337,3 +347,70 @@ class Parse:
         print("Black goal constraints: ", self.goal_constraints)
         print("Max number of goal positions: ", self.max_num_goal_positions)
         print("First moves: ", self.first_moves)
+
+    elif (args.e == 'ib' and args.game_type == 'general'):
+      self.white_initial_positions = []
+      self.black_initial_positions = []
+
+
+      # Rewriting intial positions for gomuku based on indexes:
+      for initial in self.parsed_dict['#whiteinitials'][0]:
+        # resetting the base to a, to get from 0:
+        x_index = ord(initial[0]) - ord('a')
+        y_index = int(initial[1:]) - 1
+        self.white_initial_positions.append((x_index,y_index))
+
+      for initial in self.parsed_dict['#blackinitials'][0]:
+        # resetting the base to a, to get from 0:
+        x_index = ord(initial[0]) - ord('a')
+        y_index = int(initial[1:]) - 1
+        self.black_initial_positions.append((x_index,y_index))
+
+      # reading the x and y axis lengths:
+      self.xmax, self.ymax = self.parsed_dict['#boardsize'][0]
+
+      # reading black actions:
+      self.black_action_list = []
+      count  = 0
+      # initializing step action lines:
+      one_action_lines = []
+      for line in self.parsed_dict['#blackactions']:
+        # for every 5 lines, call the action to make an object and reset:
+        if (count == 5):
+          cur_action = action_gen.Action(self,one_action_lines)
+          self.black_action_list.append(cur_action)
+          count = 0
+          one_action_lines = []
+        # with or without resetting we need to read the current line:
+        one_action_lines.append(line)
+        count = count + 1
+      # handiling the final action:
+      cur_action = action_gen.Action(self,one_action_lines)
+      self.black_action_list.append(cur_action)
+
+      for action in self.black_action_list:
+        print(action)
+
+      print("=========================================================")
+
+      # reading white actions:
+      self.white_action_list = []
+      count  = 0
+      # initializing step action lines:
+      one_action_lines = []
+      for line in self.parsed_dict['#whiteactions']:
+        # for every 5 lines, call the action to make an object and reset:
+        if (count == 5):
+          cur_action = action_gen.Action(self,one_action_lines)
+          self.white_action_list.append(cur_action)
+          count = 0
+          one_action_lines = []
+        # with or without resetting we need to read the current line:
+        one_action_lines.append(line)
+        count = count + 1
+      # handiling the final action:
+      cur_action = action_gen.Action(self,one_action_lines)
+      self.white_action_list.append(cur_action)
+
+      for action in self.white_action_list:
+        print(action)
