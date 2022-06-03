@@ -241,18 +241,16 @@ class Parse:
 
       if (args.renumber_positions == 1):
         print("Renumbering positions")
-        # first gathering open positions:
+        # assuming open board, renumbering to allow first moves in the starting:
+        self.rearranged_positions = list(self.parsed_dict['#firstmoves'][0])
+
+        # appending rest of the positions to the end:
         for pos in self.positions:
-          if ([pos] not in self.parsed_dict['#blackinitials'] and [pos] not in self.parsed_dict['#whiteinitials']):
+          if (pos not in self.parsed_dict['#firstmoves'][0]):
             self.rearranged_positions.append(pos)
 
         self.num_available_moves = len(self.rearranged_positions)
 
-        # now appending black and white initials:
-        for [pos] in self.parsed_dict['#blackinitials']:
-          self.rearranged_positions.append(pos)
-        for [pos] in self.parsed_dict['#whiteinitials']:
-          self.rearranged_positions.append(pos)
       else:
         # simply using the original positions and num of available moves are all positions:
         self.rearranged_positions = self.positions
