@@ -232,3 +232,110 @@ class Parse:
         print("White initial positions: ", self.white_initial_positions)
         print("Black win configurations: ", self.black_win_configurations)
         print("White win configurations: ", self.white_win_configurations)
+
+
+    elif (args.e == "wgttt"):
+      print("GTTT witness based")
+      # Pushing already placed positions to the end, and renumbering variables accordingly:
+      self.rearranged_positions = []
+
+      if (args.renumber_positions == 1):
+        print("Renumbering positions")
+        # first gathering open positions:
+        for pos in self.positions:
+          if ([pos] not in self.parsed_dict['#blackinitials'] and [pos] not in self.parsed_dict['#whiteinitials']):
+            self.rearranged_positions.append(pos)
+
+        self.num_available_moves = len(self.rearranged_positions)
+
+        # now appending black and white initials:
+        for [pos] in self.parsed_dict['#blackinitials']:
+          self.rearranged_positions.append(pos)
+        for [pos] in self.parsed_dict['#whiteinitials']:
+          self.rearranged_positions.append(pos)
+      else:
+        # simply using the original positions and num of available moves are all positions:
+        self.rearranged_positions = self.positions
+        self.num_available_moves = self.num_positions
+
+      self.white_initial_positions = []
+      self.black_initial_positions = []
+
+      for initial in self.parsed_dict['#whiteinitials']:
+        # Finding position of white initial var:
+        # Finding var position from rearranged positions instead:
+        position = self.rearranged_positions.index(initial[0])
+        self.white_initial_positions.append(position)
+
+      for initial in self.parsed_dict['#blackinitials']:
+        # Finding position of black initial var:
+        # Finding var position from rearranged positions instead:
+        position = self.rearranged_positions.index(initial[0])
+        self.black_initial_positions.append(position)
+
+
+      # remembering times in case of arbitrary time stamps:
+      self.all_time_stamps = self.parsed_dict['#times']
+      self.black_time_stamps = self.parsed_dict['#blackturns']
+
+
+      # separating the up and side neighbour dictionaries:
+      self.up_neighbour_dict = {}
+      self.side_neighbour_dict = {}
+      for neighbour_list in self.parsed_dict['#neighbours']:
+        # The neighbours list contains itself as its first element, which is the key for the dict:
+        cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
+        up_neighbour = neighbour_list.pop(0)
+        side_neighbour = neighbour_list.pop(0)
+        # we only add an up neighbour if it is not a white position:
+        if (up_neighbour != 'NA' and up_neighbour not in self.parsed_dict['#whiteinitials']):
+          cur_neighbour = self.rearranged_positions.index(up_neighbour)
+          self.up_neighbour_dict[cur_position] = cur_neighbour
+        else:
+          self.up_neighbour_dict[cur_position] = 'NA'
+        # we only add an side neighbour if it is not a white position:
+        if (side_neighbour != 'NA' and side_neighbour not in self.parsed_dict['#whiteinitials']):
+          cur_neighbour = self.rearranged_positions.index(side_neighbour)
+          self.side_neighbour_dict[cur_position] = cur_neighbour
+        else:
+          self.side_neighbour_dict[cur_position] = 'NA'
+        # only two neighbour must be present for a postion:
+        assert(len(neighbour_list) == 0)
+
+      # parsing the goal condition with positions and directions,
+      # we only allow up and side directions:
+      self.max_num_goal_positions = 0
+      self.goal_constraints = []
+      for line in self.parsed_dict['#blackgoal']:
+        single_line_constraints = []
+        for single_constraint in line:
+          split_constraints = single_constraint.strip("\n").strip(")").split("(")
+          direction = split_constraints[0]
+          position_one,position_two = split_constraints[1].split(",")
+          # just the number of the position p is enough:
+          single_line_constraints.append((direction, int(position_one[1:]), int(position_two[1:])))
+          self.max_num_goal_positions = max(self.max_num_goal_positions, int(position_one[1:]), int(position_two[1:]))
+        self.goal_constraints.append(single_line_constraints)
+      #print(self.goal_constraints)
+
+      # since we give position indexes, we add one to the max goal positions:
+      self.max_num_goal_positions = self.max_num_goal_positions + 1
+
+      self.first_moves = []
+      for pos in self.parsed_dict['#firstmoves'][0]:
+        self.first_moves.append(self.rearranged_positions.index(pos))
+
+      if args.debug == 1:
+        print("Depth: ",self.depth)
+        print("all turns: ", self.all_time_stamps)
+        print("black turns: ",self.black_time_stamps)
+        print("Given positions: ", self.positions)
+        print("Rearranged positions: ", self.rearranged_positions)
+        print("Upper bound of allowed moves: ", self.num_available_moves)
+        print("Black initial positions: ", self.black_initial_positions)
+        print("White initial positions: ", self.white_initial_positions)
+        print("Up Neighbour dict: ", self.up_neighbour_dict)
+        print("Side Neighbour dict: ", self.side_neighbour_dict)
+        print("Black goal constraints: ", self.goal_constraints)
+        print("Max number of goal positions: ", self.max_num_goal_positions)
+        print("First moves: ", self.first_moves)
