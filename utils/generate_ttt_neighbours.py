@@ -49,10 +49,10 @@ if __name__ == '__main__':
   parser.add_argument("--size", help="board size, default 3", type=int,default = 3)
   args = parser.parse_args()
 
+  print("#blackinitials")
+  print("#whiteinitials")
+  print("#times\nt1")
+  print("#blackturns\nt1")
   print_positions(args.size)
-
   generate_neighbours(args.size)
-
-  print("#startboarder")
-  print("#endboarder")
-
+  print("#blackgoal")
