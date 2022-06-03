@@ -42,12 +42,14 @@ if __name__ == '__main__':
                                   cp = compact positional
                                   cgcp = compact goal compact positional
                                   ntpg = path based goal, without transition function
-                                  ib = index based (only for gomuku as of now)'''),default = 'pg')
+                                  ib = index based (gomuku and general games, now for breakthrough first)
+                                  wgttt = witness based gttt)'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
                                   hex = hex game (default)
                                   ttt = tic-tac-toe
-                                  gomuku = gomuku'''),default = 'hex')
+                                  gomuku = gomuku
+                                  general = general game, for index based'''),default = 'hex')
   parser.add_argument("--goal_length", help="Goal line length for games such as tic-tac-toe and gomuku, default 3", type=int,default = 3)
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
