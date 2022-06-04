@@ -367,7 +367,7 @@ class Parse:
         self.black_initial_positions.append((x_index,y_index))
 
       # reading the x and y axis lengths:
-      self.xmax, self.ymax = self.parsed_dict['#boardsize'][0]
+      self.xmax, self.ymax = int(self.parsed_dict['#boardsize'][0][0]), int(self.parsed_dict['#boardsize'][0][1])
 
       # reading black actions:
       self.black_action_list = []
@@ -388,10 +388,10 @@ class Parse:
       cur_action = action_gen.Action(self,one_action_lines)
       self.black_action_list.append(cur_action)
 
-      for action in self.black_action_list:
-        print(action)
+      if (args.debug == 1):
+        for action in self.black_action_list:
+          print(action)
 
-      print("=========================================================")
 
       # reading white actions:
       self.white_action_list = []
@@ -412,5 +412,15 @@ class Parse:
       cur_action = action_gen.Action(self,one_action_lines)
       self.white_action_list.append(cur_action)
 
-      for action in self.white_action_list:
-        print(action)
+      if (args.debug == 1):
+        for action in self.white_action_list:
+          print(action)
+
+      # Reading black and white goal constraints:
+      self.black_goal_constraints = self.parsed_dict['#blackgoal']
+
+      self.white_goal_constraints = self.parsed_dict["#whitegoal"]
+
+      if (args.debug == 1):
+        print(self.black_goal_constraints)
+        print(self.white_goal_constraints)

@@ -13,6 +13,7 @@ from q_encodings.grounded_goal_encoding import GroundedGoalEncoding as gge
 from q_encodings.grounded_goal_with_time import \
     GroundedGoalTimeEncoding as ggte
 from q_encodings.gttt_witness_based import GtttWitnessBased as gtttw
+from q_encodings.index_based_general import IndexBasedGeneral as ibgen
 from q_encodings.index_based_gomuku import IndexBasedGomuku as ibg
 from q_encodings.iterative_squaring_witness_based import \
     IterativeSquaringWitnessBased as iswb
@@ -94,6 +95,9 @@ def generate_encoding(parsed_instance):
   elif (parsed_instance.args.e == 'ib' and parsed_instance.args.game_type == "gomuku"):
     print("Generating Gomuku encoding")
     encoding = ibg(parsed_instance)
+  elif (parsed_instance.args.e == 'ib' and parsed_instance.args.game_type == "general"):
+    print("Generating General game encoding")
+    encoding = ibgen(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
     print("Generating Compact Positional encoding")
     encoding = cp(parsed_instance)
