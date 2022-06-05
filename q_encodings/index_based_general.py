@@ -1,6 +1,7 @@
 # Irfansha Shaik, 04.06.2022, Aarhus.
 
 import math
+from time import time
 
 import utils.adder_cir as addc
 import utils.lessthen_cir as lsc
@@ -89,6 +90,7 @@ class IndexBasedGeneral:
   def generate_black_transition(self, time_step):
     self.encoding.append(['# Player 1 (black) transition function for time step ' + str(time_step)+ ': '])
 
+    '''
     # Move equality constraint with position variables:
     self.encoding.append(['# Equality gate for move and forall positional variables:'])
     self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
@@ -113,11 +115,23 @@ class IndexBasedGeneral:
     self.encoding.append(['# If the time and equality constraints does not hold predicates are propagated:'])
     self.gates_generator.or_gate([conditional_and_output_gate, self.gates_generator.output_gate])
     self.transition_step_output_gates.append(self.gates_generator.output_gate)
-
+    '''
+    # for now no-op transitions, they just propagate the current state:
+    '''
+    x_equality_gate = self.gates_generator.complete_equality_gate(self.move_variables[time_step][1],self.forall_position_variables[0])
+    y_equality_gate = self.gates_generator.complete_equality_gate(self.move_variables[time_step][2],self.forall_position_variables[1])
+    self.gates_generator.and_gate([x_equality_gate,y_equality_gate])
+    if_equality_output_gates = self.gates_generator.output_gate
+    '''
+    # Finally propogation constraints:
+    self.encoding.append(['# propagation constraints:'])
+    self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
   def generate_white_transition(self, time_step):
     self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
 
+    '''
     # Move equality constraint with position variables:
     self.encoding.append(['# Equality gate for move and forall positional variables:'])
     self.gates_generator.complete_equality_gate(self.move_variables[time_step], self.forall_position_variables)
@@ -142,6 +156,12 @@ class IndexBasedGeneral:
     self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
     self.encoding.append(['# If the time and equality constraints does not hold predicates are propagated:'])
     self.gates_generator.or_gate([conditional_and_output_gate, self.gates_generator.output_gate])
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+    '''
+    # For now no-op transitions, they just propagate the current state:
+    # Finally propogation constraints:
+    self.encoding.append(['# propagation constraints:'])
+    self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
     self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
   def generate_d_transitions(self):
@@ -170,62 +190,72 @@ class IndexBasedGeneral:
 
     for position in self.parsed.black_initial_positions:
       # generating binary format for indexes separately:
-      binary_format_clause1 = self.generate_binary_format(self.forall_position_variables[:self.num_single_index_move_variables],position[0])
+      binary_format_clause1 = self.generate_binary_format(self.forall_position_variables[0],position[0])
       self.gates_generator.and_gate(binary_format_clause1)
       binary_output_gate1 = self.gates_generator.output_gate
-      binary_format_clause2 = self.generate_binary_format(self.forall_position_variables[self.num_single_index_move_variables:],position[1])
+      binary_format_clause2 = self.generate_binary_format(self.forall_position_variables[1],position[1])
       self.gates_generator.and_gate(binary_format_clause2)
       binary_output_gate2 = self.gates_generator.output_gate
       self.gates_generator.and_gate([binary_output_gate1,binary_output_gate2])
       black_position_output_gates.append(self.gates_generator.output_gate)
 
 
-    self.encoding.append(['# Or for all black forall position clauses: '])
-    self.gates_generator.or_gate(black_position_output_gates)
+    if (len(black_position_output_gates) != 0):
+      self.encoding.append(['# Or for all black forall position clauses: '])
+      self.gates_generator.or_gate(black_position_output_gates)
 
-    black_final_output_gate = self.gates_generator.output_gate
+      black_final_output_gate = self.gates_generator.output_gate
 
-    self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
-    self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
-    self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
+      self.encoding.append(['# if black condition is true then first time step occupied and color black (i.e. 0): '])
+      self.gates_generator.and_gate([self.predicate_variables[0][0], -self.predicate_variables[0][1]])
+      self.gates_generator.if_then_gate(black_final_output_gate, self.gates_generator.output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+      initial_step_output_gates.append(self.gates_generator.output_gate)
 
     # Constraints in forall branches for white positions:
     white_position_output_gates = []
 
     for position in self.parsed.white_initial_positions:
       # generating binary format for indexes separately:
-      binary_format_clause1 = self.generate_binary_format(self.forall_position_variables[:self.num_single_index_move_variables],position[0])
+      binary_format_clause1 = self.generate_binary_format(self.forall_position_variables[0],position[0])
       self.gates_generator.and_gate(binary_format_clause1)
       binary_output_gate1 = self.gates_generator.output_gate
-      binary_format_clause2 = self.generate_binary_format(self.forall_position_variables[self.num_single_index_move_variables:],position[1])
+      binary_format_clause2 = self.generate_binary_format(self.forall_position_variables[1],position[1])
       self.gates_generator.and_gate(binary_format_clause2)
       binary_output_gate2 = self.gates_generator.output_gate
       self.gates_generator.and_gate([binary_output_gate1,binary_output_gate2])
       white_position_output_gates.append(self.gates_generator.output_gate)
 
-    self.encoding.append(['# Or for all white forall position clauses: '])
-    self.gates_generator.or_gate(white_position_output_gates)
+    if (len(white_position_output_gates) != 0):
+      self.encoding.append(['# Or for all white forall position clauses: '])
+      self.gates_generator.or_gate(white_position_output_gates)
 
-    white_final_output_gate = self.gates_generator.output_gate
+      white_final_output_gate = self.gates_generator.output_gate
 
-    self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
-    self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
-    self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
+      self.encoding.append(['# if white condition is true then first time step occupied and color white (i.e. 1): '])
+      self.gates_generator.and_gate([self.predicate_variables[0][0], self.predicate_variables[0][1]])
+      self.gates_generator.if_then_gate(white_final_output_gate, self.gates_generator.output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+      initial_step_output_gates.append(self.gates_generator.output_gate)
 
     # Finally for all other forall branches, the position is unoccupied:
-    self.encoding.append(['# for all other branches the occupied is 0: '])
-    self.gates_generator.or_gate([black_final_output_gate, white_final_output_gate])
-    self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+    if (len(black_position_output_gates) != 0 or len(white_position_output_gates) != 0):
+      self.encoding.append(['# for all other branches the occupied is 0: '])
+      cur_condition_gates = []
+      if (len(black_position_output_gates) != 0):
+        cur_condition_gates.append(black_final_output_gate)
+      if (len(white_position_output_gates) != 0):
+        cur_condition_gates.append(white_final_output_gate)
 
-    initial_step_output_gates.append(self.gates_generator.output_gate)
+      if (len(cur_condition_gates) != 0):
+        self.gates_generator.or_gate(cur_condition_gates)
+        self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
+        initial_step_output_gates.append(self.gates_generator.output_gate)
 
     # Now final output gate for the initial state:
-    self.gates_generator.and_gate(initial_step_output_gates)
-    self.initial_output_gate = self.gates_generator.output_gate
+    if (len(initial_step_output_gates) != 0):
+      self.gates_generator.and_gate(initial_step_output_gates)
+      self.initial_output_gate = self.gates_generator.output_gate
 
 
   # Generating goal constraints:
@@ -233,7 +263,71 @@ class IndexBasedGeneral:
     goal_step_output_gates = []
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
-    self.encoding.append(["# ------------------------------------------------------------------------"])
+    # generating black goal constraints:
+    self.encoding.append(['# Black goal constraints: '])
+    # for now only handling breakthrough and kinghtthrough, to be extended:
+    assert(len(self.parsed.black_goal_constraints) == 1 and len(self.parsed.black_goal_constraints[0]) == 1)
+    black_constraint = self.parsed.black_goal_constraints[0][0]
+    # for now it is an integer also because it is index based from 0 we subtract 1:
+    black_y_constraint = int(black_constraint.split(",")[-1].strip(" ").strip(")")) - 1
+    # for now the x constraint is simple the ?x variable:
+    assert('?x' in black_constraint)
+    # generating constraint for x, which is equality with x parameter of forall variables:
+    self.encoding.append(['# x constraint equality gate with forall x variables: '])
+    self.gates_generator.complete_equality_gate(self.black_goal_index_variables[0],self.forall_position_variables[0])
+    x_equality_output_gate = self.gates_generator.output_gate
+
+    # generating binary format for the y constraint:
+    self.encoding.append(['# y constraint binary format with forall y variables: '])
+    y_black_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],black_y_constraint)
+    self.gates_generator.and_gate(y_black_constraint_binary_format)
+    y_black_constraint_output_gate = self.gates_generator.output_gate
+
+    # if both the constraints hold, then the position must be black in the last time step:
+    self.encoding.append(['# Conjunction of constraints: '])
+    self.gates_generator.and_gate([x_equality_output_gate,y_black_constraint_output_gate])
+    if_black_condition_output_gate = self.gates_generator.output_gate
+
+    self.encoding.append(['# Black position constraints: '])
+    self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
+    black_position_output_gate = self.gates_generator.output_gate
+
+    # if then constraint:
+    self.encoding.append(['# If then constraint for black goal: '])
+    self.gates_generator.if_then_gate(if_black_condition_output_gate,black_position_output_gate)
+    goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    # generating white goal constraints if maker-maker game:
+    if (self.makermaker_game == 1):
+      self.encoding.append(['# White goal constraints: '])
+      # for now only handling breakthrough and kinghtthrough, to be extended:
+      assert(len(self.parsed.white_goal_constraints) == 1 and len(self.parsed.white_goal_constraints[0]) == 1)
+      white_constraint = self.parsed.white_goal_constraints[0][0]
+      # for now it is an integer:
+      white_y_constraint = int(white_constraint.split(",")[-1].strip(" ").strip(")")) - 1
+      # for now the x constraint is simple the ?x variable:
+      assert('?x' in white_constraint)
+
+      # generating binary format for the y white constraint:
+      self.encoding.append(['# y constraint white binary format with forall y variables: '])
+      y_white_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],white_y_constraint)
+      self.gates_generator.and_gate(y_white_constraint_binary_format)
+      if_y_white_constraint_output_gate = self.gates_generator.output_gate
+
+      self.encoding.append(['# White position constraints: '])
+      self.gates_generator.and_gate([self.predicate_variables[-1][0], self.predicate_variables[-1][1]])
+      white_position_output_gate = self.gates_generator.output_gate
+
+      # non existence of white is necessary so we negate the white position constraints:
+      self.encoding.append(['# If then not white goal constraint: '])
+      self.gates_generator.if_then_gate(if_y_white_constraint_output_gate, -white_position_output_gate)
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    #----------------------------------------------------------------------------------------------------------------
+    # Final goal gate:
+    self.encoding.append(['# Final and gate for goal constraints: '])
+    self.gates_generator.and_gate(goal_step_output_gates)
+    self.goal_output_gate = self.gates_generator.output_gate
 
 
   # Final output gate is an and-gate with inital, goal and transition gates:
@@ -241,8 +335,12 @@ class IndexBasedGeneral:
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Final gate: '])
 
-    self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    if (self.initial_output_gate != 0):
+      self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
+      self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    else:
+      self.encoding.append(['# Conjunction of Transition gate and Goal gate: '])
+      self.gates_generator.and_gate([self.transition_output_gate, self.goal_output_gate])
     self.final_output_gate = self.gates_generator.output_gate
 
 
@@ -385,13 +483,13 @@ class IndexBasedGeneral:
     # Generating quantifer blocks:
     self.generate_quantifier_blocks()
 
-    #self.gates_generator = ggen(self.encoding_variables, self.encoding)
+    self.gates_generator = ggen(self.encoding_variables, self.encoding)
 
     # Generating d steps i.e., which includes black and white constraints:
-    #self.generate_d_transitions()
+    self.generate_d_transitions()
 
-    #self.generate_initial_gate()
+    self.generate_initial_gate()
 
-    #self.generate_goal_gate()
+    self.generate_goal_gate()
 
-    #self.generate_final_gate()
+    self.generate_final_gate()
