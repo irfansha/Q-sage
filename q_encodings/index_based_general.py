@@ -43,26 +43,43 @@ class IndexBasedGeneral:
   def generate_quantifier_blocks(self):
 
     # Move variables following time variables:
-    self.quantifier_block.append(['# Move variables: '])
+    if (self.makermaker_game == 1):
+      self.quantifier_block.append(['# ' + str(self.num_black_action_variables) + '/' + str(self.num_white_action_variables) + ' (black/white) Action variables, ' + str(self.num_x_index_variables) + ' and ' + str(self.num_y_index_variables) +  ' (action parameter) index variables (x, y), and game stop variables : '])
+    else:
+      self.quantifier_block.append(['# ' + str(self.num_black_action_variables) + '/' + str(self.num_white_action_variables) + ' (black/white) Action variables, ' + str(self.num_x_index_variables) + ' and ' + str(self.num_y_index_variables) +  ' (action parameter) index variables (x, y): '])
     for i in range(self.parsed.depth):
       # starts with 0 and even is black (i.e., existential moves):
+      cur_all_action_vars = []
+      # adding action variables:
+      cur_all_action_vars.extend(self.move_variables[i][0])
+      # adding parameter variables:
+      cur_all_action_vars.extend(self.move_variables[i][1])
+      cur_all_action_vars.extend(self.move_variables[i][2])
+      # adding game stop variable if present:
+      cur_all_action_vars.extend(self.move_variables[i][3])
       if (i % 2 == 0):
-        self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
+        self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
       else:
-        self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.move_variables[i]) + ')'])
+        self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
 
-    # witness index boolean variables:
-    self.quantifier_block.append(['# Witness direction boolean variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.index_line_boolean_variables) + ')'])
+    # black goal variables:
+    self.quantifier_block.append(['# black goal index variables: '])
+    all_black_goal_vars = []
+    all_black_goal_vars.extend(self.black_goal_index_variables[0])
+    all_black_goal_vars.extend(self.black_goal_index_variables[1])
+    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_black_goal_vars) + ')'])
 
-
-    # witness variables before forall position variables:
-    self.quantifier_block.append(['# Starting witness index variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.witness_variables) + ')'])
+    # if maker-maker, white illegal variable before universal variables:
+    if (self.makermaker_game == 1):
+      self.quantifier_block.append(['# white illegal variable: '])
+      self.quantifier_block.append(['exists(' + str(self.white_illegal) + ')'])
 
     # Forall position variables:
-    self.quantifier_block.append(['# Forall position variables: '])
-    self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.forall_position_variables) + ')'])
+    self.quantifier_block.append(['# Forall index variables: '])
+    forall_index_variables = []
+    forall_index_variables.extend(self.forall_position_variables[0])
+    forall_index_variables.extend(self.forall_position_variables[1])
+    self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in forall_index_variables) + ')'])
 
     # Finally predicate variables for each time step:
     self.quantifier_block.append(['# Predicate variables: '])
@@ -241,24 +258,110 @@ class IndexBasedGeneral:
     self.final_output_gate = 0 # Can never be 0
 
 
+    # We generate game stop variables and white illegal variable only for maker-maker games, otherwise no need,
+    # remembering which type of game:
+    if (len(parsed.white_goal_constraints) == 1 and len(parsed.white_goal_constraints[0]) == 0):
+      self.makermaker_game = 0
+    else:
+      self.makermaker_game = 1
+
+
     # Allocating action variables for each time step until depth:
     # for general board the board can be rectangular, allocating for both indexes separately:
     self.num_x_index_variables = int(math.ceil(math.log2(parsed.xmax)))
     self.num_y_index_variables = int(math.ceil(math.log2(parsed.ymax)))
     self.xmax = parsed.xmax
     self.ymax = parsed.ymax
+    # number of black actions:
+    self.num_black_actions = len(self.parsed.black_action_list)
+    # we need logarithmic number of variables to represent them:
+    self.num_black_action_variables = int(math.ceil(math.log2(self.num_black_actions)))
+    # number of white actions:
+    self.num_white_actions = len(self.parsed.white_action_list)
+    # we need logarithmic number of variables to represent them:
+    self.num_white_action_variables = int(math.ceil(math.log2(self.num_white_actions)))
+
+
     self.move_variables = []
     for i in range(parsed.depth):
       temp_list = []
-      # appending all the variables separately for ease of indexed constraints:
+      # for black we use the black log action variables:
+      if (i%2 == 0):
+        # we only generate new action variables if there are more than 1 actions, no need for extra variables if only one action:
+        if (self.num_black_actions > 1):
+          temp_list.append(self.encoding_variables.get_vars(self.num_black_action_variables))
+        else:
+          # else appending an empty list, for preserving structure of the list of lists:
+          temp_list.append([])
+      else:
+        # same as black actions, we only generate new action variables if there are more than 1 actions, no need for extra variables if only one action:
+        if (self.num_white_actions > 1):
+          temp_list.append(self.encoding_variables.get_vars(self.num_white_action_variables))
+        else:
+          # else appending an empty list, for preserving structure of the list of lists:
+          temp_list.append([])
+      # Action parameter variables, these are essentially x,y indexes for the action chosen:
       temp_list.append(self.encoding_variables.get_vars(self.num_x_index_variables))
       temp_list.append(self.encoding_variables.get_vars(self.num_y_index_variables))
+      # now appending game stop variable for current black move, if the game is maker-maker:
+      if (i%2 == 0 and self.makermaker_game == 1):
+        temp_list.append(self.encoding_variables.get_vars(1))
+      else:
+        # else appending an empty list, for preserving structure of the list of lists:
+        temp_list.append([])
+
       self.move_variables.append(temp_list)
 
     if (parsed.args.debug == 1):
+      print("Number of (log) black choosing variables: ", self.num_black_action_variables)
+      print("Number of (log) white choosing variables: ", self.num_white_action_variables)
       print("Number of (log) x index variables: ", self.num_x_index_variables)
       print("Number of (log) y index variables: ", self.num_y_index_variables)
       print("Move variables: ",self.move_variables)
+
+
+    # allocating variables for black constraints, for now looking at the strings to check if both indexes are necessary:
+    # note that right now we only handle goal constraints based on single position:
+    self.black_goal_index_variables = []
+    # checking for x index:
+    temp_x_index_black_variables = []
+    for line in parsed.black_goal_constraints:
+      for constraint in line:
+        if ('?x' in constraint):
+          # we have x indexed position:
+          temp_x_index_black_variables = self.encoding_variables.get_vars(self.num_x_index_variables)
+          break
+        # we only allocate the variables once:
+        if (len(temp_x_index_black_variables) != 0):
+          break
+    self.black_goal_index_variables.append(temp_x_index_black_variables)
+    # checking for y index
+    temp_y_index_black_variables = []
+    for line in parsed.black_goal_constraints:
+      for constraint in line:
+        if ('?y' in constraint):
+          # we have y indexed position:
+          temp_y_index_black_variables = self.encoding_variables.get_vars(self.num_y_index_variables)
+          break
+        # we only allocate the variables once:
+        if (len(temp_y_index_black_variables) != 0):
+          break
+    self.black_goal_index_variables.append(temp_y_index_black_variables)
+
+    # for now only handing breakthrough and kinghtthrough, so we do not need any extra variables:
+    # as long as we only have a single conjunction in each line of the goal, we do not need any universal variables:
+    for line in parsed.white_goal_constraints:
+      assert(len(line) <= 1)
+
+    if (parsed.args.debug == 1):
+      print("black goal variables: ",self.black_goal_index_variables)
+
+    # if the game is maker-maker then we need to handle the white illegal moves,
+    # so we generate a variable as a flag:
+    if (self.makermaker_game == 1):
+      self.white_illegal = self.encoding_variables.get_single_var()
+      if (parsed.args.debug == 1):
+        print("white illegal variable: ",self.white_illegal)
 
     # Allocating forall position variables:
     self.forall_position_variables = []
@@ -278,34 +381,9 @@ class IndexBasedGeneral:
       print("Predicate variables: ",self.predicate_variables)
 
 
-    # allocating variables for black constraints, for now looking at the strings to check if both indexes are necessary:
-    self.black_goal_index_variables = []
-    # checking for x index:
-    temp_x_index_black_variables = []
-    for line in parsed.black_goal_constraints:
-      if ('?x' in line):
-        # we have x indexed position:
-        temp_x_index_black_variables = self.encoding_variables.get_vars(self.num_x_index_variables)
-        break
-    self.black_goal_index_variables.append(temp_x_index_black_variables)
-    # checking for y index
-    temp_y_index_black_variables = []
-    for line in parsed.black_goal_constraints:
-      if ('?y' in line):
-        # we have y indexed position:
-        temp_x_index_black_variables = self.encoding_variables.get_vars(self.num_y_index_variables)
-        break
-    self.black_goal_index_variables.append(temp_y_index_black_variables)
-
-
-    # for now only handing breakthrough and kinghtthrough, so we do not need any extra variables:
-    # as long as we only have a single conjunction in each line of the goal, we do not need any universal variables:
-    for line in parsed.white_goal_constraints:
-      assert(len(line) <= 1)
-
 
     # Generating quantifer blocks:
-    #self.generate_quantifier_blocks()
+    self.generate_quantifier_blocks()
 
     #self.gates_generator = ggen(self.encoding_variables, self.encoding)
 
