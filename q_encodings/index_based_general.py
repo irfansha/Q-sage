@@ -147,12 +147,17 @@ class IndexBasedGeneral:
       # adding parameter variables:
       cur_all_action_vars.extend(self.move_variables[i][1])
       cur_all_action_vars.extend(self.move_variables[i][2])
-      # adding game stop variable if present:
-      cur_all_action_vars.extend(self.move_variables[i][3])
       if (i % 2 == 0):
+        # adding game stop variable if present:
+        cur_all_action_vars.extend(self.move_variables[i][3])
         self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
       else:
         self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
+        # if illegal move is present, then it is existential:
+        if (len(self.move_variables[i][3]) != 0):
+          self.quantifier_block.append(['# white illegal variable: '])
+          self.quantifier_block.append(['exists(' + str(self.move_variables[i][3][0]) + ')'])
+
 
     # black goal variables:
     self.quantifier_block.append(['# black goal index variables: '])
@@ -161,10 +166,6 @@ class IndexBasedGeneral:
     all_black_goal_vars.extend(self.black_goal_index_variables[1])
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_black_goal_vars) + ')'])
 
-    # if maker-maker, white illegal variable before universal variables:
-    if (self.makermaker_game == 1):
-      self.quantifier_block.append(['# white illegal variable: '])
-      self.quantifier_block.append(['exists(' + str(self.white_illegal) + ')'])
 
     # Forall position variables:
     self.quantifier_block.append(['# Forall index variables: '])
@@ -307,11 +308,145 @@ class IndexBasedGeneral:
   def generate_white_transition(self, time_step):
     self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
 
-    # For now no-op transitions, they just propagate the current state:
-    # Finally propogation constraints:
+    # If the number actions are not powers of 2, then we need a less than circuit:
+    if (self.upperlimit_white_actions != self.num_white_actions):
+      self.encoding.append(['# less than constraints for white moves:'])
+      lsc.add_circuit(self.gates_generator, self.move_variables[time_step][0], self.num_white_actions)
+      self.white_lessthan_circuit_output_gate = self.gates_generator.output_gate
+
+
+    # Propogation constraints:
     self.encoding.append(['# propagation constraints:'])
     self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
+    propagation_output_gate = self.gates_generator.output_gate
+
+    # if game stop variable is true in previous black turn, then the state is simply propagated:
+    self.encoding.append(['# if then constraints for the propagation:'])
+    # even single boolean for game stop variable is a list in our data structure:
+    self.gates_generator.if_then_gate(self.move_variables[time_step - 1][3][0], propagation_output_gate)
     self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    # if previous white move is illegal, current move is also illegal, we add a ladder chain:
+    if (time_step > 1):
+      self.encoding.append(['# ladder variables for the white illegal variables:'])
+      # even single boolean for white illegal is a list in our data structure:
+      self.gates_generator.if_then_gate(self.move_variables[time_step - 2][3][0], self.move_variables[time_step][3][0])
+      self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    # ==========================================================================================================================
+    # XXX TODO we need to specify when the white move becomes illegal explicitly:
+    # ==========================================================================================================================
+
+
+    # ==========================================================================================================================
+    #  Constraints:
+    #  1. if (-illegal) then (white_lessthan_circuit_output_gate)
+    #
+    #  2. if (- illegal & - stopped & action) then (index_bounds & preconditions & effects & propogation)
+    # ==========================================================================================================================
+
+    # Either the current action is illegal or white less than circuit is true:
+    if (self.upperlimit_white_actions != self.num_white_actions):
+      self.gates_generator.or_gate([self.move_variables[time_step][3][0], self.white_lessthan_circuit_output_gate])
+
+    # for each action we generate constraints:
+    for i in range(self.num_white_actions):
+      temp_if_condition_output_gates = []
+
+      # generate binary constraint for current action index:
+      binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
+      self.gates_generator.and_gate(binary_format_clause)
+      temp_if_condition_output_gates.append(self.gates_generator.output_gate)
+
+      # only if the game is not stopped, we force the action constraints so generating conjunction for if condition:
+      # there is no game stop variable before the first action variable:
+      temp_if_condition_output_gates.append(-self.move_variables[time_step - 1][3][0])
+      # we only need to enforce if white is not illegal:
+      temp_if_condition_output_gates.append(-self.move_variables[time_step][3][0])
+      # final if condition for current action:
+      self.gates_generator.and_gate(temp_if_condition_output_gates)
+      final_if_condition_output_gate = self.gates_generator.output_gate
+      temp_then_constraint_output_gates = []
+
+      # generate positive index bound constraints:
+      for index_constraint in self.parsed.white_action_list[i].positive_indexbounds:
+        self.encoding.append(['# less than constraints for positive index bounds:'])
+        # generating constraints for corresponding index variables:
+        # no spaces for sake of correct parsing:
+        assert(" " not in index_constraint)
+        # passing x variables and y variables along with index constraint:
+        temp_then_constraint_output_gates.append(self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
+        #print(self.parsed.white_action_list[i],index_constraint, bound)
+      # generate negative index bound constraints:
+      for index_constraint in self.parsed.white_action_list[i].negative_indexbounds:
+        self.encoding.append(['# less than constraints for negative index bounds:'])
+        # generating constraints for corresponding index variables:
+        # no spaces for sake of correct parsing:
+        assert(" " not in index_constraint)
+        # adding the negative output gate since we have negative index constraints:
+        temp_then_constraint_output_gates.append(-self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
+      #print("not", index_constraint, bound)
+      # gather positions used in precondition and effect constraints and generate equality gates with forall variables:
+      # constraints for postive precondition:
+      for precondition in self.parsed.white_action_list[i].positive_preconditions:
+        # no spaces for sake of correct parsing:
+        assert(" " not in precondition)
+        split_precondition = precondition.strip(")").split("(")
+        predicate = split_precondition[0]
+        constraint_pair = split_precondition[1].split(",")
+        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"pos"))
+      # constraints for negative precondition:
+      for precondition in self.parsed.white_action_list[i].negative_preconditions:
+        # no spaces for sake of correct parsing:
+        assert(" " not in precondition)
+        split_precondition = precondition.strip(")").split("(")
+        predicate = split_precondition[0]
+        constraint_pair = split_precondition[1].split(",")
+        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"neg"))
+
+      # remember effect positions, later for frame axioms:
+      touched_position_output_gates = []
+
+      # constraints for postive effects:
+      for effect in self.parsed.white_action_list[i].positive_effects:
+        # no spaces for sake of correct parsing:
+        assert(" " not in effect)
+        split_effect = effect.strip(")").split("(")
+        predicate = split_effect[0]
+        constraint_pair = split_effect[1].split(",")
+        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+        touched_position_output_gates.append(cur_equality_output_gate)
+        # time step + 1 because these are effects:
+        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
+      # constraints for postive effects:
+      for effect in self.parsed.white_action_list[i].negative_effects:
+        # no spaces for sake of correct parsing:
+        assert(" " not in effect)
+        split_effect = effect.strip(")").split("(")
+        predicate = split_effect[0]
+        constraint_pair = split_effect[1].split(",")
+        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+        touched_position_output_gates.append(cur_equality_output_gate)
+        # time step + 1 because these are effects:
+        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"neg"))
+
+      # for the positions that are not in effects, the state is propogated:
+      self.encoding.append(['# disjunction for all touched positions:'])
+      self.gates_generator.or_gate(touched_position_output_gates)
+      self.encoding.append(['# frame axiom; if not touched position, then it is propagated:'])
+      # if not these positions we propogate:
+      self.gates_generator.or_gate([self.gates_generator.output_gate,propagation_output_gate])
+      temp_then_constraint_output_gates.append(self.gates_generator.output_gate)
+
+      # conjunction of all the then constraints:
+      self.encoding.append(['# conjunction for all the then constraints:'])
+      self.gates_generator.and_gate(temp_then_constraint_output_gates)
+      # final if then condition for each action:
+      self.encoding.append(['# final if then constraint for current action:'])
+      self.gates_generator.if_then_gate(final_if_condition_output_gate, self.gates_generator.output_gate)
+      self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
   def generate_d_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
@@ -474,8 +609,12 @@ class IndexBasedGeneral:
 
     #----------------------------------------------------------------------------------------------------------------
     # Final goal gate:
-    self.encoding.append(['# Final and gate for goal constraints: '])
+    self.encoding.append(['# And gate for goal constraints: '])
     self.gates_generator.and_gate(goal_step_output_gates)
+    # only when depth is more than 1, we use the illegal move:
+    if (self.parsed.depth > 1):
+      self.encoding.append(['# Final Or gate for goal constraints, along with illegal move: '])
+      self.gates_generator.or_gate([self.move_variables[-2][3][0], self.gates_generator.output_gate])
     self.goal_output_gate = self.gates_generator.output_gate
 
 
@@ -553,8 +692,9 @@ class IndexBasedGeneral:
       # Action parameter variables, these are essentially x,y indexes for the action chosen:
       temp_list.append(self.encoding_variables.get_vars(self.num_x_index_variables))
       temp_list.append(self.encoding_variables.get_vars(self.num_y_index_variables))
-      # now appending game stop variable for current black move, if the game is maker-maker:
-      if (i%2 == 0 and self.makermaker_game == 1):
+      # now appending game stop variable and illegal moves for black and white respective, if the game is maker-maker
+      # for maker-breaker game these variables are not need, however it is not handled yet:
+      if (self.makermaker_game == 1):
         temp_list.append(self.encoding_variables.get_vars(1))
       else:
         # else appending an empty list, for preserving structure of the list of lists:
@@ -605,13 +745,6 @@ class IndexBasedGeneral:
 
     if (parsed.args.debug == 1):
       print("black goal variables: ",self.black_goal_index_variables)
-
-    # if the game is maker-maker then we need to handle the white illegal moves,
-    # so we generate a variable as a flag:
-    if (self.makermaker_game == 1):
-      self.white_illegal = self.encoding_variables.get_single_var()
-      if (parsed.args.debug == 1):
-        print("white illegal variable: ",self.white_illegal)
 
     # Allocating forall position variables:
     self.forall_position_variables = []
