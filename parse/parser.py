@@ -412,14 +412,50 @@ class Parse:
       cur_action = action_gen.Action(self,one_action_lines)
       self.white_action_list.append(cur_action)
 
+      # remembering maximum number of preconditions in white actions:
+      self.max_white_preconditions = 0
+      for action in self.white_action_list:
+        if (self.max_white_preconditions < (len(action.positive_preconditions) + len(action.negative_preconditions))):
+          self.max_white_preconditions = (len(action.positive_preconditions) + len(action.negative_preconditions))
+
       if (args.debug == 1):
         for action in self.white_action_list:
           print(action)
+        print("max number of preconditions in white actions", self.max_white_preconditions)
 
       # Reading black and white goal constraints:
-      self.black_goal_constraints = self.parsed_dict['#blackgoal']
+      self.black_goal_constraints = []
 
-      self.white_goal_constraints = self.parsed_dict["#whitegoal"]
+      for line in self.parsed_dict['#blackgoal']:
+        temp_list = []
+        for constraint in line:
+          # asserting there is no computation in the goal state for now:
+          assert("+" not in constraint)
+          assert("-" not in constraint)
+          # replacing ymin with 1 and ymax with ymax from input:
+          constraint = constraint.replace('ymin','1')
+          constraint = constraint.replace('ymax',str(self.ymax))
+          temp_list.append(constraint)
+        self.black_goal_constraints.append(temp_list)
+
+      # asserting there is no computation in the goal state for now:
+      assert("+" not in self.black_goal_constraints[0])
+
+      self.white_goal_constraints = []
+
+      for line in self.parsed_dict["#whitegoal"]:
+        temp_list = []
+        for constraint in line:
+          # asserting there is no computation in the goal state for now:
+          assert("+" not in constraint)
+          assert("-" not in constraint)
+          # replacing ymin with 1 and ymax with ymax from input:
+          constraint = constraint.replace('ymin','1')
+          constraint = constraint.replace('ymax',str(self.ymax))
+          temp_list.append(constraint)
+        self.white_goal_constraints.append(temp_list)
+
+
 
       if (args.debug == 1):
         print(self.black_goal_constraints)

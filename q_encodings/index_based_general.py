@@ -42,16 +42,25 @@ class IndexBasedGeneral:
   def generate_index_constraint(self, x_variables, y_variables, index_constraint):
     bound = int(index_constraint.split(",")[-1].strip(")"))
     if ('?x' in index_constraint):
+      #print(bound, self.upperlimit_xmax)
       # we do not need explicit bound for the upperlimit_xmax bounds:
       if (bound != self.upperlimit_xmax):
         lsc.add_circuit(self.gates_generator, x_variables, bound)
         return self.gates_generator.output_gate
+      else:
+        # sending "None" to handle the bounds properly:
+        return "None"
     else:
+      #print(bound, self.upperlimit_ymax)
       assert('?y' in index_constraint)
       assert('?x' not in index_constraint)
       if (bound != self.upperlimit_ymax):
         lsc.add_circuit(self.gates_generator, y_variables, bound)
         return self.gates_generator.output_gate
+      else:
+        # sending "None" to handle the bounds properly:
+        return "None"
+
 
   # returns, equality gates with forall variables for both x and y indexes (after computing addition and subtraciton where necessary):
   def generate_position_equalities_with_adder_and_subtractors(self, x_variables, y_variables, constraint):
@@ -259,7 +268,10 @@ class IndexBasedGeneral:
         # no spaces for sake of correct parsing:
         assert(" " not in index_constraint)
         # passing x variables and y variables along with index constraint:
-        temp_then_constraint_output_gates.append(self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
+        bound_result = self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint)
+        #print(bound_result)
+        if (bound_result != 'None'):
+          temp_then_constraint_output_gates.append(bound_result)
         #print(self.parsed.black_action_list[i],index_constraint, bound)
       # generate negative index bound constraints:
       for index_constraint in self.parsed.black_action_list[i].negative_indexbounds:
@@ -268,7 +280,12 @@ class IndexBasedGeneral:
         # no spaces for sake of correct parsing:
         assert(" " not in index_constraint)
         # adding the negative output gate since we have negative index constraints:
-        temp_then_constraint_output_gates.append(-self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
+        bound_result = self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint)
+        #print(bound_result)
+        if (bound_result != 'None'):
+          temp_then_constraint_output_gates.append(-bound_result)
+
+
       #print("not", index_constraint, bound)
       # gather positions used in precondition and effect constraints and generate equality gates with forall variables:
       # constraints for postive precondition:
@@ -324,6 +341,7 @@ class IndexBasedGeneral:
       self.gates_generator.or_gate([self.gates_generator.output_gate,propagation_output_gate])
       temp_then_constraint_output_gates.append(self.gates_generator.output_gate)
 
+      assert(len(temp_then_constraint_output_gates) != 0)
       # conjunction of all the then constraints:
       self.encoding.append(['# conjunction for all the then constraints:'])
       self.gates_generator.and_gate(temp_then_constraint_output_gates)
@@ -394,7 +412,10 @@ class IndexBasedGeneral:
         # no spaces for sake of correct parsing:
         assert(" " not in index_constraint)
         # passing x variables and y variables along with index constraint:
-        lessthan_constraint_output_gates.append(self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
+        bound_result = self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint)
+        #print(bound_result)
+        if (bound_result != 'None'):
+          lessthan_constraint_output_gates.append(bound_result)
       # generate negative index bound constraints:
       for index_constraint in self.parsed.white_action_list[i].negative_indexbounds:
         self.encoding.append(['# less than constraints for negative index bounds:'])
@@ -402,10 +423,13 @@ class IndexBasedGeneral:
         # no spaces for sake of correct parsing:
         assert(" " not in index_constraint)
         # adding the negative output gate since we have negative index constraints:
-        lessthan_constraint_output_gates.append(-self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
-
+        bound_result = self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint)
+        #print(bound_result)
+        if (bound_result != 'None'):
+          lessthan_constraint_output_gates.append(-bound_result)
       # conjunction of the less than constraints:
       self.gates_generator.and_gate(lessthan_constraint_output_gates)
+      assert(len(lessthan_constraint_output_gates) != 0)
       # if then constraint for the action and index bounds:
       self.gates_generator.if_then_gate(cur_action_binary_output_gate, self.gates_generator.output_gate)
       bound_variable_output_gates.append(self.gates_generator.output_gate)
@@ -755,8 +779,8 @@ class IndexBasedGeneral:
     self.num_y_index_variables = int(math.ceil(math.log2(parsed.ymax)))
     self.xmax = parsed.xmax
     self.ymax = parsed.ymax
-    self.upperlimit_xmax = int(math.pow(self.num_x_index_variables, 2))
-    self.upperlimit_ymax = int(math.pow(self.num_y_index_variables, 2))
+    self.upperlimit_xmax = int(math.pow(2, self.num_x_index_variables))
+    self.upperlimit_ymax = int(math.pow(2, self.num_y_index_variables))
     # number of black actions:
     self.num_black_actions = len(self.parsed.black_action_list)
     # we need logarithmic number of variables to represent them:
