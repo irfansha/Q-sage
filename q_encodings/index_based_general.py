@@ -130,6 +130,30 @@ class IndexBasedGeneral:
 
     return self.gates_generator.output_gate
 
+  # takes a predicate to generate then constraint depending on the sign:
+  def generate_then_predicate_constraint(self, predicate, time_step, constraint_sign):
+    if (predicate == 'black'):
+      # if the predicate is black then we set the cur predicate variable to black:
+      self.gates_generator.and_gate([self.predicate_variables[time_step][0], -self.predicate_variables[time_step][1]])
+      # if then constraint:
+      self.encoding.append(['# if then constraint for black predicate:'])
+    elif (predicate == 'white'):
+      # if the predicate is white then we set the cur predicate variable to white:
+      self.gates_generator.and_gate([self.predicate_variables[time_step][0], self.predicate_variables[time_step][1]])
+      # if then constraint:
+      self.encoding.append(['# if then constraint for white predicate:'])
+    else:
+      assert(predicate == 'open')
+      # if the predicate is open then we set the cur predicate variable to open:
+      self.gates_generator.and_gate([-self.predicate_variables[time_step][0]])
+
+    # if positive constraint we generate if then, else we generate if not then gate:
+    if (constraint_sign == 'pos'):
+      return self.gates_generator.output_gate
+    else:
+      assert(constraint_sign == "neg")
+      return -self.gates_generator.output_gate
+
 
   # Generates quanifier blocks:
   def generate_quantifier_blocks(self):
@@ -157,6 +181,9 @@ class IndexBasedGeneral:
         if (len(self.move_variables[i][3]) != 0):
           self.quantifier_block.append(['# white illegal variable: '])
           self.quantifier_block.append(['exists(' + str(self.move_variables[i][3][0]) + ')'])
+        # the extra boolean variables are also existential:
+        self.quantifier_block.append(['# indicator variables, specifying which position is voilated in illegal move: '])
+        self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.move_variables[i][4]) + ')'])
 
 
     # black goal variables:
@@ -308,11 +335,19 @@ class IndexBasedGeneral:
   def generate_white_transition(self, time_step):
     self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
 
-    # If the number actions are not powers of 2, then we need a less than circuit:
-    if (self.upperlimit_white_actions != self.num_white_actions):
-      self.encoding.append(['# less than constraints for white moves:'])
-      lsc.add_circuit(self.gates_generator, self.move_variables[time_step][0], self.num_white_actions)
-      self.white_lessthan_circuit_output_gate = self.gates_generator.output_gate
+    # previous black game stop is valid for the current white move:
+    cur_game_stop_var = self.move_variables[time_step - 1][3][0]
+
+
+    # bound boolean variable for the current move:
+    # asserting there is only one variable:
+    assert(len(self.move_variables[time_step][3]) == 1)
+    cur_bound_boolean_var = self.move_variables[time_step][3][0]
+
+    # current booelan variables for preconditions:
+    # asserting the number of boolean variables are same as the maximum number of preconditions:
+    assert(len(self.move_variables[time_step][4]) == self.parsed.max_white_preconditions)
+    cur_precondition_boolean_variables = self.move_variables[time_step][4]
 
 
     # Propogation constraints:
@@ -320,54 +355,38 @@ class IndexBasedGeneral:
     self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
     propagation_output_gate = self.gates_generator.output_gate
 
+    #================================================================================================
+    # game stop constraints:
+    #================================================================================================
+
     # if game stop variable is true in previous black turn, then the state is simply propagated:
     self.encoding.append(['# if then constraints for the propagation:'])
     # even single boolean for game stop variable is a list in our data structure:
-    self.gates_generator.if_then_gate(self.move_variables[time_step - 1][3][0], propagation_output_gate)
+    self.gates_generator.if_then_gate(cur_game_stop_var, propagation_output_gate)
     self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
-    # if previous white move is illegal, current move is also illegal, we add a ladder chain:
-    if (time_step > 1):
-      self.encoding.append(['# ladder variables for the white illegal variables:'])
-      # even single boolean for white illegal is a list in our data structure:
-      self.gates_generator.if_then_gate(self.move_variables[time_step - 2][3][0], self.move_variables[time_step][3][0])
-      self.transition_step_output_gates.append(self.gates_generator.output_gate)
+    bound_variable_output_gates = []
 
-    # ==========================================================================================================================
-    # XXX TODO we need to specify when the white move becomes illegal explicitly:
-    # ==========================================================================================================================
-
-
-    # ==========================================================================================================================
-    #  Constraints:
-    #  1. if (-illegal) then (white_lessthan_circuit_output_gate)
-    #
-    #  2. if (- illegal & - stopped & action) then (index_bounds & preconditions & effects & propogation)
-    # ==========================================================================================================================
-
-    # Either the current action is illegal or white less than circuit is true:
+    # If the number actions are not powers of 2, then we need a less than circuit:
     if (self.upperlimit_white_actions != self.num_white_actions):
-      self.gates_generator.or_gate([self.move_variables[time_step][3][0], self.white_lessthan_circuit_output_gate])
+      self.encoding.append(['# less than constraints for white moves:'])
+      lsc.add_circuit(self.gates_generator, self.move_variables[time_step][0], self.num_white_actions)
+      self.white_lessthan_circuit_output_gate = self.gates_generator.output_gate
+      bound_variable_output_gates.append(self.white_lessthan_circuit_output_gate)
 
+
+    #================================================================================================
+    # computing less than bounds for each action:
+    #================================================================================================
+    # compute the less than bounds, with aciton specific implication:
     # for each action we generate constraints:
+    self.encoding.append(['# generating less than bounds for indexes:'])
     for i in range(self.num_white_actions):
-      temp_if_condition_output_gates = []
-
       # generate binary constraint for current action index:
       binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
       self.gates_generator.and_gate(binary_format_clause)
-      temp_if_condition_output_gates.append(self.gates_generator.output_gate)
-
-      # only if the game is not stopped, we force the action constraints so generating conjunction for if condition:
-      # there is no game stop variable before the first action variable:
-      temp_if_condition_output_gates.append(-self.move_variables[time_step - 1][3][0])
-      # we only need to enforce if white is not illegal:
-      temp_if_condition_output_gates.append(-self.move_variables[time_step][3][0])
-      # final if condition for current action:
-      self.gates_generator.and_gate(temp_if_condition_output_gates)
-      final_if_condition_output_gate = self.gates_generator.output_gate
-      temp_then_constraint_output_gates = []
-
+      cur_action_binary_output_gate = self.gates_generator.output_gate
+      lessthan_constraint_output_gates = []
       # generate positive index bound constraints:
       for index_constraint in self.parsed.white_action_list[i].positive_indexbounds:
         self.encoding.append(['# less than constraints for positive index bounds:'])
@@ -375,8 +394,7 @@ class IndexBasedGeneral:
         # no spaces for sake of correct parsing:
         assert(" " not in index_constraint)
         # passing x variables and y variables along with index constraint:
-        temp_then_constraint_output_gates.append(self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
-        #print(self.parsed.white_action_list[i],index_constraint, bound)
+        lessthan_constraint_output_gates.append(self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
       # generate negative index bound constraints:
       for index_constraint in self.parsed.white_action_list[i].negative_indexbounds:
         self.encoding.append(['# less than constraints for negative index bounds:'])
@@ -384,9 +402,43 @@ class IndexBasedGeneral:
         # no spaces for sake of correct parsing:
         assert(" " not in index_constraint)
         # adding the negative output gate since we have negative index constraints:
-        temp_then_constraint_output_gates.append(-self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
-      #print("not", index_constraint, bound)
-      # gather positions used in precondition and effect constraints and generate equality gates with forall variables:
+        lessthan_constraint_output_gates.append(-self.generate_index_constraint(self.move_variables[time_step][1], self.move_variables[time_step][2], index_constraint))
+
+      # conjunction of the less than constraints:
+      self.gates_generator.and_gate(lessthan_constraint_output_gates)
+      # if then constraint for the action and index bounds:
+      self.gates_generator.if_then_gate(cur_action_binary_output_gate, self.gates_generator.output_gate)
+      bound_variable_output_gates.append(self.gates_generator.output_gate)
+
+    self.encoding.append(['# conjunction for all the bound constraints:'])
+    # conjunction of the bound constraint output gates:
+    self.gates_generator.and_gate(bound_variable_output_gates)
+    final_bound_output_gate = self.gates_generator.output_gate
+
+    #================================================================================================
+    # connecting the index bounds with specific boolean variables:
+    #================================================================================================
+    self.encoding.append(['# single equality gate for the bound boolean variale and the final bound conjuction gate:'])
+    # connect the bound variable with the index and action binary bound:
+    self.gates_generator.single_equality_gate(cur_bound_boolean_var, final_bound_output_gate)
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    #'''
+    #================================================================================================
+    # computing and connecting the preconditions with boolean variables for each action:
+    #================================================================================================
+
+    self.encoding.append(['# generating precondition equalities with boolean variables:'])
+    for i in range(self.num_white_actions):
+      # generate binary constraint for current action index:
+      binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
+      self.gates_generator.and_gate(binary_format_clause)
+      cur_action_binary_output_gate = self.gates_generator.output_gate
+
+      # asserting that current precondition boolean variables are present:
+      assert(len(cur_precondition_boolean_variables) == self.parsed.max_white_preconditions)
+      temp_precondition_boolean_variables = list(cur_precondition_boolean_variables)
+
       # constraints for postive precondition:
       for precondition in self.parsed.white_action_list[i].positive_preconditions:
         # no spaces for sake of correct parsing:
@@ -395,7 +447,15 @@ class IndexBasedGeneral:
         predicate = split_precondition[0]
         constraint_pair = split_precondition[1].split(",")
         cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"pos"))
+        cur_precondition_pos_then_gate = self.generate_then_predicate_constraint(predicate, time_step,"pos")
+        # if the branch is equality branch, then boolean variables must be same as then gate:
+        # generate if then constraint with the precondition boolean variable:
+        temp_cur_precondition_bool =  temp_precondition_boolean_variables.pop(0)
+        # single equality gate between the bool and the output gate:
+        self.gates_generator.single_equality_gate(cur_precondition_pos_then_gate, temp_cur_precondition_bool)
+        # if then constraints, in the specific branch:
+        self.gates_generator.or_gate([-cur_action_binary_output_gate,-cur_equality_output_gate, self.gates_generator.output_gate])
+        self.transition_step_output_gates.append(self.gates_generator.output_gate)
       # constraints for negative precondition:
       for precondition in self.parsed.white_action_list[i].negative_preconditions:
         # no spaces for sake of correct parsing:
@@ -404,10 +464,43 @@ class IndexBasedGeneral:
         predicate = split_precondition[0]
         constraint_pair = split_precondition[1].split(",")
         cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"neg"))
+        cur_precondition_neg_then_gate = self.generate_then_predicate_constraint(predicate, time_step,"neg")
+        # if the branch is equality branch, then boolean variables must be same as then gate:
+        # generate if then constraint with the precondition boolean variable:
+        temp_cur_precondition_bool =  temp_precondition_boolean_variables.pop(0)
+        # single equality gate between the bool and the output gate:
+        self.gates_generator.single_equality_gate(cur_precondition_neg_then_gate, temp_cur_precondition_bool)
+        # if then constraints, in the specific branch:
+        self.gates_generator.or_gate([-cur_action_binary_output_gate,-cur_equality_output_gate, self.gates_generator.output_gate])
+        self.transition_step_output_gates.append(self.gates_generator.output_gate)
+      # asserting that we use all the boolean vars, only for breakthrough/knightthrough:
+      assert(len(temp_precondition_boolean_variables) == 0)
+
+    #'''
+    # compute the constraints for effects:
+    #=================================================================================================================
+    # computing and enforcing effects only when the bounds preconditions hold and game is not stopped for each action:
+    #=================================================================================================================
+
+    self.encoding.append(['# generating effects, implcation when the game is not stopped and bounds,preconditions hold:'])
+    for i in range(self.num_white_actions):
+      # generate binary constraint for current action index:
+      binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
+      self.gates_generator.and_gate(binary_format_clause)
+      cur_action_binary_output_gate = self.gates_generator.output_gate
+
+
+      # generating conjunction of all the boolean variables to specify if the move is valid:
+      all_valid_constraints = []
+      all_valid_constraints.append(cur_bound_boolean_var)
+      all_valid_constraints.extend(cur_precondition_boolean_variables)
+      self.gates_generator.and_gate(all_valid_constraints)
+      self.valid_move_output_gate = self.gates_generator.output_gate
 
       # remember effect positions, later for frame axioms:
       touched_position_output_gates = []
+
+      then_constraint_output_gates = []
 
       # constraints for postive effects:
       for effect in self.parsed.white_action_list[i].positive_effects:
@@ -419,7 +512,7 @@ class IndexBasedGeneral:
         cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
         touched_position_output_gates.append(cur_equality_output_gate)
         # time step + 1 because these are effects:
-        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
+        then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
       # constraints for postive effects:
       for effect in self.parsed.white_action_list[i].negative_effects:
         # no spaces for sake of correct parsing:
@@ -430,23 +523,31 @@ class IndexBasedGeneral:
         cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
         touched_position_output_gates.append(cur_equality_output_gate)
         # time step + 1 because these are effects:
-        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"neg"))
+        then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"neg"))
 
+      # compute the touched positions for propogation:
       # for the positions that are not in effects, the state is propogated:
       self.encoding.append(['# disjunction for all touched positions:'])
       self.gates_generator.or_gate(touched_position_output_gates)
       self.encoding.append(['# frame axiom; if not touched position, then it is propagated:'])
       # if not these positions we propogate:
       self.gates_generator.or_gate([self.gates_generator.output_gate,propagation_output_gate])
-      temp_then_constraint_output_gates.append(self.gates_generator.output_gate)
+      then_constraint_output_gates.append(self.gates_generator.output_gate)
 
-      # conjunction of all the then constraints:
-      self.encoding.append(['# conjunction for all the then constraints:'])
-      self.gates_generator.and_gate(temp_then_constraint_output_gates)
-      # final if then condition for each action:
-      self.encoding.append(['# final if then constraint for current action:'])
-      self.gates_generator.if_then_gate(final_if_condition_output_gate, self.gates_generator.output_gate)
+      # conjunction for then constraint gates:
+      self.gates_generator.and_gate(then_constraint_output_gates)
+      then_constraint_final_output_gate = self.gates_generator.output_gate
+
+
+      # finally the if then constraints for effects and propogation when the boolean variables hold for each action and when game is not stopped:
+      self.gates_generator.and_gate([self.valid_move_output_gate, -cur_game_stop_var, cur_action_binary_output_gate])
+      if_condition_output_gate = self.gates_generator.output_gate
+
+      # if then constraint:
+      self.gates_generator.if_then_gate(if_condition_output_gate, then_constraint_final_output_gate)
       self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+      # if not valid
 
   def generate_d_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
@@ -611,10 +712,6 @@ class IndexBasedGeneral:
     # Final goal gate:
     self.encoding.append(['# And gate for goal constraints: '])
     self.gates_generator.and_gate(goal_step_output_gates)
-    # only when depth is more than 1, we use the illegal move:
-    if (self.parsed.depth > 1):
-      self.encoding.append(['# Final Or gate for goal constraints, along with illegal move: '])
-      self.gates_generator.or_gate([self.move_variables[-2][3][0], self.gates_generator.output_gate])
     self.goal_output_gate = self.gates_generator.output_gate
 
 
@@ -699,6 +796,10 @@ class IndexBasedGeneral:
       else:
         # else appending an empty list, for preserving structure of the list of lists:
         temp_list.append([])
+
+      # only for white we need extra variables to specify which position is false in preconditions for illegal moves:
+      if (i%2 == 1):
+        temp_list.append(self.encoding_variables.get_vars(self.parsed.max_white_preconditions))
 
       self.move_variables.append(temp_list)
 
