@@ -63,9 +63,10 @@ class IndexBasedGeneral:
 
 
   # returns, equality gates with forall variables for both x and y indexes (after computing addition and subtraciton where necessary):
+  # we reduces both indexes by 1, so that indexes are consistent:
   def generate_position_equalities_with_adder_and_subtractors(self, x_variables, y_variables, constraint):
-    assert("?x" in constraint[0])
-    assert("?y" in constraint[1])
+    #assert("?x" in constraint[0])
+    #assert("?y" in constraint[1])
     # after add/sub we use these lists for remembering:
     result_x_variables = []
     result_y_variables = []
@@ -81,8 +82,10 @@ class IndexBasedGeneral:
       assert("?x" == split_x_constraint[0])
       num_to_sub = int(split_x_constraint[1])
       result_x_variables = addc.subtractor_circuit(self.gates_generator,x_variables,num_to_sub)
-    else:
+    elif ('?x' in constraint[0]):
       result_x_variables = x_variables
+    else:
+      x_value = int(constraint[0]) - 1
     self.encoding.append(['# computing x variables for constraints, add/sub/none:'])
     # now computing y variables:
     if ('+' in constraint[1]):
@@ -95,22 +98,39 @@ class IndexBasedGeneral:
       assert("?y" == split_y_constraint[0])
       num_to_sub = int(split_y_constraint[1])
       result_y_variables = addc.subtractor_circuit(self.gates_generator,y_variables,num_to_sub)
-    else:
+    elif('?y' in constraint[1]):
       result_y_variables = y_variables
+    else:
+      y_value = int(constraint[1]) - 1
 
-    # computing equality constraints with forall variables:
-    # generating constraint for new x, which is equality with x parameter of forall variables:
-    self.encoding.append(['# new x constraint equality gate with forall x variables: '])
-    self.gates_generator.complete_equality_gate(result_x_variables,self.forall_position_variables[0])
-    x_equality_output_gate = self.gates_generator.output_gate
+    # we also handle if the parameter is a constant:
+    if ("?x" in constraint[0]):
+      # computing equality constraints with forall variables:
+      # generating constraint for new x, which is equality with x parameter of forall variables:
+      self.encoding.append(['# new x constraint equality gate with forall x variables: '])
+      self.gates_generator.complete_equality_gate(result_x_variables,self.forall_position_variables[0])
+      x_output_gate = self.gates_generator.output_gate
+    else:
+      # generating binary format for the x constraint:
+      self.encoding.append(['# x constraint binary format with forall x variables: '])
+      x_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[0], x_value)
+      self.gates_generator.and_gate(x_constraint_binary_format)
+      x_output_gate = self.gates_generator.output_gate
 
-    # generating constraint for new y, which is equality with y parameter of forall variables:
-    self.encoding.append(['# new y constraint equality gate with forall y variables: '])
-    self.gates_generator.complete_equality_gate(result_y_variables,self.forall_position_variables[1])
-    y_equality_output_gate = self.gates_generator.output_gate
+    if ("?y" in constraint[1]):
+      # generating constraint for new y, which is equality with y parameter of forall variables:
+      self.encoding.append(['# new y constraint equality gate with forall y variables: '])
+      self.gates_generator.complete_equality_gate(result_y_variables,self.forall_position_variables[1])
+      y_output_gate = self.gates_generator.output_gate
+    else:
+      # generating binary format for the y constraint:
+      self.encoding.append(['# y constraint binary format with forall y variables: '])
+      y_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],y_value)
+      self.gates_generator.and_gate(y_constraint_binary_format)
+      y_output_gate = self.gates_generator.output_gate
 
     # conjunction of both equallity gates:
-    self.gates_generator.and_gate([x_equality_output_gate, y_equality_output_gate])
+    self.gates_generator.and_gate([x_output_gate, y_output_gate])
     return self.gates_generator.output_gate
 
   # takes equality output gate with forall variables and a predicate to generate if-then constraint depending on the sign:
@@ -426,13 +446,15 @@ class IndexBasedGeneral:
           lessthan_constraint_output_gates.append(-bound_result)
       # conjunction of the less than constraints:
       self.gates_generator.and_gate(lessthan_constraint_output_gates)
-      assert(len(lessthan_constraint_output_gates) != 0)
-      # if then constraint for the action and index bounds:
-      self.gates_generator.if_then_gate(cur_action_binary_output_gate, self.gates_generator.output_gate)
-      bound_variable_output_gates.append(self.gates_generator.output_gate)
+      # only if there are any constraints, we make a implication:
+      if (len(lessthan_constraint_output_gates) != 0):
+        # if then constraint for the action and index bounds:
+        self.gates_generator.if_then_gate(cur_action_binary_output_gate, self.gates_generator.output_gate)
+        bound_variable_output_gates.append(self.gates_generator.output_gate)
 
     self.encoding.append(['# conjunction for all the bound constraints:'])
     # conjunction of the bound constraint output gates:
+    assert(len(bound_variable_output_gates) != 0)
     self.gates_generator.and_gate(bound_variable_output_gates)
     final_bound_output_gate = self.gates_generator.output_gate
 
@@ -675,37 +697,19 @@ class IndexBasedGeneral:
     self.encoding.append(['# Goal state: '])
     # generating black goal constraints:
     self.encoding.append(['# Black goal constraints: '])
-    # for now only handling breakthrough and kinghtthrough, to be extended:
-    assert(len(self.parsed.black_goal_constraints) == 1 and len(self.parsed.black_goal_constraints[0]) == 1)
-    black_constraint = self.parsed.black_goal_constraints[0][0]
-    # for now it is an integer also because it is index based from 0 we subtract 1:
-    black_y_constraint = int(black_constraint.split(",")[-1].strip(" ").strip(")")) - 1
-    # for now the x constraint is simple the ?x variable:
-    assert('?x' in black_constraint)
-    # generating constraint for x, which is equality with x parameter of forall variables:
-    self.encoding.append(['# x constraint equality gate with forall x variables: '])
-    self.gates_generator.complete_equality_gate(self.black_goal_index_variables[0],self.forall_position_variables[0])
-    x_equality_output_gate = self.gates_generator.output_gate
+    # for now only handling a single conjunction of goal constraints
+    assert(len(self.parsed.black_goal_constraints) == 1)
+    # for each constraint in the goal:
+    for constraint in self.parsed.black_goal_constraints[0]:
+      split_condition = constraint.strip(")").split("(")
+      predicate = split_condition[0]
+      constraint_pair = split_condition[1].split(",")
+      # we need to handle any adders and subtractors if both variables are present:
+      cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
+      # for now no negations in goal condition:
+      cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"pos")
 
-    # generating binary format for the y constraint:
-    self.encoding.append(['# y constraint binary format with forall y variables: '])
-    y_black_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],black_y_constraint)
-    self.gates_generator.and_gate(y_black_constraint_binary_format)
-    y_black_constraint_output_gate = self.gates_generator.output_gate
-
-    # if both the constraints hold, then the position must be black in the last time step:
-    self.encoding.append(['# Conjunction of constraints: '])
-    self.gates_generator.and_gate([x_equality_output_gate,y_black_constraint_output_gate])
-    if_black_condition_output_gate = self.gates_generator.output_gate
-
-    self.encoding.append(['# Black position constraints: '])
-    self.gates_generator.and_gate([self.predicate_variables[-1][0], -self.predicate_variables[-1][1]])
-    black_position_output_gate = self.gates_generator.output_gate
-
-    # if then constraint:
-    self.encoding.append(['# If then constraint for black goal: '])
-    self.gates_generator.if_then_gate(if_black_condition_output_gate,black_position_output_gate)
-    goal_step_output_gates.append(self.gates_generator.output_gate)
+      goal_step_output_gates.append(cur_constraint_gate)
 
     # generating white goal constraints if maker-maker game:
     if (self.makermaker_game == 1):
