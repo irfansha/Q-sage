@@ -9,6 +9,24 @@ import parse.action as action_gen
 # Board vertexs are numbered from 0
 
 
+# Does addition and substration for now in the string,
+# assuming only two numbers in the computation string:
+def compute(str):
+  # no spaces:
+  assert(" " not in str)
+  # if addition:
+  if ("+" in str):
+    split_str = str.split("+")
+    sum = int(split_str[0]) + int(split_str[1])
+    return sum
+  elif ('-' in str):
+    split_str = str.split("-")
+    dif = int(split_str[0]) - int(split_str[1])
+    return dif
+  else:
+    # nothing to compute:
+    return int(str)
+
 class Parse:
 
   # Parses domain and problem file:
@@ -25,6 +43,7 @@ class Parse:
 
     # flag for solved instance:
     self.solved = 0
+
 
     for line in lines:
       stripped_line = line.strip("\n").strip(" ").split(" ")
@@ -429,15 +448,56 @@ class Parse:
       for line in self.parsed_dict['#blackgoal']:
         temp_list = []
         for constraint in line:
-          # asserting there is no computation in the goal state for now:
-          assert("+" not in constraint)
-          assert("-" not in constraint)
+          # replacing xmin with 1 and xmax with xmax from input:
+          constraint = constraint.replace('xmin','1')
+          constraint = constraint.replace('xmax',str(self.xmax))
           # replacing ymin with 1 and ymax with ymax from input:
           constraint = constraint.replace('ymin','1')
           constraint = constraint.replace('ymax',str(self.ymax))
-          temp_list.append(constraint)
+
+          # removing spaces:
+          constraint = constraint.replace(' ','')
+          # ========================================================
+          # computing the sum/diff in goal constriants:
+          if (constraint[:2] == 'le'):
+            # computing the addition and subtraction:
+            bound_computation = constraint.strip(")").split(",")[-1]
+            #print(bound_computation, constraint)
+            result = compute(bound_computation)
+            # we do not want negative numbers or zero for less than operator:
+            assert((result) > 0)
+            # replacing with the computed result:
+            constraint = constraint.replace(bound_computation, str(result))
+            # after changes now it is lessthan operator:
+            constraint = constraint.replace('le', 'lt')
+            if (result != 0):
+              temp_list.append(constraint)
+            # assert no addition and subtraction present in the string:
+            assert('+' not in constraint)
+            assert('-' not in constraint)
+          elif(constraint[:2] == 'ge'):
+            bound_computation = constraint.strip(")").split(",")[-1]
+            print(bound_computation, constraint)
+            result = compute(bound_computation)
+            result = result - 1
+            # we do not want negative numbers or zero for less than operator:
+            # replacing with the computed result -1, since we substract 1 for ge case:
+            constraint = constraint.replace(bound_computation, str(result))
+            # after changes now it is not lessthan operator:
+            constraint = constraint.replace('ge', 'nlt')
+            if (result != 0):
+              temp_list.append(constraint)
+            # assert no addition and subtraction present in the string:
+            assert('+' not in constraint)
+            assert('-' not in constraint)
+          else:
+            # no computation is needed:
+            temp_list.append(constraint)
+
+          # ========================================================
         self.black_goal_constraints.append(temp_list)
 
+      print(self.black_goal_constraints[0])
       # asserting there is no computation in the goal state for now:
       assert("+" not in self.black_goal_constraints[0])
 
@@ -446,9 +506,13 @@ class Parse:
       for line in self.parsed_dict["#whitegoal"]:
         temp_list = []
         for constraint in line:
-          # asserting there is no computation in the goal state for now:
-          assert("+" not in constraint)
-          assert("-" not in constraint)
+          # asserting there is no computation along with min, max in the goal state for now:
+          if ('xmin' in constraint or 'xmax' in constraint or 'ymin' in constraint or 'ymax' in constraint):
+            assert("+" not in constraint)
+            assert("-" not in constraint)
+          # replacing xmin with 1 and xmax with xmax from input:
+          constraint = constraint.replace('xmin','1')
+          constraint = constraint.replace('xmax',str(self.xmax))
           # replacing ymin with 1 and ymax with ymax from input:
           constraint = constraint.replace('ymin','1')
           constraint = constraint.replace('ymax',str(self.ymax))

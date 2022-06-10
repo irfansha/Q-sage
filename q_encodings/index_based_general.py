@@ -212,6 +212,11 @@ class IndexBasedGeneral:
         self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.move_variables[i][4]) + ')'])
 
 
+    if (self.num_black_goal_constraints > 1):
+      self.quantifier_block.append(['# black goal choice variables: '])
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.disjunction_goal_boolean_variables) + ')'])
+
+
     # black goal variables:
     self.quantifier_block.append(['# black goal index variables: '])
     all_black_goal_vars = []
@@ -697,19 +702,55 @@ class IndexBasedGeneral:
     self.encoding.append(['# Goal state: '])
     # generating black goal constraints:
     self.encoding.append(['# Black goal constraints: '])
-    # for now only handling a single conjunction of goal constraints
-    assert(len(self.parsed.black_goal_constraints) == 1)
-    # for each constraint in the goal:
-    for constraint in self.parsed.black_goal_constraints[0]:
-      split_condition = constraint.strip(")").split("(")
-      predicate = split_condition[0]
-      constraint_pair = split_condition[1].split(",")
-      # we need to handle any adders and subtractors if both variables are present:
-      cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
-      # for now no negations in goal condition:
-      cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"pos")
+    for single_conjunction_index in range(self.num_black_goal_constraints):
+      single_conjunction = self.parsed.black_goal_constraints[single_conjunction_index]
+      if (self.num_black_goal_constraints > 1):
+        # if condition using the boolean variables to chose one of the disjunction constraints:
+        temp_binary_variables = self.generate_binary_format(self.disjunction_goal_boolean_variables, single_conjunction_index)
+        self.gates_generator.and_gate(temp_binary_variables)
+        if_disjunction_output_gate = self.gates_generator.output_gate
+      single_constraint_output_gates = []
+      # for each constraint in the goal:
+      for constraint in single_conjunction:
+        if ("lt" in constraint):
+          assert(" " not in constraint)
+          # passing x variables and y variables along with index constraint:
+          bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
 
-      goal_step_output_gates.append(cur_constraint_gate)
+          if (bound_result != 'None'):
+            single_constraint_output_gates.append(bound_result)
+        elif ("nlt" in constraint):
+          assert(" " not in constraint)
+          # passing x variables and y variables along with index constraint:
+          bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
+
+          if (bound_result != 'None'):
+            # negative bound so negation:
+            single_constraint_output_gates.append(-bound_result)
+        else:
+          split_condition = constraint.strip(")").split("(")
+          predicate = split_condition[0]
+          constraint_pair = split_condition[1].split(",")
+          # we need to handle any adders and subtractors if both variables are present:
+          cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
+          # for now no negations in goal condition:
+          cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"pos")
+          single_constraint_output_gates.append(cur_constraint_gate)
+
+      # conjunction for single constraint output gates:
+      self.gates_generator.and_gate(single_constraint_output_gates)
+      # if then gate with the choosing variables and conjunction of the single goal constraint variables:
+      if (self.num_black_goal_constraints > 1):
+        self.gates_generator.if_then_gate(if_disjunction_output_gate, self.gates_generator.output_gate)
+      # if variables are not present due to single goal constraint, we simply add the conjunction:
+      goal_step_output_gates.append(self.gates_generator.output_gate)
+
+    # if the number of disjunction is not the max upper limit, we need less than constraint:
+    if (self.num_black_goal_constraints > 1):
+      if (self.disjunction_goal_upper_limit != self.num_black_goal_constraints):
+        lsc.add_circuit(self.gates_generator, self.disjunction_goal_boolean_variables, self.num_black_goal_constraints)
+        goal_step_output_gates.append(self.gates_generator.output_gate)
+
 
     # generating white goal constraints if maker-maker game:
     if (self.makermaker_game == 1):
@@ -832,6 +873,17 @@ class IndexBasedGeneral:
       print("Number of (log) x index variables: ", self.num_x_index_variables)
       print("Number of (log) y index variables: ", self.num_y_index_variables)
       print("Move variables: ",self.move_variables)
+
+    self.num_black_goal_constraints = len(self.parsed.black_goal_constraints)
+    # For disjunction of conjunction constraints, we need to specify which conjunction is true,
+    # for that we use boolean variables:
+    # we do not need boolean variables if there is only one goal conjunction though:
+    if (self.num_black_goal_constraints > 1):
+      self.num_black_goal_disjunction_variables = int(math.ceil(math.log2(self.num_black_goal_constraints)))
+      self.disjunction_goal_boolean_variables = self.encoding_variables.get_vars(self.num_black_goal_disjunction_variables)
+
+      # remembering upper limit of disjunction, to handle less than constraints for choosing variables:
+      self.disjunction_goal_upper_limit = int(math.pow(2,self.num_black_goal_disjunction_variables))
 
 
     # allocating variables for black constraints, for now looking at the strings to check if both indexes are necessary:
