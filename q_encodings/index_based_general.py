@@ -168,10 +168,7 @@ class IndexBasedGeneral:
   def generate_quantifier_blocks(self):
 
     # Move variables following time variables:
-    if (self.makermaker_game == 1):
-      self.quantifier_block.append(['# ' + str(self.num_black_action_variables) + '/' + str(self.num_white_action_variables) + ' (black/white) Action variables, ' + str(self.num_x_index_variables) + ' and ' + str(self.num_y_index_variables) +  ' (action parameter) index variables (x, y), and game stop variables : '])
-    else:
-      self.quantifier_block.append(['# ' + str(self.num_black_action_variables) + '/' + str(self.num_white_action_variables) + ' (black/white) Action variables, ' + str(self.num_x_index_variables) + ' and ' + str(self.num_y_index_variables) +  ' (action parameter) index variables (x, y): '])
+    self.quantifier_block.append(['# ' + str(self.num_black_action_variables) + '/' + str(self.num_white_action_variables) + ' (black/white) Action variables, ' + str(self.num_x_index_variables) + ' and ' + str(self.num_y_index_variables) +  ' (action parameter) index variables (x, y), and game stop variables : '])
     for i in range(self.parsed.depth):
       # starts with 0 and even is black (i.e., existential moves):
       cur_all_action_vars = []
@@ -665,6 +662,10 @@ class IndexBasedGeneral:
     if (len(initial_step_output_gates) != 0):
       self.gates_generator.and_gate(initial_step_output_gates)
       self.initial_output_gate = self.gates_generator.output_gate
+    else:
+      # we set every position to unoccupied:
+      self.initial_output_gate = -self.predicate_variables[0][0]
+
 
 
   # Generating goal constraints:
@@ -767,7 +768,7 @@ class IndexBasedGeneral:
 
     # We generate game stop variables and white illegal variable only for maker-maker games, otherwise no need,
     # remembering which type of game:
-    if (len(parsed.white_goal_constraints) == 1 and len(parsed.white_goal_constraints[0]) == 0):
+    if (len(parsed.white_goal_constraints) == 0):
       self.makermaker_game = 0
     else:
       self.makermaker_game = 1
@@ -785,42 +786,36 @@ class IndexBasedGeneral:
     self.num_black_actions = len(self.parsed.black_action_list)
     # we need logarithmic number of variables to represent them:
     self.num_black_action_variables = int(math.ceil(math.log2(self.num_black_actions)))
-    self.upperlimit_black_actions = int(math.pow(self.num_black_action_variables,2))
+    # if there is only one action, then the number of variables will be 0 so we make it 1:
+    # later we optimise that these variables are existence for both players and set it to specific value for better performance:
+    # Optmization point TODO:
+    if (self.num_black_action_variables == 0):
+      self.num_black_action_variables = 1
+    self.upperlimit_black_actions = int(math.pow(2,self.num_black_action_variables))
     # number of white actions:
     self.num_white_actions = len(self.parsed.white_action_list)
     # we need logarithmic number of variables to represent them:
     self.num_white_action_variables = int(math.ceil(math.log2(self.num_white_actions)))
-    self.upperlimit_white_actions = int(math.pow(self.num_white_action_variables,2))
+    if (self.num_white_action_variables == 0):
+      self.num_white_action_variables = 1
+    self.upperlimit_white_actions = int(math.pow(2,self.num_white_action_variables))
 
     self.move_variables = []
     for i in range(parsed.depth):
       temp_list = []
       # for black we use the black log action variables:
       if (i%2 == 0):
-        # we only generate new action variables if there are more than 1 actions, no need for extra variables if only one action:
-        if (self.num_black_actions > 1):
-          temp_list.append(self.encoding_variables.get_vars(self.num_black_action_variables))
-        else:
-          # else appending an empty list, for preserving structure of the list of lists:
-          temp_list.append([])
+        # we always append the binary format, we will optimise later:
+        temp_list.append(self.encoding_variables.get_vars(self.num_black_action_variables))
       else:
         # same as black actions, we only generate new action variables if there are more than 1 actions, no need for extra variables if only one action:
-        if (self.num_white_actions > 1):
-          temp_list.append(self.encoding_variables.get_vars(self.num_white_action_variables))
-        else:
-          # else appending an empty list, for preserving structure of the list of lists:
-          temp_list.append([])
+        temp_list.append(self.encoding_variables.get_vars(self.num_white_action_variables))
       # Action parameter variables, these are essentially x,y indexes for the action chosen:
       temp_list.append(self.encoding_variables.get_vars(self.num_x_index_variables))
       temp_list.append(self.encoding_variables.get_vars(self.num_y_index_variables))
       # now appending game stop variable and illegal moves for black and white respective, if the game is maker-maker
       # for maker-breaker game these variables are not need, however it is not handled yet:
-      if (self.makermaker_game == 1):
-        temp_list.append(self.encoding_variables.get_vars(1))
-      else:
-        # else appending an empty list, for preserving structure of the list of lists:
-        temp_list.append([])
-
+      temp_list.append(self.encoding_variables.get_vars(1))
       # only for white we need extra variables to specify which position is false in preconditions for illegal moves:
       if (i%2 == 1):
         temp_list.append(self.encoding_variables.get_vars(self.parsed.max_white_preconditions))

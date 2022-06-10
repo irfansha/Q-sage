@@ -354,16 +354,16 @@ class Parse:
 
 
       # Rewriting intial positions for gomuku based on indexes:
-      for initial in self.parsed_dict['#whiteinitials'][0]:
+      for initial in self.parsed_dict['#whiteinitials']:
         # resetting the base to a, to get from 0:
-        x_index = ord(initial[0]) - ord('a')
-        y_index = int(initial[1:]) - 1
+        x_index = ord(initial[0][0]) - ord('a')
+        y_index = int(initial[0][1:]) - 1
         self.white_initial_positions.append((x_index,y_index))
 
-      for initial in self.parsed_dict['#blackinitials'][0]:
+      for initial in self.parsed_dict['#blackinitials']:
         # resetting the base to a, to get from 0:
-        x_index = ord(initial[0]) - ord('a')
-        y_index = int(initial[1:]) - 1
+        x_index = ord(initial[0][0]) - ord('a')
+        y_index = int(initial[0][1:]) - 1
         self.black_initial_positions.append((x_index,y_index))
 
       # reading the x and y axis lengths:
