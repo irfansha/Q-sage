@@ -477,7 +477,6 @@ class Parse:
             assert('-' not in constraint)
           elif(constraint[:2] == 'ge'):
             bound_computation = constraint.strip(")").split(",")[-1]
-            print(bound_computation, constraint)
             result = compute(bound_computation)
             result = result - 1
             # we do not want negative numbers or zero for less than operator:
@@ -497,7 +496,6 @@ class Parse:
           # ========================================================
         self.black_goal_constraints.append(temp_list)
 
-      print(self.black_goal_constraints[0])
       # asserting there is no computation in the goal state for now:
       assert("+" not in self.black_goal_constraints[0])
 
