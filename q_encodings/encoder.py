@@ -62,50 +62,65 @@ def add_dependencies_to_qdimacs(parsed_instance, encoding):
 
 def generate_encoding(parsed_instance):
   if (parsed_instance.args.e == 'gg'):
-    print("Generating grounded goal encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating grounded goal encoding")
     encoding = gge(parsed_instance)
   elif (parsed_instance.args.e == 'eg'):
-    print("Generating explicit goal encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating explicit goal encoding")
     encoding = ege(parsed_instance)
   elif (parsed_instance.args.e == 'ew'):
-    print("Generating explicit goal witness based encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating explicit goal witness based encoding")
     encoding = egwb(parsed_instance)
   elif (parsed_instance.args.e == 'iw'):
-    print("Generating iterative goal witness based encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating iterative goal witness based encoding")
     encoding = iswb(parsed_instance)
   elif (parsed_instance.args.e == 'ggt'):
-    print("Generating grounded goal encoding with time")
+    if (parsed_instance.args.debug > -1):
+      print("Generating grounded goal encoding with time")
     encoding = ggte(parsed_instance)
   elif (parsed_instance.args.e == 'pg'):
     if (parsed_instance.args.stuttering == 'b'):
-      print("Generating path based goal encoding")
+      if (parsed_instance.args.debug > -1):
+        print("Generating path based goal encoding")
       encoding = pbg(parsed_instance)
     elif (parsed_instance.args.stuttering == 'nb'):
-      print("Generating path based goal encoding, without bool vars")
+      if (parsed_instance.args.debug > -1):
+        print("Generating path based goal encoding, without bool vars")
       encoding = pbnbg(parsed_instance)
   elif (parsed_instance.args.e == 'cpg'):
-    print("Generating compact path based goal encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating compact path based goal encoding")
     encoding = cpbg(parsed_instance)
   elif (parsed_instance.args.e == 'ttt'):
-    print("Generating TicTacToe encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating TicTacToe encoding")
     encoding = ttt(parsed_instance)
   elif (parsed_instance.args.e == 'wgttt'):
-    print("Generating GTicTacToe witness encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating GTicTacToe witness encoding")
     encoding = gtttw(parsed_instance)
   elif (parsed_instance.args.e == 'ib' and parsed_instance.args.game_type == "gomuku"):
-    print("Generating Gomuku encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating Gomuku encoding")
     encoding = ibg(parsed_instance)
   elif (parsed_instance.args.e == 'ib' and parsed_instance.args.game_type == "general"):
-    print("Generating General game encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating General game encoding")
     encoding = ibgen(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
-    print("Generating Compact Positional encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating Compact Positional encoding")
     encoding = cp(parsed_instance)
   elif (parsed_instance.args.e == 'cgcp'):
-    print("Generating Compact Goal Compact Positional encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating Compact Goal Compact Positional encoding")
     encoding = cgcp(parsed_instance)
   elif (parsed_instance.args.e == 'ntpg'):
-    print("Generating no transition path based goal encoding")
+    if (parsed_instance.args.debug > -1):
+      print("Generating no transition path based goal encoding")
     encoding = ntpbg(parsed_instance)
 
   # We print QCIR format directly to the file:

@@ -2,7 +2,8 @@ import networkx as nx
 
 
 def lower_bound(parser):
-  print("Computing lower bounds for stuttering")
+  if (parser.args.debug > -1):
+    print("Computing lower bounds for stuttering")
   G = nx.Graph()
 
   for key,value_list in parser.neighbour_dict.items():
@@ -30,7 +31,8 @@ def lower_bound(parser):
 
 
 def tight_neighbours(parser):
-  print("Computing tight neighbours based on winning path position")
+  if (parser.args.debug > -1):
+    print("Computing tight neighbours based on winning path position")
 
   # computing simple paths:
   G = nx.Graph()
@@ -117,12 +119,14 @@ def unreachable_nodes(parser):
       unreachable_nodes_list.append(pos)
       #print(pos,min_start_length,min_end_length)
       count = count + 1
-  print("Removing unreachable nodes ... " + str(count) + " unreachable out of " + str(num_positions))
+  if (parser.args.debug > -1):
+    print("Removing unreachable nodes ... " + str(count) + " unreachable out of " + str(num_positions))
   #print(num_positions, count)
   return unreachable_nodes_list
 
 def all_short_simple_paths(parser):
-  print("Coumpting all minimal simple paths from start to end boarder")
+  if (parser.args.debug > -1):
+    print("Coumpting all minimal simple paths from start to end boarder")
   G = nx.Graph()
 
   for key,value_list in parser.neighbour_dict.items():

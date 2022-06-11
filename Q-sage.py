@@ -103,11 +103,12 @@ if __name__ == '__main__':
   label = subprocess.check_output(["git", "describe", "--always"]).strip()
 
 
-  print("Start time: " + str(datetime.datetime.now()))
+  if (args.debug > -1):
+    print("Start time: " + str(datetime.datetime.now()))
 
-  print("Git commit hash: " + str(label))
+    print("Git commit hash: " + str(label))
 
-  print(args)
+    print(args)
 
   if args.version:
     print("Version 0.7")
@@ -134,7 +135,8 @@ if __name__ == '__main__':
 
 
   encoding_time = time.perf_counter() - start_encoding_time
-  print("Encoding time: " + str(encoding_time))
+  if (args.debug > -1):
+    print("Encoding time: " + str(encoding_time))
   # ----------------------------------------------------------------------------------------------------
 
   if (args.run >= 1):
@@ -144,14 +146,16 @@ if __name__ == '__main__':
     rs.run_single_solver(encoding)
 
     solving_time = time.perf_counter() - start_run_time
-    print("Solving time: " + str(solving_time) + "\n")
+    if (args.debug > -1):
+      print("Solving time: " + str(solving_time) + "\n")
     # ------------------------------------------------------------------------------------------------------
 
   # ------------------------------------- Printing memory stats of encodings -----------------------------
-  print("Encoding size (in KB): " + str(os.path.getsize(args.encoding_out)/1000))
-  if (args.preprocessing == 1):
-    print("Preprocessed encoding size (in KB): " + str(os.path.getsize(args.preprocessed_encoding_out)/1000))
+  if (args.debug > -1):
+    print("Encoding size (in KB): " + str(os.path.getsize(args.encoding_out)/1000))
+    if (args.preprocessing == 1):
+      print("Preprocessed encoding size (in KB): " + str(os.path.getsize(args.preprocessed_encoding_out)/1000))
   # ------------------------------------------------------------------------------------------------------
 
-
-  print("Finish time: " + str(datetime.datetime.now()))
+  if (args.debug > -1):
+    print("Finish time: " + str(datetime.datetime.now()))
