@@ -712,14 +712,7 @@ class IndexBasedGeneral:
       single_constraint_output_gates = []
       # for each constraint in the goal:
       for constraint in single_conjunction:
-        if ("lt" in constraint):
-          assert(" " not in constraint)
-          # passing x variables and y variables along with index constraint:
-          bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
-
-          if (bound_result != 'None'):
-            single_constraint_output_gates.append(bound_result)
-        elif ("nlt" in constraint):
+        if ("nlt" in constraint):
           assert(" " not in constraint)
           # passing x variables and y variables along with index constraint:
           bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
@@ -727,6 +720,13 @@ class IndexBasedGeneral:
           if (bound_result != 'None'):
             # negative bound so negation:
             single_constraint_output_gates.append(-bound_result)
+        elif ("lt" in constraint):
+          assert(" " not in constraint)
+          # passing x variables and y variables along with index constraint:
+          bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
+
+          if (bound_result != 'None'):
+            single_constraint_output_gates.append(bound_result)
         else:
           split_condition = constraint.strip(")").split("(")
           predicate = split_condition[0]
