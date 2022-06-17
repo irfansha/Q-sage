@@ -7,6 +7,17 @@ import utils.lessthen_cir as lsc
 from utils.gates import GatesGen as ggen
 from utils.variables_dispatcher import VarDispatcher as vd
 
+'''
+# Main TODOS:
+1. Check of the numbers are allowed in action constraints instead of parameters
+2. Remove index bounds, in actions and in goal constraints (generate them internally)
+3. Allow the arbitrary number of preconditions for the white player
+
+
+# Optimization TODOS:
+1. Add the game illegal constraints part of goal for early pruning
+2. If number of actions or paramters is 1, then make it existential for quantifications and give explicit value
+'''
 
 class IndexBasedGeneral:
 
