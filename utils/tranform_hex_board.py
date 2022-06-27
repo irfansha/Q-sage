@@ -76,7 +76,6 @@ if __name__ == '__main__':
   for [pos] in parsed_dict['#whiteinitials']:
     rearranged_positions.append(pos)
 
-
   for initial in parsed_dict['#whiteinitials']:
     # Finding position of white initial var:
     position = rearranged_positions.index(initial[0])
@@ -107,7 +106,6 @@ if __name__ == '__main__':
     position = rearranged_positions.index(single_vertex)
     end_boarder.append(position)
 
-
   # Finding neighbours recursively:
 
   for pos in range(len(positions)):
@@ -120,16 +118,53 @@ if __name__ == '__main__':
     new_neighbours_dict[pos] = return_neighbours
 
 
+  # computing start boarder:
+  new_start_boarder = []
+  # remembering integer values for neigbour simplification
+  new_int_start_boarder = []
+
+  for pos in start_boarder:
+    if pos in white_initial_positions or len(new_neighbours_dict[pos]) == 0:
+      continue
+    elif pos in black_initial_positions:
+      for cur_neighbour in new_neighbours_dict[pos]:
+        if rearranged_positions[cur_neighbour] not in new_start_boarder and cur_neighbour not in black_initial_positions:
+          new_start_boarder.append(rearranged_positions[cur_neighbour])
+          new_int_start_boarder.append(cur_neighbour)
+    else:
+      if (rearranged_positions[pos] not in new_start_boarder):
+        new_start_boarder.append(rearranged_positions[pos])
+        new_int_start_boarder.append(pos)
+
+  # computing new end boarder:
+  new_end_boarder = []
+  # remembering integer values for neigbour simplification
+  new_int_end_boarder = []
+
+  for pos in end_boarder:
+    if pos in white_initial_positions or len(new_neighbours_dict[pos]) == 0:
+      continue
+    elif pos in black_initial_positions:
+      for cur_neighbour in new_neighbours_dict[pos]:
+        if rearranged_positions[cur_neighbour] not in new_end_boarder and cur_neighbour not in black_initial_positions:
+          new_end_boarder.append(rearranged_positions[cur_neighbour])
+          new_int_end_boarder.append(cur_neighbour)
+    else:
+      if (rearranged_positions[pos] not in new_end_boarder):
+        new_end_boarder.append(rearranged_positions[pos])
+        new_int_end_boarder.append(pos)
+
   # Simplifying graph by edges:
   for key,neighbour_list in new_neighbours_dict.items():
-    if (key not in start_boarder and key not in end_boarder):
+    # we only simplify the edges connected to each other in start and end boarders:
+    if (key not in new_int_start_boarder and key not in new_int_end_boarder):
       continue
     temp = []
     for neighbour in neighbour_list:
-      if (key in start_boarder and neighbour in start_boarder):
+      if (key in new_int_start_boarder and neighbour in new_int_start_boarder):
         #print("start", rearranged_positions[key], rearranged_positions[neighbour])
         continue
-      if (key in end_boarder and neighbour in end_boarder):
+      if (key in new_int_end_boarder and neighbour in new_int_end_boarder):
         #print("end", rearranged_positions[key], rearranged_positions[neighbour])
         continue
       else:
@@ -166,32 +201,24 @@ if __name__ == '__main__':
     print(rearranged_positions[key] + ' ' + ' '.join(temp_list))
 
 
-  print("#startboarder")
-  new_start_boarder = []
+  # dropping unreachable nodes:
 
-  for pos in start_boarder:
-    if pos in white_initial_positions or len(new_neighbours_dict[pos]) == 0:
+  print("#startboarder")
+  cur_boarder_list = []
+  for pos in new_int_start_boarder:
+    if pos not in new_neighbours_dict:
       continue
-    elif pos in black_initial_positions:
-      for cur_neighbour in new_neighbours_dict[pos]:
-        if rearranged_positions[cur_neighbour] not in new_start_boarder and cur_neighbour not in black_initial_positions:
-          new_start_boarder.append(rearranged_positions[cur_neighbour])
-    else:
-      if (rearranged_positions[pos] not in new_start_boarder):
-        new_start_boarder.append(rearranged_positions[pos])
-  print(' '.join(new_start_boarder))
+    if len(new_neighbours_dict[pos])!= 0:
+      cur_boarder_list.append(rearranged_positions[pos])
+  cur_boarder_list.sort()
+  print(' '.join(cur_boarder_list))
 
   print("#endboarder")
-  new_end_boarder = []
-
-  for pos in end_boarder:
-    if pos in white_initial_positions or len(new_neighbours_dict[pos]) == 0:
+  cur_boarder_list = []
+  for pos in new_int_end_boarder:
+    if pos not in new_neighbours_dict:
       continue
-    elif pos in black_initial_positions:
-      for cur_neighbour in new_neighbours_dict[pos]:
-        if rearranged_positions[cur_neighbour] not in new_end_boarder and cur_neighbour not in black_initial_positions:
-          new_end_boarder.append(rearranged_positions[cur_neighbour])
-    else:
-      if (rearranged_positions[pos] not in new_end_boarder):
-        new_end_boarder.append(rearranged_positions[pos])
-  print(' '.join(new_end_boarder))
+    if len(new_neighbours_dict[pos])!= 0:
+      cur_boarder_list.append(rearranged_positions[pos])
+  cur_boarder_list.sort()
+  print(' '.join(cur_boarder_list))
