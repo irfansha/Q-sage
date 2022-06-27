@@ -91,7 +91,7 @@ def unreachable_nodes(parser):
   for neighbour_list in parser.parsed_dict['#neighbours']:
     for index in range(1,len(neighbour_list)):
       G.add_edge(neighbour_list[0], neighbour_list[index])
-
+  #  Because of two chains:
   if (parser.args.e == 'cgcp'):
     max_path_length = len(parser.parsed_dict['#blackinitials']) + 2*int((parser.depth + 1)/2) + 1
   else:
@@ -101,7 +101,6 @@ def unreachable_nodes(parser):
 
   num_positions = len(parser.parsed_dict['#positions'][0])
 
-  #print(spl)
   count = 0
   unreachable_nodes_list = []
   for pos in parser.parsed_dict['#positions'][0]:

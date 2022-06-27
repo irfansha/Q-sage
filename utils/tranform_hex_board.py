@@ -3,6 +3,8 @@
 import argparse
 import string
 
+import networkx as nx
+
 white_initial_positions = []
 black_initial_positions = []
 new_neighbours_dict = {}
@@ -34,6 +36,9 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded/hein_04_3x3-05.pg')
   args = parser.parse_args()
+
+  #=====================================================================================================================================
+  # paring:
 
   problem_path = args.problem
   f = open(problem_path, 'r')
@@ -106,6 +111,9 @@ if __name__ == '__main__':
     position = rearranged_positions.index(single_vertex)
     end_boarder.append(position)
 
+  #=====================================================================================================================================
+
+  #=====================================================================================================================================
   # Finding neighbours recursively:
 
   for pos in range(len(positions)):
@@ -117,7 +125,9 @@ if __name__ == '__main__':
       return_neighbours.remove(pos)
     new_neighbours_dict[pos] = return_neighbours
 
+  #=====================================================================================================================================
 
+  #=====================================================================================================================================
   # computing start boarder:
   new_start_boarder = []
   # remembering integer values for neigbour simplification
@@ -153,11 +163,17 @@ if __name__ == '__main__':
       if (rearranged_positions[pos] not in new_end_boarder):
         new_end_boarder.append(rearranged_positions[pos])
         new_int_end_boarder.append(pos)
+  #=====================================================================================================================================
+
+  #=====================================================================================================================================
+  # simplifying the neighbour dict:
+  simplified_neighbour_dict = dict()
 
   # Simplifying graph by edges:
   for key,neighbour_list in new_neighbours_dict.items():
     # we only simplify the edges connected to each other in start and end boarders:
     if (key not in new_int_start_boarder and key not in new_int_end_boarder):
+      simplified_neighbour_dict[key] = neighbour_list
       continue
     temp = []
     for neighbour in neighbour_list:
@@ -169,9 +185,61 @@ if __name__ == '__main__':
         continue
       else:
         temp.append(neighbour)
-    new_neighbours_dict[key] = temp
+    if (len(temp) != 0):
+      simplified_neighbour_dict[key] = temp
+  #print(simplified_neighbour_dict)
+  #=====================================================================================================================================
 
+  #=====================================================================================================================================
+  # removing unreachable nodes:
+  # Computes the unreachable nodes i.e., any node which cannot be in the path from a start node to an end node:
+  #-------------------------------------------------------------------------------
+  G = nx.Graph()
 
+  for key,neighbour_list in simplified_neighbour_dict.items():
+    for neighbour in neighbour_list:
+      G.add_edge(key, neighbour)
+
+  max_path_length = int((len(parsed_dict["#times"][0]) + 1)/2)
+
+  spl = dict(nx.all_pairs_shortest_path_length(G))
+
+  #print(spl)
+
+  num_available_moves = len(new_positions)
+
+  #print(spl)
+  count = 0
+  unreachable_nodes_list = []
+  for pos in range(num_available_moves):
+    if (pos not in spl):
+      continue
+    # setting the min length to maximum value:
+    min_start_length = num_available_moves
+    for start in new_int_start_boarder:
+      if (start not in spl[pos]):
+        continue
+      if (min_start_length > spl[pos][start]):
+        min_start_length = spl[pos][start]
+    # setting the min length to maximum value:
+    min_end_length = num_available_moves
+    for end in new_int_end_boarder:
+      if (end not in spl[pos]):
+        continue
+      if (min_end_length > spl[pos][end]):
+        min_end_length = spl[pos][end]
+    if (min_start_length+min_end_length > max_path_length - 1):
+      unreachable_nodes_list.append(pos)
+      #print(pos,min_start_length,min_end_length)
+      count = count + 1
+  #print("Removing unreachable nodes ... " + str(count) + " unreachable out of " + str(num_available_moves))
+  #print(unreachable_nodes_list)
+
+  #-------------------------------------------------------------------------------
+  #=====================================================================================================================================
+
+  #=====================================================================================================================================
+  # printing input files:
   print("#blackinitials")
   print("#whiteinitials")
   print("#times")
@@ -180,16 +248,31 @@ if __name__ == '__main__':
   print(' '.join(parsed_dict["#blackturns"][0]))
   print('#positions')
   temp_positions = []
+
+  # asserting that no position is not in both start and end boarder:
   # removing any unreachable positions:
   for i in range(len(new_positions)):
-    if (len(new_neighbours_dict[i]) != 0):
+    assert(i not in new_int_start_boarder or i not in new_int_end_boarder)
+    # if position not in simplified_dict then no neighbours and we drop we it is unreachable:
+    if (i in simplified_neighbour_dict and i not in unreachable_nodes_list):
       temp_positions.append(new_positions[i])
   print(' '.join(temp_positions))
 
   print("#neighbours")
 
-  for key,neighbour_list in new_neighbours_dict.items():
-    if key in white_initial_positions or key in black_initial_positions:
+
+  # Simplifying nieghbours based on unreachability:
+  for key,neighbour_list in simplified_neighbour_dict.items():
+    temp = []
+    for neighbour in neighbour_list:
+      if (neighbour not in unreachable_nodes_list):
+        temp.append(neighbour)
+    simplified_neighbour_dict[key] = temp
+
+  # only add neighbours which are reachable:
+  for key,neighbour_list in simplified_neighbour_dict.items():
+    #print(rearranged_positions[key], neighbour_list)
+    if key in white_initial_positions or key in black_initial_positions or key in unreachable_nodes_list:
       continue
     if (len(neighbour_list) == 0):
       continue
@@ -206,7 +289,7 @@ if __name__ == '__main__':
   print("#startboarder")
   cur_boarder_list = []
   for pos in new_int_start_boarder:
-    if pos not in new_neighbours_dict:
+    if pos not in simplified_neighbour_dict or pos in unreachable_nodes_list:
       continue
     if len(new_neighbours_dict[pos])!= 0:
       cur_boarder_list.append(rearranged_positions[pos])
@@ -216,9 +299,10 @@ if __name__ == '__main__':
   print("#endboarder")
   cur_boarder_list = []
   for pos in new_int_end_boarder:
-    if pos not in new_neighbours_dict:
+    if pos not in simplified_neighbour_dict or pos in unreachable_nodes_list:
       continue
     if len(new_neighbours_dict[pos])!= 0:
       cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
   print(' '.join(cur_boarder_list))
+  #=====================================================================================================================================
