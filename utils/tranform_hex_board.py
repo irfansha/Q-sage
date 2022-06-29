@@ -259,7 +259,8 @@ if __name__ == '__main__':
     # if position not in simplified_dict then no neighbours and we drop we it is unreachable:
     if (i in simplified_neighbour_dict and i not in unreachable_nodes_list):
       temp_positions.append(new_positions[i])
-  print(' '.join(temp_positions))
+  if (len(temp_positions) != 0):
+    print(' '.join(temp_positions))
 
   if (args.output_format == "gex"):
     print("#neighbours")
@@ -315,7 +316,8 @@ if __name__ == '__main__':
       cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
   if (args.output_format == "gex"):
-    print(' '.join(cur_boarder_list))
+    if (len(cur_boarder_list) != 0):
+      print(' '.join(cur_boarder_list))
   elif (args.output_format == "egf"):
     for cur_start_pos in cur_boarder_list:
       print("S " + cur_start_pos)
@@ -330,7 +332,8 @@ if __name__ == '__main__':
       cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
   if (args.output_format == "gex"):
-    print(' '.join(cur_boarder_list))
+    if (len(cur_boarder_list) != 0):
+      print(' '.join(cur_boarder_list))
   elif (args.output_format == "egf"):
     for cur_end_pos in cur_boarder_list:
       print("T " + cur_end_pos)
