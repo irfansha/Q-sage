@@ -104,14 +104,20 @@ def unreachable_nodes(parser):
   count = 0
   unreachable_nodes_list = []
   for pos in parser.parsed_dict['#positions'][0]:
+    if (pos not in spl):
+      continue
     # setting the min length to maximum value:
     min_start_length = num_positions
     for start in parser.parsed_dict['#startboarder'][0]:
+      if (start not in spl[pos]):
+        continue
       if (min_start_length > spl[pos][start]):
         min_start_length = spl[pos][start]
     # setting the min length to maximum value:
     min_end_length = num_positions
     for end in parser.parsed_dict['#endboarder'][0]:
+      if (end not in spl[pos]):
+        continue
       if (min_end_length > spl[pos][end]):
         min_end_length = spl[pos][end]
     if (min_start_length+min_end_length > max_path_length - 1):
