@@ -35,10 +35,12 @@ if __name__ == '__main__':
   text = "Takes a hex board and converts in to another game with only open positions"
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded/hein_04_3x3-05.pg')
+  parser.add_argument("--prune_unreachable_nodes",  type=int, help="[0/1], default 0", default=0)
+  parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
   args = parser.parse_args()
 
   #=====================================================================================================================================
-  # paring:
+  # parsing:
 
   problem_path = args.problem
   f = open(problem_path, 'r')
@@ -194,46 +196,47 @@ if __name__ == '__main__':
   # removing unreachable nodes:
   # Computes the unreachable nodes i.e., any node which cannot be in the path from a start node to an end node:
   #-------------------------------------------------------------------------------
-  G = nx.Graph()
-
-  for key,neighbour_list in simplified_neighbour_dict.items():
-    for neighbour in neighbour_list:
-      G.add_edge(key, neighbour)
-
-  max_path_length = int((len(parsed_dict["#times"][0]) + 1)/2)
-
-  spl = dict(nx.all_pairs_shortest_path_length(G))
-
-  #print(spl)
-
-  num_available_moves = len(new_positions)
-
-  #print(spl)
-  count = 0
   unreachable_nodes_list = []
-  for pos in range(num_available_moves):
-    if (pos not in spl):
-      continue
-    # setting the min length to maximum value:
-    min_start_length = num_available_moves
-    for start in new_int_start_boarder:
-      if (start not in spl[pos]):
+  if (args.prune_unreachable_nodes == 1):
+    G = nx.Graph()
+
+    for key,neighbour_list in simplified_neighbour_dict.items():
+      for neighbour in neighbour_list:
+        G.add_edge(key, neighbour)
+
+    max_path_length = int((len(parsed_dict["#times"][0]) + 1)/2)
+
+    spl = dict(nx.all_pairs_shortest_path_length(G))
+
+    #print(spl)
+
+    num_available_moves = len(new_positions)
+
+    #print(spl)
+    count = 0
+    for pos in range(num_available_moves):
+      if (pos not in spl):
         continue
-      if (min_start_length > spl[pos][start]):
-        min_start_length = spl[pos][start]
-    # setting the min length to maximum value:
-    min_end_length = num_available_moves
-    for end in new_int_end_boarder:
-      if (end not in spl[pos]):
-        continue
-      if (min_end_length > spl[pos][end]):
-        min_end_length = spl[pos][end]
-    if (min_start_length+min_end_length > max_path_length - 1):
-      unreachable_nodes_list.append(pos)
-      #print(pos,min_start_length,min_end_length)
-      count = count + 1
-  #print("Removing unreachable nodes ... " + str(count) + " unreachable out of " + str(num_available_moves))
-  #print(unreachable_nodes_list)
+      # setting the min length to maximum value:
+      min_start_length = num_available_moves
+      for start in new_int_start_boarder:
+        if (start not in spl[pos]):
+          continue
+        if (min_start_length > spl[pos][start]):
+          min_start_length = spl[pos][start]
+      # setting the min length to maximum value:
+      min_end_length = num_available_moves
+      for end in new_int_end_boarder:
+        if (end not in spl[pos]):
+          continue
+        if (min_end_length > spl[pos][end]):
+          min_end_length = spl[pos][end]
+      if (min_start_length+min_end_length > max_path_length - 1):
+        unreachable_nodes_list.append(pos)
+        #print(pos,min_start_length,min_end_length)
+        count = count + 1
+    #print("Removing unreachable nodes ... " + str(count) + " unreachable out of " + str(num_available_moves))
+    #print(unreachable_nodes_list)
 
   #-------------------------------------------------------------------------------
   #=====================================================================================================================================
@@ -258,7 +261,10 @@ if __name__ == '__main__':
       temp_positions.append(new_positions[i])
   print(' '.join(temp_positions))
 
-  print("#neighbours")
+  if (args.output_format == "gex"):
+    print("#neighbours")
+  elif (args.output_format == "egf"):
+    print("#edges")
 
 
   # Simplifying nieghbours based on unreachability:
@@ -268,6 +274,10 @@ if __name__ == '__main__':
       if (neighbour not in unreachable_nodes_list):
         temp.append(neighbour)
     simplified_neighbour_dict[key] = temp
+
+
+  # for easy graph format we need to remove symmetric edges, so keeping track of them:
+  added_edges = []
 
   # only add neighbours which are reachable:
   for key,neighbour_list in simplified_neighbour_dict.items():
@@ -281,12 +291,22 @@ if __name__ == '__main__':
       if (one_neighbour in black_initial_positions):
         continue
       temp_list.append(rearranged_positions[one_neighbour])
-    print(rearranged_positions[key] + ' ' + ' '.join(temp_list))
-
+    # if empty we do not need to add it:
+    assert(len(temp_list) != 0)
+    if (args.output_format == "gex"):
+      print(rearranged_positions[key] + ' ' + ' '.join(temp_list))
+    elif (args.output_format == "egf"):
+      for cur_neighbour in temp_list:
+        # we only add if the edge is not already added:
+        if ((rearranged_positions[key], cur_neighbour) in added_edges or (cur_neighbour, rearranged_positions[key]) in added_edges):
+          continue
+        print(rearranged_positions[key] + ' ' + cur_neighbour)
+        # now add the edge in the list:
+        added_edges.append((rearranged_positions[key], cur_neighbour))
 
   # dropping unreachable nodes:
-
-  print("#startboarder")
+  if (args.output_format == "gex"):
+    print("#startboarder")
   cur_boarder_list = []
   for pos in new_int_start_boarder:
     if pos not in simplified_neighbour_dict or pos in unreachable_nodes_list:
@@ -294,9 +314,14 @@ if __name__ == '__main__':
     if len(new_neighbours_dict[pos])!= 0:
       cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
-  print(' '.join(cur_boarder_list))
+  if (args.output_format == "gex"):
+    print(' '.join(cur_boarder_list))
+  elif (args.output_format == "egf"):
+    for cur_start_pos in cur_boarder_list:
+      print("S " + cur_start_pos)
 
-  print("#endboarder")
+  if (args.output_format == "gex"):
+    print("#endboarder")
   cur_boarder_list = []
   for pos in new_int_end_boarder:
     if pos not in simplified_neighbour_dict or pos in unreachable_nodes_list:
@@ -304,5 +329,12 @@ if __name__ == '__main__':
     if len(new_neighbours_dict[pos])!= 0:
       cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
-  print(' '.join(cur_boarder_list))
+  if (args.output_format == "gex"):
+    print(' '.join(cur_boarder_list))
+  elif (args.output_format == "egf"):
+    for cur_end_pos in cur_boarder_list:
+      print("T " + cur_end_pos)
+
+  if (args.output_format == "egf"):
+    print("#source\nS\n#target\nT")
   #=====================================================================================================================================
