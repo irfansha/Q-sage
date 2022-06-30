@@ -165,12 +165,14 @@ def all_short_simple_paths(parser):
       # checking each path one at a time:
       for path in set_list:
         remove_path_list = []
+        # if the current path is not in the avail list then it has been supersumed and remove already, we do not need to do it again:
         if path not in list_for_avail_paths:
             continue
         for temp_path in list_for_avail_paths:
           intersection = set.intersection(path, temp_path)
           if path == intersection:
             remove_path_list.append(temp_path)
+          # if the temp_path in the avialable paths is same as intersection, that means the temp_path is same as the path we are checking for:
           if (temp_path == intersection):
             assert(path == temp_path)
         # first removing the large paths:
