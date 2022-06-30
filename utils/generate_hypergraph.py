@@ -124,14 +124,21 @@ if __name__ == '__main__':
   print(' '.join(parsed_dict["#times"][0]))
   print("#blackturns")
   print(' '.join(parsed_dict["#blackturns"][0]))
-  print('#positions')
-  print(' '.join(positions))
-  print("#blackwins")
+  touched_positions = []
+  # only need the positions that are in the hyper graph:
+  win_configurations = []
   for win in all_final_paths:
     string_win = []
     for pos in win:
       string_win.append(positions[pos])
-    print(' '.join(string_win))
+      if (positions[pos] not in touched_positions):
+        touched_positions.append(positions[pos])
+    win_configurations.append(string_win)
+  print('#positions')
+  print(' '.join(touched_positions))
+  print("#blackwins")
+  for win in win_configurations:
+    print(' '.join(win))
   print("#whitewins")
 
   #=====================================================================================================================================
