@@ -206,7 +206,7 @@ if __name__ == '__main__':
   simplified_positions = []
   for i in range(len(new_positions)):
     # if a position in both start and end boarder then problem is already solved:
-    assert(i not in new_int_start_boarder or i not in new_int_end_boarder)
+    #assert(i not in new_int_start_boarder or i not in new_int_end_boarder)
     # if position not in simplified_dict then no neighbours:
     if (i in simplified_neighbour_dict):
       simplified_positions.append(i)
