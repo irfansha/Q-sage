@@ -36,6 +36,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded/hein_04_3x3-05.pg')
   parser.add_argument("--prune_unreachable_nodes",  type=int, help="[0/1], default 0", default=0)
+  parser.add_argument("--prune_minimal_path_unreachable_nodes",  type=int, help="[0/1], default 0", default=0)
   parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
   args = parser.parse_args()
 
@@ -130,8 +131,7 @@ if __name__ == '__main__':
   #=====================================================================================================================================
 
   #=====================================================================================================================================
-  # computing start boarder:
-  new_start_boarder = []
+  # computing new start boarder:
   # remembering integer values for neigbour simplification
   new_int_start_boarder = []
 
@@ -140,16 +140,13 @@ if __name__ == '__main__':
       continue
     elif pos in black_initial_positions:
       for cur_neighbour in new_neighbours_dict[pos]:
-        if rearranged_positions[cur_neighbour] not in new_start_boarder and cur_neighbour not in black_initial_positions:
-          new_start_boarder.append(rearranged_positions[cur_neighbour])
+        if cur_neighbour not in new_int_start_boarder and cur_neighbour not in black_initial_positions:
           new_int_start_boarder.append(cur_neighbour)
     else:
-      if (rearranged_positions[pos] not in new_start_boarder):
-        new_start_boarder.append(rearranged_positions[pos])
+      if (pos not in new_int_start_boarder):
         new_int_start_boarder.append(pos)
 
   # computing new end boarder:
-  new_end_boarder = []
   # remembering integer values for neigbour simplification
   new_int_end_boarder = []
 
@@ -158,12 +155,10 @@ if __name__ == '__main__':
       continue
     elif pos in black_initial_positions:
       for cur_neighbour in new_neighbours_dict[pos]:
-        if rearranged_positions[cur_neighbour] not in new_end_boarder and cur_neighbour not in black_initial_positions:
-          new_end_boarder.append(rearranged_positions[cur_neighbour])
+        if cur_neighbour not in new_int_end_boarder and cur_neighbour not in black_initial_positions:
           new_int_end_boarder.append(cur_neighbour)
     else:
-      if (rearranged_positions[pos] not in new_end_boarder):
-        new_end_boarder.append(rearranged_positions[pos])
+      if (pos not in new_int_end_boarder):
         new_int_end_boarder.append(pos)
   #=====================================================================================================================================
 
@@ -173,9 +168,23 @@ if __name__ == '__main__':
 
   # Simplifying graph by edges:
   for key,neighbour_list in new_neighbours_dict.items():
+    # if the key is black we drop from the neighbour dictionary:
+    if key in black_initial_positions:
+      continue
+    # asserting key is not in white positions, we do not compute white positions:
+    assert(key not in white_initial_positions)
+
+
     # we only simplify the edges connected to each other in start and end boarders:
     if (key not in new_int_start_boarder and key not in new_int_end_boarder):
-      simplified_neighbour_dict[key] = neighbour_list
+      temp_list = []
+      for neighbour in neighbour_list:
+        # asserting all its neighbours are not white:
+        assert(neighbour not in white_initial_positions)
+        # we do not need to add black positions:
+        if (neighbour not in black_initial_positions):
+          temp_list.append(neighbour)
+      simplified_neighbour_dict[key] = temp_list
       continue
     temp = []
     for neighbour in neighbour_list:
@@ -185,11 +194,35 @@ if __name__ == '__main__':
       if (key in new_int_end_boarder and neighbour in new_int_end_boarder):
         #print("end", rearranged_positions[key], rearranged_positions[neighbour])
         continue
-      else:
-        temp.append(neighbour)
+      # we do not need to add black positions:
+      if (neighbour in black_initial_positions):
+        continue
+      temp.append(neighbour)
     if (len(temp) != 0):
       simplified_neighbour_dict[key] = temp
   #print(simplified_neighbour_dict)
+
+  # simplifying positions:
+  simplified_positions = []
+  for i in range(len(new_positions)):
+    # if a position in both start and end boarder then problem is already solved:
+    assert(i not in new_int_start_boarder or i not in new_int_end_boarder)
+    # if position not in simplified_dict then no neighbours:
+    if (i in simplified_neighbour_dict):
+      simplified_positions.append(i)
+
+  # simplifying start, end boarder again as some of the neighbour relations much have become empty:
+  temp_start_boarder = []
+  for pos in new_int_start_boarder:
+    if pos in simplified_neighbour_dict:
+      temp_start_boarder.append(pos)
+  new_int_start_boarder = list(temp_start_boarder)
+
+  temp_end_boarder = []
+  for pos in new_int_end_boarder:
+    if pos in simplified_neighbour_dict:
+      temp_end_boarder.append(pos)
+  new_int_end_boarder = list(temp_end_boarder)
   #=====================================================================================================================================
 
   #=====================================================================================================================================
@@ -241,6 +274,46 @@ if __name__ == '__main__':
   #-------------------------------------------------------------------------------
   #=====================================================================================================================================
 
+  if (args.prune_unreachable_nodes == 1):
+    # first trim the neighbour dict based on unreachability:
+    pruned_simplified_neighbour_dict = dict()
+    # Simplifying nieghbours based on unreachability:
+    for key,neighbour_list in simplified_neighbour_dict.items():
+      if key in unreachable_nodes_list:
+        continue
+      temp_list = []
+      for one_neighbour in neighbour_list:
+        # we do not add the black initial positions, should not be present here:
+        assert(one_neighbour not in black_initial_positions)
+        if (one_neighbour in unreachable_nodes_list):
+          continue
+        temp_list.append(one_neighbour)
+      if len(temp_list) == 0:
+        continue
+      pruned_simplified_neighbour_dict[key] = temp_list
+
+    simplified_neighbour_dict = pruned_simplified_neighbour_dict.copy()
+
+    # pruning the  empty nodes in the start and end boarder nodes, due to unreachability:
+    temp_start_boarder = []
+    for pos in new_int_start_boarder:
+      if pos in simplified_neighbour_dict:
+        temp_start_boarder.append(pos)
+    new_int_start_boarder = list(temp_start_boarder)
+
+    temp_end_boarder = []
+    for pos in new_int_end_boarder:
+      if pos in simplified_neighbour_dict:
+        temp_end_boarder.append(pos)
+    new_int_end_boarder = list(temp_end_boarder)
+
+
+    # pruning the empty nodes in positions due to unreachability:
+    temp_simplified_positions = []
+    for pos in simplified_positions:
+      if pos in simplified_neighbour_dict:
+        temp_simplified_positions.append(pos)
+    simplified_positions = list(temp_simplified_positions)
   #=====================================================================================================================================
   # printing input files:
   print("#blackinitials")
@@ -250,15 +323,11 @@ if __name__ == '__main__':
   print("#blackturns")
   print(' '.join(parsed_dict["#blackturns"][0]))
   print('#positions')
-  temp_positions = []
 
-  # asserting that no position is not in both start and end boarder:
-  # removing any unreachable positions:
-  for i in range(len(new_positions)):
-    assert(i not in new_int_start_boarder or i not in new_int_end_boarder)
-    # if position not in simplified_dict then no neighbours and we drop we it is unreachable:
-    if (i in simplified_neighbour_dict and i not in unreachable_nodes_list):
-      temp_positions.append(new_positions[i])
+  temp_positions = []
+  # printing simplified positions:
+  for pos in simplified_positions:
+      temp_positions.append(rearranged_positions[pos])
   if (len(temp_positions) != 0):
     print(' '.join(temp_positions))
 
@@ -268,32 +337,15 @@ if __name__ == '__main__':
     print("#edges")
 
 
-  # Simplifying nieghbours based on unreachability:
-  for key,neighbour_list in simplified_neighbour_dict.items():
-    temp = []
-    for neighbour in neighbour_list:
-      if (neighbour not in unreachable_nodes_list):
-        temp.append(neighbour)
-    simplified_neighbour_dict[key] = temp
-
-
   # for easy graph format we need to remove symmetric edges, so keeping track of them:
   added_edges = []
 
   # only add neighbours which are reachable:
   for key,neighbour_list in simplified_neighbour_dict.items():
-    #print(rearranged_positions[key], neighbour_list)
-    if key in white_initial_positions or key in black_initial_positions or key in unreachable_nodes_list:
-      continue
-    if (len(neighbour_list) == 0):
-      continue
+    # for printing, we revert to original position names:
     temp_list = []
-    for one_neighbour in neighbour_list:
-      if (one_neighbour in black_initial_positions):
-        continue
-      temp_list.append(rearranged_positions[one_neighbour])
-    # if empty we do not need to add it:
-    assert(len(temp_list) != 0)
+    for neighbour in neighbour_list:
+      temp_list.append(rearranged_positions[neighbour])
     if (args.output_format == "gex"):
       print(rearranged_positions[key] + ' ' + ' '.join(temp_list))
     elif (args.output_format == "egf"):
@@ -305,15 +357,12 @@ if __name__ == '__main__':
         # now add the edge in the list:
         added_edges.append((rearranged_positions[key], cur_neighbour))
 
-  # dropping unreachable nodes:
+  # printing start boarder:
   if (args.output_format == "gex"):
     print("#startboarder")
   cur_boarder_list = []
   for pos in new_int_start_boarder:
-    if pos not in simplified_neighbour_dict or pos in unreachable_nodes_list:
-      continue
-    if len(new_neighbours_dict[pos])!= 0:
-      cur_boarder_list.append(rearranged_positions[pos])
+    cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
   if (args.output_format == "gex"):
     if (len(cur_boarder_list) != 0):
@@ -322,14 +371,12 @@ if __name__ == '__main__':
     for cur_start_pos in cur_boarder_list:
       print("S " + cur_start_pos)
 
+  # printing end boarder:
   if (args.output_format == "gex"):
     print("#endboarder")
   cur_boarder_list = []
   for pos in new_int_end_boarder:
-    if pos not in simplified_neighbour_dict or pos in unreachable_nodes_list:
-      continue
-    if len(new_neighbours_dict[pos])!= 0:
-      cur_boarder_list.append(rearranged_positions[pos])
+    cur_boarder_list.append(rearranged_positions[pos])
   cur_boarder_list.sort()
   if (args.output_format == "gex"):
     if (len(cur_boarder_list) != 0):
