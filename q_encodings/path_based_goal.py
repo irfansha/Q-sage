@@ -59,10 +59,6 @@ class PathBasedGoal:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
 
-    # Grounded goal boolean variables before forall position variables:
-    self.quantifier_block.append(['# goal path boolean variables: '])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.goal_path_boolean_variables) + ')'])
-
     # Forall position variables:
     self.quantifier_block.append(['# Forall position variables: '])
     self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in self.forall_position_variables) + ')'])
@@ -117,11 +113,6 @@ class PathBasedGoal:
     for vars in self.goal_path_variables:
       all_goal_vars.extend(vars)
     self.quantifier_block.append(['# exists(' + ', '.join(str(x) for x in all_goal_vars) + ')'])
-
-    # Grounded goal boolean variables before forall position variables:
-    self.quantifier_block.append(['# goal path boolean variables: '])
-    self.quantifier_block.append(['# exists(' + ', '.join(str(x) for x in self.goal_path_boolean_variables) + ')'])
-    all_goal_vars.extend(self.goal_path_boolean_variables)
 
     for var in all_goal_vars:
       dep_var_list = [var]
@@ -188,9 +179,6 @@ class PathBasedGoal:
     all_goal_vars = []
     for vars in self.goal_path_variables:
       all_goal_vars.extend(vars)
-
-    # Grounded goal boolean variables before forall position variables:
-    all_goal_vars.extend(self.goal_path_boolean_variables)
 
     for var in all_goal_vars:
       dep_var_list = [var]
@@ -395,9 +383,15 @@ class PathBasedGoal:
       # Neighbours of current position:
       #temp_neighbours = list(self.parsed.neighbour_dict[i])
 
-      # For each neighbour we generate a clause:
-      for cur_neighbour in self.parsed.neighbour_dict[i]:
-        temp_binary_format_clause = self.generate_binary_format(self.neighbour,cur_neighbour)
+      if (i not in self.parsed.end_boarder):
+        # For each neighbour we generate a clause:
+        for cur_neighbour in self.parsed.neighbour_dict[i]:
+          temp_binary_format_clause = self.generate_binary_format(self.neighbour,cur_neighbour)
+          self.gates_generator.and_gate(temp_binary_format_clause)
+          neighbour_output_gates.append(self.gates_generator.output_gate)
+      else:
+        # For allowing shorter paths, we say the position is also its neighbour:
+        temp_binary_format_clause = self.generate_binary_format(self.neighbour,i)
         self.gates_generator.and_gate(temp_binary_format_clause)
         neighbour_output_gates.append(self.gates_generator.output_gate)
 
@@ -410,14 +404,6 @@ class PathBasedGoal:
       self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
-
-    assert(self.parsed.lower_bound_path_length <= self.safe_max_path_length)
-
-    # First  lower bound -1 goal boolean variable are always positive:
-    for i in range(self.parsed.lower_bound_path_length - 1):
-      goal_step_output_gates.append(self.goal_path_boolean_variables[i])
-
-    #print(self.parsed.lower_bound_path_length - 1)
 
     # Path based equality constraints
     for i in range(self.safe_max_path_length - 1):
@@ -432,22 +418,12 @@ class PathBasedGoal:
       self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.neighbour)
       path_neighbour_equality_output_gate = self.gates_generator.output_gate
 
-      # Equality for next position with current position:
-      self.encoding.append(['# Equality clause for the neighbour path variables and current path variables: '])
-      self.gates_generator.complete_equality_gate(self.goal_path_variables[i+1], self.goal_path_variables[i])
-      next_cur_path_equality_output_gate = self.gates_generator.output_gate
 
 
-
-      # if boolean is true along with position forall equality then nieghbour equality is true:
-      self.gates_generator.and_gate([cur_path_forall_equality_output_gate, self.goal_path_boolean_variables[i]])
-      self.gates_generator.if_then_gate(self.gates_generator.output_gate, path_neighbour_equality_output_gate)
+      # if position forall equality then nieghbour equality is true:
+      self.gates_generator.if_then_gate(cur_path_forall_equality_output_gate, path_neighbour_equality_output_gate)
       goal_step_output_gates.append(self.gates_generator.output_gate)
 
-      # if boolean is false, then the next position is same as current and next booelean is false too:
-      self.gates_generator.and_gate([cur_path_forall_equality_output_gate, -self.goal_path_boolean_variables[i]])
-      self.gates_generator.if_then_gate(self.gates_generator.output_gate, [next_cur_path_equality_output_gate, -self.goal_path_boolean_variables[i+1]])
-      goal_step_output_gates.append(self.gates_generator.output_gate)
 
       # the position must be occupied and the color must be black:
       self.encoding.append(['# The goal position is occupied and the color is black: '])
@@ -646,10 +622,6 @@ class PathBasedGoal:
 
     for i in range(self.safe_max_path_length):
       self.goal_path_variables.append(self.encoding_variables.get_vars(self.num_position_variables))
-
-    # Allocating single boolean variable for each goal path position,
-    # we avoid redundancy due to stutturing of same position:
-    self.goal_path_boolean_variables = self.encoding_variables.get_vars(self.safe_max_path_length)
 
 
     # One neighbour is sufficeint for path based:
