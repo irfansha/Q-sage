@@ -20,7 +20,6 @@ from q_encodings.iterative_squaring_witness_based import \
 from q_encodings.no_transitions_path_based import \
     NoTransitionsPathBasedGoal as ntpbg
 from q_encodings.path_based_goal import PathBasedGoal as pbg
-from q_encodings.path_based_no_bool_goal import PathBasedNoBoolGoal as pbnbg
 from q_encodings.tictactoe import TicTacToe as ttt
 
 
@@ -82,14 +81,9 @@ def generate_encoding(parsed_instance):
       print("Generating grounded goal encoding with time")
     encoding = ggte(parsed_instance)
   elif (parsed_instance.args.e == 'pg'):
-    if (parsed_instance.args.stuttering == 'b'):
-      if (parsed_instance.args.debug > -1):
-        print("Generating path based goal encoding")
-      encoding = pbg(parsed_instance)
-    elif (parsed_instance.args.stuttering == 'nb'):
-      if (parsed_instance.args.debug > -1):
-        print("Generating path based goal encoding, without bool vars")
-      encoding = pbnbg(parsed_instance)
+    if (parsed_instance.args.debug > -1):
+      print("Generating path based goal encoding")
+    encoding = pbg(parsed_instance)
   elif (parsed_instance.args.e == 'cpg'):
     if (parsed_instance.args.debug > -1):
       print("Generating compact path based goal encoding")

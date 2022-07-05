@@ -85,7 +85,6 @@ if __name__ == '__main__':
                                        in = let forall restrictions in each if condition
                                        out = forall restrictions outside the transition functions
                                        none = no restrictions (default)'''), default = 'none')
-  parser.add_argument("--stuttering", help="[b/nb] With boolean stuttering or without, default = b ",default = "b")
   parser.add_argument("--remove_unreachable_nodes", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--tight_neighbour_pruning", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
