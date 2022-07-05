@@ -55,15 +55,41 @@ if __name__ == '__main__':
     print(' '.join(neighbour_list))
   # board size must be same as the length of the start boarder in B-Gex format:
   board_size = len(parsed_dict['#startboarder'][0])
+  input_start_boarder_string = ' '.join(parsed_dict['#startboarder'][0])
   # using the standard boarder positions for the white player:
   print("#startboarder")
-  cur_start_list = []
+  first_player_start_list = []
   for i in range(board_size):
-    cur_start_list.append('a' + str(i+1))
-  print(' '.join(cur_start_list))
+    first_player_start_list.append('a' + str(i+1))
+  first_player_start_boarder_string = ' '.join(first_player_start_list)
+
+  second_player_start_list = []
+  for i in range(board_size):
+    second_player_start_list.append(chr(ord('a') + i) + '1')
+  second_player_start_boarder_string = ' '.join(second_player_start_list)
+
+  # now we allow both player inputs, so we handle two cases when flipping:
+  if (input_start_boarder_string == first_player_start_boarder_string):
+    print(second_player_start_boarder_string)
+  else:
+    print(first_player_start_boarder_string)
+
   print("#endboarder")
-  cur_end_list = []
+  input_end_boarder_string = ' '.join(parsed_dict['#endboarder'][0])
+  first_player_end_list = []
   for i in range(board_size):
-    cur_end_list.append(chr(ord('a') + board_size - 1) + str(i+1))
-  print(' '.join(cur_end_list))
+    first_player_end_list.append('s' + str(i+1))
+  first_player_end_boarder_string = ' '.join(first_player_end_list)
+
+  second_player_end_list = []
+  for i in range(board_size):
+    second_player_end_list.append(chr(ord('a') + i) + str(board_size))
+  second_player_end_boarder_string = ' '.join(second_player_end_list)
+
+  # now we allow both player inputs, so we handle two cases when flipping:
+  if (input_end_boarder_string == first_player_end_boarder_string):
+    print(second_player_end_boarder_string)
+  else:
+    print(first_player_end_boarder_string)
+
   #=====================================================================================================================================
