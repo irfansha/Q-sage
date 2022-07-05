@@ -112,7 +112,7 @@ for line in player_with_id_list:
             swap_move = game_moves.pop(0)
             assert(swap_move == 'W[swap]')
             # now reverse the idexes in the white move:
-            new_w_move = 'W[' + first_b_move[3] + first_b_move[2] + ']'
+            new_b_move = 'W[' + first_b_move[3] + first_b_move[2] + ']'
             game_moves.insert(0,new_b_move)
             swap_string = 'swapped'
           count_games = count_games + 1
