@@ -158,19 +158,21 @@ class CompactPositonal:
         neighbour_output_gates = []
         self.encoding.append(['# neighbour clauses: '])
 
-        # For each neighbour we generate a clause:
-        for cur_neighbour in self.parsed.neighbour_dict[i]:
-          # We only generate the neighbour clauses if there are tight neighbours when the pruning is on:
-          if (self.parsed.args.tight_neighbour_pruning == 1 and (i,cur_neighbour) not in self.parsed.tight_neighbour_pairs_list[index]):
-            continue
-          else:
-            temp_binary_format_clause = self.generate_binary_format(next_position,cur_neighbour)
-            self.gates_generator.and_gate(temp_binary_format_clause)
-            neighbour_output_gates.append(self.gates_generator.output_gate)
+        # we only need to generate if the position is not an end boader node:
+        if (i not in self.parsed.end_boarder):
+          # For each neighbour we generate a clause:
+          for cur_neighbour in self.parsed.neighbour_dict[i]:
+            # We only generate the neighbour clauses if there are tight neighbours when the pruning is on:
+            if (self.parsed.args.tight_neighbour_pruning == 1 and (i,cur_neighbour) not in self.parsed.tight_neighbour_pairs_list[index]):
+              continue
+            else:
+              temp_binary_format_clause = self.generate_binary_format(next_position,cur_neighbour)
+              self.gates_generator.and_gate(temp_binary_format_clause)
+              neighbour_output_gates.append(self.gates_generator.output_gate)
 
 
-        # We only add stuttering above lower bound, or when the current node has no nieghbours and pruning is level 1:
-        if (index >= self.parsed.lower_bound_path_length-1 or (self.parsed.args.tight_neighbour_pruning == 1 and len(neighbour_output_gates) == 0)):
+        # We only add stuttering for end border nodes, or when the current node has no nieghbours and pruning is level 1:
+        if (i in self.parsed.end_boarder or (self.parsed.args.tight_neighbour_pruning == 1 and len(neighbour_output_gates) == 0)):
           # For allowing shorter paths, we say the position is also its neighbour:
           temp_binary_format_clause = self.generate_binary_format(next_position,i)
           self.gates_generator.and_gate(temp_binary_format_clause)
@@ -187,23 +189,19 @@ class CompactPositonal:
     # Allowing stuttering, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
     # if using tight pruning the stuttering starts from the beginning:
     if (self.parsed.args.tight_neighbour_pruning == 1):
-      start_index = 0
-    else:
-      # only stuttering above the lower bound:
-      start_index = self.parsed.lower_bound_path_length-1
-    for i in range(start_index, self.safe_max_path_length-2):
-      #for i in range(self.safe_max_path_length-2):
-      # First equality:
-      self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
-      first_equality_output_gate = self.gates_generator.output_gate
+      for i in range(self.safe_max_path_length-2):
+        #for i in range(self.safe_max_path_length-2):
+        # First equality:
+        self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
+        first_equality_output_gate = self.gates_generator.output_gate
 
-      # Second equality:
-      self.gates_generator.complete_equality_gate(self.witness_variables[i+1], self.witness_variables[i+2])
-      second_equality_output_gate = self.gates_generator.output_gate
+        # Second equality:
+        self.gates_generator.complete_equality_gate(self.witness_variables[i+1], self.witness_variables[i+2])
+        second_equality_output_gate = self.gates_generator.output_gate
 
-      # Now the implication:
-      self.gates_generator.if_then_gate(first_equality_output_gate, second_equality_output_gate)
-      self.step_output_gates.append(self.gates_generator.output_gate)
+        # Now the implication:
+        self.gates_generator.if_then_gate(first_equality_output_gate, second_equality_output_gate)
+        self.step_output_gates.append(self.gates_generator.output_gate)
 
     # End boarder:
     end_border_output_gates = []
