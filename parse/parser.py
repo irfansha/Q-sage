@@ -191,7 +191,6 @@ class Parse:
         if (len(temp_list)  != 0):
           self.neighbour_dict[cur_position] = temp_list
 
-      self.lower_bound_path_length = sb.lower_bound(self)
 
       # tight nieghbours for cp encoding:
       if (args.e == 'cp' and args.tight_neighbour_pruning == 1):
