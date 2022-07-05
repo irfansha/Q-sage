@@ -37,6 +37,8 @@ if __name__ == '__main__':
   parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded/hein_04_3x3-05.pg')
   parser.add_argument("--prune_unreachable_nodes",  type=int, help="[0/1], default 0", default=0)
   parser.add_argument("--prune_minimal_path_unreachable_nodes",  type=int, help="[0/1], default 0", default=0)
+  parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
+  parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
   args = parser.parse_args()
 
@@ -63,6 +65,10 @@ if __name__ == '__main__':
   #for key,value in parsed_dict.items():
   #  print(key, value)
 
+  if (args.ignore_file_depth == 0):
+    depth = len(parsed_dict["#times"][0])
+  else:
+    depth = args.depth
 
   # Pushing already placed positions to the end, and renumbering variables accordingly:
   rearranged_positions = []
@@ -237,7 +243,7 @@ if __name__ == '__main__':
       for neighbour in neighbour_list:
         G.add_edge(key, neighbour)
 
-    max_path_length = int((len(parsed_dict["#times"][0]) + 1)/2)
+    max_path_length = int((depth + 1)/2)
 
     spl = dict(nx.all_pairs_shortest_path_length(G))
 
@@ -329,9 +335,12 @@ if __name__ == '__main__':
       for value in value_list:
         min_G.add_edge(key, value)
 
-    max_path_length = int((len(parsed_dict["#times"][0]) + 1)/2)
+    max_path_length = int((depth + 1)/2)
 
     all_final_paths = []
+
+    #print(new_int_start_boarder)
+    #print(new_int_end_boarder)
 
     for start in new_int_start_boarder:
       for end in new_int_end_boarder:
@@ -431,10 +440,22 @@ if __name__ == '__main__':
   # printing input files:
   print("#blackinitials")
   print("#whiteinitials")
+  # times to be appended:
+  times_string = ''
+  black_times_string = ''
+  for i in range(depth):
+    times_string = times_string + 't' + str(i+1) + " "
+    if (i % 2 == 0):
+      black_times_string = black_times_string + 't' + str(i+1) + " "
+
+  times_string = times_string.strip(" ")
+  black_times_string = black_times_string.strip(" ")
+
+
   print("#times")
-  print(' '.join(parsed_dict["#times"][0]))
+  print(times_string)
   print("#blackturns")
-  print(' '.join(parsed_dict["#blackturns"][0]))
+  print(black_times_string)
   print('#positions')
 
   temp_positions = []
