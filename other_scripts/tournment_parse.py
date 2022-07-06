@@ -1,15 +1,7 @@
 # Irfansha Shaik, 04.07.2022, Aarhus
-from hashlib import new
 
 f = open("games_list.txt", 'r')
 
-players_list = ["lazyplayer","shalev","Arek Kulczycki","Daniel Sepczuk", "jdk249"]
-
-player_combinations = []
-
-for i in range(len(players_list)):
-  for j in range(i+1, len(players_list)):
-    print(players_list[i],players_list[j])
 
 games_list = []
 
@@ -39,15 +31,8 @@ for single_game in games_list:
   #print(single_game)
   new_line = single_game.strip("\n").strip(" ").strip('\r')
   #print(new_line)
-  #'''
-  # We only look at the games with the top players play:
-  valid_game = 0
-  for i in range(len(players_list)):
-    for j in range(i+1, len(players_list)):
-      if players_list[i] in new_line and players_list[j] in new_line:
-        valid_game = 1
-        break
-
+  # considering all games, so all games are valid:
+  valid_game = 1
   if valid_game == 1:
     #print(new_line)
     # we split the new_line to gather game id and game moves:
