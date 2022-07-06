@@ -115,6 +115,9 @@ class CompactPositonal:
             # Black moves cannot be equal to white, so negative:
             self.step_output_gates.append(-self.gates_generator.output_gate)
 
+    # TODO: black cannot overwrite as black option:
+
+
     # Positions in the witness must be among the black moves:
 
     # Iterating through each witness position:
@@ -131,16 +134,43 @@ class CompactPositonal:
       self.step_output_gates.append(self.gates_generator.output_gate)
 
     # The witness must make a path:
-    # Start boarder:
-    start_border_output_gates = []
-    for pos in self.parsed.start_boarder:
-      binary_format_clause = self.generate_binary_format(self.witness_variables[0],pos)
-      self.gates_generator.and_gate(binary_format_clause)
-      start_border_output_gates.append(self.gates_generator.output_gate)
+    if (self.parsed.args.tight_neighbour_pruning == 0):
+      # Start boarder:
+      # if no tight neighbour pruning, we add disjunction of all the start boarder nodes:
+      start_border_output_gates = []
+      for pos in self.parsed.start_boarder:
+        binary_format_clause = self.generate_binary_format(self.witness_variables[0],pos)
+        self.gates_generator.and_gate(binary_format_clause)
+        start_border_output_gates.append(self.gates_generator.output_gate)
 
-    self.encoding.append(['# disjunction of all start boarder positions : '])
-    self.gates_generator.or_gate(start_border_output_gates)
-    self.step_output_gates.append(self.gates_generator.output_gate)
+      self.encoding.append(['# disjunction of all start boarder positions : '])
+      self.gates_generator.or_gate(start_border_output_gates)
+      self.step_output_gates.append(self.gates_generator.output_gate)
+
+    else:
+      # If unreachability is not computed then some of the start boarder nodes can be unreachable,
+      # so we add the disjunction only for the reachable start nodes:
+      reachable_start_nodes = []
+      for pos in self.parsed.start_boarder:
+       connected_neighbours = []
+       for cur_neighbour in self.parsed.neighbour_dict[pos]:
+        # We check if the start boarder node have any edges:
+        if ((pos,cur_neighbour) not in self.parsed.tight_neighbour_pairs_list[0]):
+          continue
+        else:
+          connected_neighbours.append(cur_neighbour)
+        if (len(connected_neighbours) != 0):
+          reachable_start_nodes.append(pos)
+      # only using reachable start nodes:
+      start_border_output_gates = []
+      for pos in reachable_start_nodes:
+        binary_format_clause = self.generate_binary_format(self.witness_variables[0],pos)
+        self.gates_generator.and_gate(binary_format_clause)
+        start_border_output_gates.append(self.gates_generator.output_gate)
+
+      self.encoding.append(['# disjunction of all reachable start boarder positions : '])
+      self.gates_generator.or_gate(start_border_output_gates)
+      self.step_output_gates.append(self.gates_generator.output_gate)
 
     # Connections with nieghbour information:
     # Iterate through witness positions:
@@ -158,50 +188,62 @@ class CompactPositonal:
         neighbour_output_gates = []
         self.encoding.append(['# neighbour clauses: '])
 
-        # we only need to generate if the position is not an end boader node:
-        if (i not in self.parsed.end_boarder):
-          # For each neighbour we generate a clause:
-          for cur_neighbour in self.parsed.neighbour_dict[i]:
-            # We only generate the neighbour clauses if there are tight neighbours when the pruning is on:
-            if (self.parsed.args.tight_neighbour_pruning == 1 and (i,cur_neighbour) not in self.parsed.tight_neighbour_pairs_list[index]):
-              continue
-            else:
+        # when no tight neighbour pruning:
+        #====================================================================================================
+
+        if (self.parsed.args.tight_neighbour_pruning == 0):
+          # if the position is end border we add a self loop and stop:
+          if (i in self.parsed.end_boarder):
+            # For allowing shorter paths, we say the position is also its neighbour:
+            temp_binary_format_clause = self.generate_binary_format(next_position,i)
+            self.gates_generator.and_gate(temp_binary_format_clause)
+            neighbour_output_gates.append(self.gates_generator.output_gate)
+          # if the position is not an end boarder node, we add all its nieghbours:
+          else:
+            # For each neighbour we generate a clause:
+            for cur_neighbour in self.parsed.neighbour_dict[i]:
               temp_binary_format_clause = self.generate_binary_format(next_position,cur_neighbour)
               self.gates_generator.and_gate(temp_binary_format_clause)
               neighbour_output_gates.append(self.gates_generator.output_gate)
 
-
-        # We only add stuttering for end border nodes, or when the current node has no nieghbours and pruning is level 1:
-        if (i in self.parsed.end_boarder or (self.parsed.args.tight_neighbour_pruning == 1 and len(neighbour_output_gates) == 0)):
-          # For allowing shorter paths, we say the position is also its neighbour:
-          temp_binary_format_clause = self.generate_binary_format(next_position,i)
-          self.gates_generator.and_gate(temp_binary_format_clause)
-          neighbour_output_gates.append(self.gates_generator.output_gate)
+        #====================================================================================================
+        # when tight neighbour pruning:
+        #====================================================================================================
+        else:
+          # if end boarder node we do not do anything:
+          if (i in self.parsed.end_boarder):
+            continue
+          else:
+            # For each neighbour we generate a clause:
+            for cur_neighbour in self.parsed.neighbour_dict[i]:
+              # We only generate the neighbour clauses if there are tight neighbours when the pruning is on:
+              if ((i,cur_neighbour) not in self.parsed.tight_neighbour_pairs_list[index]):
+                continue
+              else:
+                # if the neighbour is an end boarder node then we connect to the last witness position:
+                if (cur_neighbour in self.parsed.end_boarder):
+                  # if the neighbour is not an end boarder node then we connect to the next witness position:
+                  temp_binary_format_clause = self.generate_binary_format(self.witness_variables[-1],cur_neighbour)
+                  self.gates_generator.and_gate(temp_binary_format_clause)
+                  neighbour_output_gates.append(self.gates_generator.output_gate)
+                else:
+                  # if the neighbour is not an end boarder node then we connect to the next witness position:
+                  temp_binary_format_clause = self.generate_binary_format(next_position,cur_neighbour)
+                  self.gates_generator.and_gate(temp_binary_format_clause)
+                  neighbour_output_gates.append(self.gates_generator.output_gate)
+        #====================================================================================================
 
         # One of the values must be true, so a disjunction:
-        self.gates_generator.or_gate(neighbour_output_gates)
+        if (len(neighbour_output_gates) > 1):
+          self.gates_generator.or_gate(neighbour_output_gates)
+
 
         # If then clause for the neighbour implication:
         self.encoding.append(['# if then clause : '])
         self.gates_generator.if_then_gate(if_condition_output_gate,self.gates_generator.output_gate)
         self.step_output_gates.append(self.gates_generator.output_gate)
 
-    # Allowing stuttering, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
-    # if using tight pruning the stuttering starts from the beginning:
-    if (self.parsed.args.tight_neighbour_pruning == 1):
-      for i in range(self.safe_max_path_length-2):
-        #for i in range(self.safe_max_path_length-2):
-        # First equality:
-        self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
-        first_equality_output_gate = self.gates_generator.output_gate
 
-        # Second equality:
-        self.gates_generator.complete_equality_gate(self.witness_variables[i+1], self.witness_variables[i+2])
-        second_equality_output_gate = self.gates_generator.output_gate
-
-        # Now the implication:
-        self.gates_generator.if_then_gate(first_equality_output_gate, second_equality_output_gate)
-        self.step_output_gates.append(self.gates_generator.output_gate)
 
     # End boarder:
     end_border_output_gates = []
@@ -215,7 +257,6 @@ class CompactPositonal:
     self.encoding.append(['# disjunction of all end boarder positions : '])
     self.gates_generator.or_gate(end_border_output_gates)
     self.step_output_gates.append(self.gates_generator.output_gate)
-
 
     # Black restrictions as option:
     if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.black_move_restrictions == 1):
