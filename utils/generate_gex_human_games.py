@@ -121,12 +121,20 @@ for line in lines:
   # This is for second player won games:
   # Appending the neighbor relation from files:
   #print(swap_flag)
-  if ((player_type == "first" and player_action == "resigned") or (player_type == "second" and player_action == "finish")):
-    for line in second_player_lines:
-      f.write(line)
+  if (swap_flag == "no_swap"):
+    if ((player_type == "first" and player_action == "resigned") or (player_type == "second" and player_action == "finish")):
+      for line in second_player_lines:
+        f.write(line)
+    else:
+      for line in first_player_lines:
+        f.write(line)
   else:
-    for line in first_player_lines:
-      f.write(line)
+    if ((player_type == "first" and player_action == "resigned") or (player_type == "second" and player_action == "finish")):
+      for line in first_player_lines:
+        f.write(line)
+    else:
+      for line in second_player_lines:
+        f.write(line)
 
 
   f.close()
