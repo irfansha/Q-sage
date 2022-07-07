@@ -437,88 +437,90 @@ if __name__ == '__main__':
     simplified_positions = list(temp_simplified_positions)
 
   #=====================================================================================================================================
-  # printing input files:
-  print("#blackinitials")
-  print("#whiteinitials")
-  # times to be appended:
-  times_string = ''
-  black_times_string = ''
-  for i in range(depth):
-    times_string = times_string + 't' + str(i+1) + " "
-    if (i % 2 == 0):
-      black_times_string = black_times_string + 't' + str(i+1) + " "
 
-  times_string = times_string.strip(" ")
-  black_times_string = black_times_string.strip(" ")
+  if (len(simplified_positions) != 0):
+    # printing input files:
+    print("#blackinitials")
+    print("#whiteinitials")
+    # times to be appended:
+    times_string = ''
+    black_times_string = ''
+    for i in range(depth):
+      times_string = times_string + 't' + str(i+1) + " "
+      if (i % 2 == 0):
+        black_times_string = black_times_string + 't' + str(i+1) + " "
 
-
-  print("#times")
-  print(times_string)
-  print("#blackturns")
-  print(black_times_string)
-  print('#positions')
-
-  temp_positions = []
-  # printing simplified positions:
-  for pos in simplified_positions:
-      temp_positions.append(rearranged_positions[pos])
-  if (len(temp_positions) != 0):
-    print(' '.join(temp_positions))
-
-  if (args.output_format == "gex"):
-    print("#neighbours")
-  elif (args.output_format == "egf"):
-    print("#edges")
+    times_string = times_string.strip(" ")
+    black_times_string = black_times_string.strip(" ")
 
 
-  # for easy graph format we need to remove symmetric edges, so keeping track of them:
-  added_edges = []
+    print("#times")
+    print(times_string)
+    print("#blackturns")
+    print(black_times_string)
+    print('#positions')
 
-  # only add neighbours which are reachable:
-  for key,neighbour_list in simplified_neighbour_dict.items():
-    # for printing, we revert to original position names:
-    temp_list = []
-    for neighbour in neighbour_list:
-      temp_list.append(rearranged_positions[neighbour])
+    temp_positions = []
+    # printing simplified positions:
+    for pos in simplified_positions:
+        temp_positions.append(rearranged_positions[pos])
+    if (len(temp_positions) != 0):
+      print(' '.join(temp_positions))
+
     if (args.output_format == "gex"):
-      print(rearranged_positions[key] + ' ' + ' '.join(temp_list))
+      print("#neighbours")
     elif (args.output_format == "egf"):
-      for cur_neighbour in temp_list:
-        # we only add if the edge is not already added:
-        if ((rearranged_positions[key], cur_neighbour) in added_edges or (cur_neighbour, rearranged_positions[key]) in added_edges):
-          continue
-        print(rearranged_positions[key] + ' ' + cur_neighbour)
-        # now add the edge in the list:
-        added_edges.append((rearranged_positions[key], cur_neighbour))
+      print("#edges")
 
-  # printing start boarder:
-  if (args.output_format == "gex"):
-    print("#startboarder")
-  cur_boarder_list = []
-  for pos in new_int_start_boarder:
-    cur_boarder_list.append(rearranged_positions[pos])
-  cur_boarder_list.sort()
-  if (args.output_format == "gex"):
-    if (len(cur_boarder_list) != 0):
-      print(' '.join(cur_boarder_list))
-  elif (args.output_format == "egf"):
-    for cur_start_pos in cur_boarder_list:
-      print("S " + cur_start_pos)
 
-  # printing end boarder:
-  if (args.output_format == "gex"):
-    print("#endboarder")
-  cur_boarder_list = []
-  for pos in new_int_end_boarder:
-    cur_boarder_list.append(rearranged_positions[pos])
-  cur_boarder_list.sort()
-  if (args.output_format == "gex"):
-    if (len(cur_boarder_list) != 0):
-      print(' '.join(cur_boarder_list))
-  elif (args.output_format == "egf"):
-    for cur_end_pos in cur_boarder_list:
-      print("T " + cur_end_pos)
+    # for easy graph format we need to remove symmetric edges, so keeping track of them:
+    added_edges = []
 
-  if (args.output_format == "egf"):
-    print("#source\nS\n#target\nT")
+    # only add neighbours which are reachable:
+    for key,neighbour_list in simplified_neighbour_dict.items():
+      # for printing, we revert to original position names:
+      temp_list = []
+      for neighbour in neighbour_list:
+        temp_list.append(rearranged_positions[neighbour])
+      if (args.output_format == "gex"):
+        print(rearranged_positions[key] + ' ' + ' '.join(temp_list))
+      elif (args.output_format == "egf"):
+        for cur_neighbour in temp_list:
+          # we only add if the edge is not already added:
+          if ((rearranged_positions[key], cur_neighbour) in added_edges or (cur_neighbour, rearranged_positions[key]) in added_edges):
+            continue
+          print(rearranged_positions[key] + ' ' + cur_neighbour)
+          # now add the edge in the list:
+          added_edges.append((rearranged_positions[key], cur_neighbour))
+
+    # printing start boarder:
+    if (args.output_format == "gex"):
+      print("#startboarder")
+    cur_boarder_list = []
+    for pos in new_int_start_boarder:
+      cur_boarder_list.append(rearranged_positions[pos])
+    cur_boarder_list.sort()
+    if (args.output_format == "gex"):
+      if (len(cur_boarder_list) != 0):
+        print(' '.join(cur_boarder_list))
+    elif (args.output_format == "egf"):
+      for cur_start_pos in cur_boarder_list:
+        print("S " + cur_start_pos)
+
+    # printing end boarder:
+    if (args.output_format == "gex"):
+      print("#endboarder")
+    cur_boarder_list = []
+    for pos in new_int_end_boarder:
+      cur_boarder_list.append(rearranged_positions[pos])
+    cur_boarder_list.sort()
+    if (args.output_format == "gex"):
+      if (len(cur_boarder_list) != 0):
+        print(' '.join(cur_boarder_list))
+    elif (args.output_format == "egf"):
+      for cur_end_pos in cur_boarder_list:
+        print("T " + cur_end_pos)
+
+    if (args.output_format == "egf"):
+      print("#source\nS\n#target\nT")
   #=====================================================================================================================================
