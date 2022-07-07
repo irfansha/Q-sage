@@ -1,7 +1,6 @@
 # Irfansha Shaik, 18.09.2021, Aarhus
 
 import argparse
-import string
 
 import networkx as nx
 
