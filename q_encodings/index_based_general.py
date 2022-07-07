@@ -12,6 +12,8 @@ from utils.variables_dispatcher import VarDispatcher as vd
 1. Check of the numbers are allowed in action constraints instead of parameters
 2. Remove index bounds, in actions and in goal constraints (generate them internally)
 3. Allow the arbitrary number of preconditions for the white player
+4. Allow multiple conjunctive constraints in a single white goal condition
+5. Allow multiple disjunctive constraints for the white goal
 
 
 # Optimization TODOS:
