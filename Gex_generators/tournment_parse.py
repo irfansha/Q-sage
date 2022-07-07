@@ -1,6 +1,6 @@
 # Irfansha Shaik, 04.07.2022, Aarhus
 
-f = open("games_list.txt", 'r')
+f = open("intermediate_files/games_list.txt", 'r')
 
 
 games_list = []
@@ -13,7 +13,7 @@ for line in lines:
     games_list.append(line)
 f.close()
 
-all_games_file = open("all_games.txt", 'w')
+all_games_file = open("intermediate_files/parsed_games.txt", 'w')
 
 # Looping through player ids and gathering the games:
 
@@ -105,7 +105,7 @@ for single_game in games_list:
 
 print("Total games: ", count_games)
 print("Total Resigned games: ", resigned_games , "max game length", max_resigned_game_length)
-print( "Total completed games" , count_games - resigned_games, "max game length", max_completed_game_length)
+print( "Total Non-resigned games: " , count_games - resigned_games, "max game length", max_completed_game_length)
 
 all_games_file.close()
 

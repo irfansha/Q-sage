@@ -22,7 +22,7 @@ def print_positions(size):
 # The neighbours for (i,j) are (i-1, j), (i+1, j), (i, j-1), (i, j+1), (i-1, j+1), (i+1, j-1):
 def generate_neighbours(size):
   print("#neighbours")
-  print("%format: position followed by its neighbours separated by spaces")
+  #print("%format: position followed by its neighbours separated by spaces")
   for i in range(1, size + 1):
     for j in range(1, size + 1):
       cur_position = string.ascii_lowercase[i-1] + str(j)
@@ -47,7 +47,10 @@ def generate_neighbours(size):
       # For (i+1, j-1):
       if ((i+1) <= size and (j-1) >= 1):
         cur_neighbours.append(string.ascii_lowercase[(i+1)-1] + str(j-1))
-      print(cur_position, ' '.join(cur_neighbours))
+        
+      for neighbour in cur_neighbours:
+        print(cur_position, neighbour)
+      #print(cur_position, ' '.join(cur_neighbours))
 
 def print_boarders(size):
   start_boarder = []
@@ -55,10 +58,15 @@ def print_boarders(size):
   for i in range(1, size+1):
     start_boarder.append(string.ascii_lowercase[i-1] + '1')
     end_boarder.append(string.ascii_lowercase[i-1] + str(size))
-  print("#startboarder")
-  print(' '.join(start_boarder))
-  print("#endboarder")
-  print(' '.join(end_boarder))
+  #print("#startboarder")
+  for pos in start_boarder:
+    print("S", pos)
+  #print(' '.join(start_boarder))
+  for pos in end_boarder:
+    print("T", pos)
+  #print("#endboarder")
+  #print(' '.join(end_boarder))
+  print("#source\nS\n#target\nT")
 
 # Main:
 if __name__ == '__main__':

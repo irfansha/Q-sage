@@ -2,10 +2,6 @@
 
 import argparse
 
-import networkx as nx
-
-# TODO: needs to handle the case where we generate the second player as black instead for the human played games:
-
 # Main:
 if __name__ == '__main__':
   text = "Takes a B-Gex input and generate Flipped B-Gex file"
