@@ -129,8 +129,17 @@ dmypy.json
 .pyre/
 
 # Intermediate files
-intermediate_files/
-testcases/
+intermediate_files/*
+testcases/*
 data/
-Benchmarks/hex-hein
-Benchmarks/hex-hein_ungrounded
+Benchmarks/*
+Max_data/*
+easy_graph_format_hex_benchmarks/*
+parsed_data/*
+solvers/*
+tools/*
+first_analysis_dir/*
+first_iter_full_run_data/*
+human_games_repo/*
+bloqqer-qdo
+hqspre
