@@ -266,7 +266,7 @@ class CompactGoalCompactPositonal:
     self.original_start_position_output_gate = self.gates_generator.output_gate
 
 
-    step_chain_output_gates = []
+    start_step_chain_output_gates = []
 
     # If the first two chain boolean variable is true then the two chain positions must be start positions:
     first_two_chain_start_border_output_gates = []
@@ -279,7 +279,7 @@ class CompactGoalCompactPositonal:
 
     self.encoding.append(['# disjunction of all first chain start boarder positions : '])
     self.gates_generator.or_gate(first_two_chain_start_border_output_gates)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    start_step_chain_output_gates.append(self.gates_generator.output_gate)
 
 
     # If the second two chain boolean variable is true then the two chain positions must be start positions:
@@ -293,34 +293,50 @@ class CompactGoalCompactPositonal:
 
     self.encoding.append(['# disjunction of all second chain start boarder positions : '])
     self.gates_generator.or_gate(second_two_chain_start_border_output_gates)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    start_step_chain_output_gates.append(self.gates_generator.output_gate)
 
-    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[0], self.start_two_chain_positions[0]))
-    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[0], self.start_two_chain_positions[1]))
 
-    # both must be different:
-    self.gates_generator.complete_equality_gate(self.start_two_chain_positions[0],self.start_two_chain_positions[1])
-    step_chain_output_gates.append(-self.gates_generator.output_gate)
-
-    # if position is white it must also be black:
+    #======================================================================================================================================
+    # disjunction of : 1. first start two chain is black and neighbour
+    #                  2. both are open and not equal and are neighbours of the first witness position
+    #--------------------------------------------------------------------
+    # neighbour constraints:
+    first_start_neighbour_output_gate = self.generate_neighbour_clauses(self.start_two_chain_positions[0],self.witness_variables[0])
+    second_start_neighbour_output_gate = self.generate_neighbour_clauses(self.start_two_chain_positions[1],self.witness_variables[0])
+    # first constraint:
+    # if black or white:
     first_black_output_gate = self.position_is_black(self.start_two_chain_positions[0])
     first_white_output_gate = self.position_is_white(self.start_two_chain_positions[0])
 
-    # if white then it must be black:
-    self.gates_generator.if_then_gate(first_white_output_gate, first_black_output_gate)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    start_chain_disjunction_output_gates = []
 
-    # if position is white it must also be black:
+    # 1. first start two chain is black and neigbour:
+    self.gates_generator.and_gate([first_black_output_gate, first_start_neighbour_output_gate])
+    start_chain_disjunction_output_gates.append(self.gates_generator.output_gate)
+
+    #second constraint if black or white:
     second_black_output_gate = self.position_is_black(self.start_two_chain_positions[1])
     second_white_output_gate = self.position_is_white(self.start_two_chain_positions[1])
 
-    # if white then it must be black:
-    self.gates_generator.if_then_gate(second_white_output_gate, second_black_output_gate)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    # 2. both are open and not equal and are neighbours of the first witness position
+    # both must be different:
+    self.gates_generator.complete_equality_gate(self.start_two_chain_positions[0],self.start_two_chain_positions[1])
+    start_chain_positions_inequality_output_gate = -self.gates_generator.output_gate
 
+    # first start chain position is not black and not white, second start chain position is not black and not white, both are different and they are neighbours to first witness position:
+    self.gates_generator.and_gate([-first_black_output_gate, -first_white_output_gate, -second_black_output_gate, -second_white_output_gate, first_start_neighbour_output_gate, second_start_neighbour_output_gate, start_chain_positions_inequality_output_gate])
+    start_chain_disjunction_output_gates.append(self.gates_generator.output_gate)
+
+
+    # disjunction of the chain link:
+    self.gates_generator.or_gate(start_chain_disjunction_output_gates)
+
+    start_step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    #======================================================================================================================================
 
     # conjunction of the chain link:
-    self.gates_generator.and_gate(step_chain_output_gates)
+    self.gates_generator.and_gate(start_step_chain_output_gates)
 
     # Disjunction linking the start boarder chain:
     self.gates_generator.or_gate([self.gates_generator.output_gate, self.original_start_position_output_gate])
@@ -374,62 +390,58 @@ class CompactGoalCompactPositonal:
     #self.step_output_gates.append(inner_most_neighbour_output_gate)
 
     #'''
-    step_inner_chain_output_gates = []
 
-    # connecting the first inner witness to chain variables:
-    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[0], self.inner_most_two_chain_positions[0]))
-    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[0], self.inner_most_two_chain_positions[1]))
+    #======================================================================================================================================
+    # disjunction of : 1. first inner two chain is black and neighbour of both inner witness positions
+    #                  2. both inner two chain are open and not equal and are neighbours of the both inner witness positions
+    #--------------------------------------------------------------------
+    # first inner chain position neighbour constraints:
+    first_inner_left_neighbour_output_gate = self.generate_neighbour_clauses(self.exists_witness_variables[0], self.inner_most_two_chain_positions[0])
+    first_inner_right_neighbour_output_gate = self.generate_neighbour_clauses(self.inner_most_two_chain_positions[0], self.exists_witness_variables[1])
 
-    # both must be different:
-    self.gates_generator.complete_equality_gate(self.inner_most_two_chain_positions[0],self.inner_most_two_chain_positions[1])
-    step_inner_chain_output_gates.append(-self.gates_generator.output_gate)
 
 
-    # if position is white it must also be black:
+    # second inner chain position neighbour constraints:
+    second_inner_left_neighbour_output_gate = self.generate_neighbour_clauses(self.exists_witness_variables[0], self.inner_most_two_chain_positions[1])
+    second_inner_right_neighbour_output_gate = self.generate_neighbour_clauses(self.inner_most_two_chain_positions[1], self.exists_witness_variables[1])
+
+    # first constraint:
+    # if black or white:
     first_black_output_gate = self.position_is_black(self.inner_most_two_chain_positions[0])
     first_white_output_gate = self.position_is_white(self.inner_most_two_chain_positions[0])
 
-    # if white then it must be black:
-    self.gates_generator.if_then_gate(first_white_output_gate, first_black_output_gate)
-    step_inner_chain_output_gates.append(self.gates_generator.output_gate)
+    inner_chain_disjunction_output_gates = []
 
-    # if position is white it must also be black:
+    # 1. first inner two chain is black and neigbour:
+    self.gates_generator.and_gate([first_black_output_gate, first_inner_left_neighbour_output_gate, first_inner_right_neighbour_output_gate])
+    inner_chain_disjunction_output_gates.append(self.gates_generator.output_gate)
+
+    # second constraint, if black or white:
     second_black_output_gate = self.position_is_black(self.inner_most_two_chain_positions[1])
     second_white_output_gate = self.position_is_white(self.inner_most_two_chain_positions[1])
 
-    # if white then it must be black:
-    self.gates_generator.if_then_gate(second_white_output_gate, second_black_output_gate)
-    step_inner_chain_output_gates.append(self.gates_generator.output_gate)
+    # 2. both are open and not equal and are neighbours of the inner witness position
+    # both must be different:
+    self.gates_generator.complete_equality_gate(self.inner_most_two_chain_positions[0],self.inner_most_two_chain_positions[1])
+    inner_chain_positions_inequality_output_gate = -self.gates_generator.output_gate
 
-    # connecting the other end:
-    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[1], self.inner_most_two_chain_positions[0]))
-    step_inner_chain_output_gates.append(self.generate_neighbour_clauses(self.exists_witness_variables[1], self.inner_most_two_chain_positions[1]))
+    # first inner chain position is not black and not white, second inner chain position is not black and not white, both are different and they are neighbours to first witness position:
+    self.gates_generator.and_gate([-first_black_output_gate, -first_white_output_gate, -second_black_output_gate, -second_white_output_gate, first_inner_left_neighbour_output_gate, first_inner_right_neighbour_output_gate, second_inner_left_neighbour_output_gate, second_inner_right_neighbour_output_gate, inner_chain_positions_inequality_output_gate])
+    inner_chain_disjunction_output_gates.append(self.gates_generator.output_gate)
 
 
-    # conjunction of the chain link:
-    self.gates_generator.and_gate(step_inner_chain_output_gates)
+    # disjunction of the chain link:
+    self.gates_generator.or_gate(inner_chain_disjunction_output_gates)
 
-    # Disjunction linking the start boarder chain:
+    #======================================================================================================================================
+
+    # Disjunction linking the inner boarder chain:
     self.gates_generator.or_gate([self.gates_generator.output_gate, inner_most_neighbour_output_gate])
 
     self.step_output_gates.append(self.gates_generator.output_gate)
     #'''
 
     #------------------------------------------------------------------------------------------------------------------------------------
-
-    # Allowing stuttering, if P_i = P_{i+1} then P_{i+1} = P_{i+2}:
-    for i in range(self.safe_max_path_length-2):
-      # First equality:
-      self.gates_generator.complete_equality_gate(self.witness_variables[i], self.witness_variables[i+1])
-      first_equality_output_gate = self.gates_generator.output_gate
-
-      # Second equality:
-      self.gates_generator.complete_equality_gate(self.witness_variables[i+1], self.witness_variables[i+2])
-      second_equality_output_gate = self.gates_generator.output_gate
-
-      # Now the implication:
-      self.gates_generator.if_then_gate(first_equality_output_gate, second_equality_output_gate)
-      self.step_output_gates.append(self.gates_generator.output_gate)
 
 
     #----------------------------------------------------------------------------------------------------
@@ -448,9 +460,9 @@ class CompactGoalCompactPositonal:
     self.original_end_position_output_gate = self.gates_generator.output_gate
 
 
-    step_chain_output_gates = []
+    end_step_chain_output_gates = []
 
-    # If the first two chain boolean variable is true then the two chain positions must be start positions:
+    # If the first two chain boolean variable is true then the two chain positions must be end positions:
     first_two_chain_end_border_output_gates = []
     self.encoding.append(['# First two chain end boarder clauses : '])
     # Specifying the end borders for first two chain position:
@@ -461,10 +473,10 @@ class CompactGoalCompactPositonal:
 
     self.encoding.append(['# disjunction of all first chain end boarder positions : '])
     self.gates_generator.or_gate(first_two_chain_end_border_output_gates)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    end_step_chain_output_gates.append(self.gates_generator.output_gate)
 
 
-    # If the second two chain boolean variable is true then the two chain positions must be start positions:
+    # If the second two chain boolean variable is true then the two chain positions must be end positions:
     second_two_chain_end_border_output_gates = []
     self.encoding.append(['# Second two chain end boarder clauses : '])
     # Specifying the end borders for second two chain position:
@@ -475,36 +487,54 @@ class CompactGoalCompactPositonal:
 
     self.encoding.append(['# disjunction of all second chain end boarder positions : '])
     self.gates_generator.or_gate(second_two_chain_end_border_output_gates)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
-
-    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[-1], self.end_two_chain_positions[0]))
-    step_chain_output_gates.append(self.generate_neighbour_clauses(self.witness_variables[-1], self.end_two_chain_positions[1]))
-
-    # both must be different:
-    self.gates_generator.complete_equality_gate(self.end_two_chain_positions[0],self.end_two_chain_positions[1])
-    step_chain_output_gates.append(-self.gates_generator.output_gate)
+    end_step_chain_output_gates.append(self.gates_generator.output_gate)
 
 
-    # if position is white it must also be black:
+
+    #======================================================================================================================================
+    # disjunction of : 1. first end two chain is black and neighbour
+    #                  2. both are open and not equal and are neighbours of the last witness position
+    #--------------------------------------------------------------------
+    # neighbour constraints:
+    first_end_neighbour_output_gate = self.generate_neighbour_clauses(self.witness_variables[-1], self.end_two_chain_positions[0])
+    second_end_neighbour_output_gate = self.generate_neighbour_clauses(self.witness_variables[-1], self.end_two_chain_positions[1])
+    # first constraint:
+    # if black or white:
     first_black_output_gate = self.position_is_black(self.end_two_chain_positions[0])
     first_white_output_gate = self.position_is_white(self.end_two_chain_positions[0])
 
-    # if white then it must be black:
-    self.gates_generator.if_then_gate(first_white_output_gate, first_black_output_gate)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    end_chain_disjunction_output_gates = []
 
-    # if position is white it must also be black:
+    # 1. first end two chain is black and neigbour:
+    self.gates_generator.and_gate([first_black_output_gate, first_end_neighbour_output_gate])
+    end_chain_disjunction_output_gates.append(self.gates_generator.output_gate)
+
+    # second constraint if black or white:
     second_black_output_gate = self.position_is_black(self.end_two_chain_positions[1])
     second_white_output_gate = self.position_is_white(self.end_two_chain_positions[1])
 
-    # if white then it must be black:
-    self.gates_generator.if_then_gate(second_white_output_gate, second_black_output_gate)
-    step_chain_output_gates.append(self.gates_generator.output_gate)
+    # 2. both are open and not equal and are neighbours of the last witness position
+    # both must be different:
+    self.gates_generator.complete_equality_gate(self.end_two_chain_positions[0],self.end_two_chain_positions[1])
+    end_chain_positions_inequality_output_gate = -self.gates_generator.output_gate
+
+    # first end chain position is not black and not white, second end chain position is not black and not white, both are different and they are neighbours to first witness position:
+    self.gates_generator.and_gate([-first_black_output_gate, -first_white_output_gate, -second_black_output_gate, -second_white_output_gate, first_end_neighbour_output_gate, second_end_neighbour_output_gate, end_chain_positions_inequality_output_gate])
+    end_chain_disjunction_output_gates.append(self.gates_generator.output_gate)
+
+
+    # disjunction of the chain link:
+    self.gates_generator.or_gate(end_chain_disjunction_output_gates)
+
+    end_step_chain_output_gates.append(self.gates_generator.output_gate)
+
+    #======================================================================================================================================
+
 
     # conjunction of the chain link:
-    self.gates_generator.and_gate(step_chain_output_gates)
+    self.gates_generator.and_gate(end_step_chain_output_gates)
 
-    # Disjunction linking the start boarder chain:
+    # Disjunction linking the end boarder chain:
     self.gates_generator.or_gate([self.gates_generator.output_gate, self.original_end_position_output_gate])
 
     self.step_output_gates.append(self.gates_generator.output_gate)
@@ -516,11 +546,11 @@ class CompactGoalCompactPositonal:
     if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.black_move_restrictions == 1):
 
       # For the empty boards we can restrict the first move:
-      #if (self.parsed.num_available_moves % 2 == 0) :
-      #  lsc.add_circuit(self.gates_generator, self.move_variables[0], int((self.parsed.num_available_moves)/2))
-      #else:
-      #  lsc.add_circuit(self.gates_generator, self.move_variables[0], int((self.parsed.num_available_moves+1)/2))
-      #self.step_output_gates.append(self.gates_generator.output_gate)
+      if (self.parsed.num_available_moves % 2 == 0) :
+        lsc.add_circuit(self.gates_generator, self.move_variables[0], int((self.parsed.num_available_moves)/2))
+      else:
+        lsc.add_circuit(self.gates_generator, self.move_variables[0], int((self.parsed.num_available_moves+1)/2))
+      self.step_output_gates.append(self.gates_generator.output_gate)
 
       self.encoding.append(['# Restricted black moves: '])
       for i in range(self.parsed.depth):
