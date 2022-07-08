@@ -159,7 +159,7 @@ if __name__ == '__main__':
   print("Warning: Can take long time for deeper games to compute minimal simple paths!")
   # Generating MR-Gex directory:
   if not Path(args.output_dir + "/MR-Gex").is_dir():
-    print("Creating new Gex directory in output folder.")
+    print("Creating new MR-Gex directory in output folder.")
     os.mkdir(args.output_dir + "/MR-Gex")
   # MR-Gex in Gex-format:
   # Generating MR-Gex/Gex-format directory:
@@ -206,10 +206,40 @@ if __name__ == '__main__':
     pgformat_command = "python3 generate_hypergraph.py --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/PG-format/depth_"  + str(args.instance_depth) + "_" + file
     os.system(pgformat_command)
   print("Complete.")
+  print("======================================================================")
   #=====================================================================================================================================
   # Generate white flipped B-Hex, and only reachable instances (in EGF-format)
-  # TODO
+  print("Generating White flipped B-Hex files...")
+  # Generating White flipped directory:
+  if not Path(args.output_dir + "/White_flipped").is_dir():
+    print("Creating new White flipped directory in output folder.")
+    os.mkdir(args.output_dir + "/White_flipped")
+  # White flipped in Gex-format:
+  # Generating White_flipped/B-Hex directory:
+  if not Path(args.output_dir + "/White_flipped/B-Hex").is_dir():
+    print("Creating new /White_flipped/B-Hex directory in output folder.")
+    os.mkdir(args.output_dir + "/White_flipped/B-Hex")
+  print("Writing to /White_flipped/B-Hex folder in output folder in Gex format...")
+  # Generate Minimal hypergraph in PG-format
+  for file in reachable_instances:
+    # we use the flip_white_black_players.py:
+    flip_wb_command = "python3 flip_white_black_players.py --problem intermediate_files/B-Hex/" + file + " > " + args.output_dir + "/White_flipped/B-Hex/" + file
+    os.system(flip_wb_command)
+  print("Complete.")
+  print("---------------------------------------------------------------------")
   #=====================================================================================================================================
   # Generate white flipped Gex, and only reachable instances (in EGF-format)
-  # TODO
+  # Generating White_flipped/B-Hex directory:
+  if not Path(args.output_dir + "/White_flipped/Gex_EGF-format").is_dir():
+    print("Creating new /White_flipped/Gex_EGF-format directory in output folder.")
+    os.mkdir(args.output_dir + "/White_flipped/Gex_EGF-format")
+  print("Writing to /White_flipped/Gex_EGF-format folder in output folder in EGF format...")
+  # Generate Gex in EGF-format
+  for file in reachable_instances:
+    # we use the transform_hex_board.py to print in Gex-fromat:
+    wb_gex_egf_command = "python3 transform_hex_board.py --ignore_file_depth 1 --output_format egf --problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " --depth " + str(args.instance_depth) + " > " + args.output_dir + "/White_flipped/Gex_EGF-format/depth_"  + str(args.instance_depth) + "_" + file
+    #print(rgex_egf_command)
+    os.system(wb_gex_egf_command)
+  print("Complete.")
+  print("======================================================================")
   #=====================================================================================================================================
