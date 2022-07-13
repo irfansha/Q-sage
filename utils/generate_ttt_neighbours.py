@@ -33,12 +33,12 @@ def generate_neighbours(size):
       if ((j+1) <= size):
         cur_neighbours.append(string.ascii_lowercase[(i)-1] + str(j+1))
       else:
-        cur_neighbours.append('NA')
+        cur_neighbours.append('na')
       # For (i+1, j):
       if ((i+1) <= size):
         cur_neighbours.append(string.ascii_lowercase[(i+1)-1] + str(j))
       else:
-        cur_neighbours.append('NA')
+        cur_neighbours.append('na')
       print(cur_position, ' '.join(cur_neighbours))
 
 

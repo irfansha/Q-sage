@@ -183,7 +183,7 @@ class Parse:
         cur_position = self.rearranged_positions.index(neighbour_list.pop(0))
         temp_list = []
         for neighbour in neighbour_list:
-          if (neighbour != 'NA'):
+          if (neighbour != 'na'):
             cur_neighbour = self.rearranged_positions.index(neighbour)
             temp_list.append(cur_neighbour)
           else:
@@ -314,17 +314,17 @@ class Parse:
         up_neighbour = neighbour_list.pop(0)
         side_neighbour = neighbour_list.pop(0)
         # we only add an up neighbour if it is not a white position:
-        if (up_neighbour != 'NA' and up_neighbour not in self.parsed_dict['#whiteinitials']):
+        if (up_neighbour != 'na' and up_neighbour not in self.parsed_dict['#whiteinitials']):
           cur_neighbour = self.rearranged_positions.index(up_neighbour)
           self.up_neighbour_dict[cur_position] = cur_neighbour
         else:
-          self.up_neighbour_dict[cur_position] = 'NA'
+          self.up_neighbour_dict[cur_position] = 'na'
         # we only add an side neighbour if it is not a white position:
-        if (side_neighbour != 'NA' and side_neighbour not in self.parsed_dict['#whiteinitials']):
+        if (side_neighbour != 'na' and side_neighbour not in self.parsed_dict['#whiteinitials']):
           cur_neighbour = self.rearranged_positions.index(side_neighbour)
           self.side_neighbour_dict[cur_position] = cur_neighbour
         else:
-          self.side_neighbour_dict[cur_position] = 'NA'
+          self.side_neighbour_dict[cur_position] = 'na'
         # only two neighbour must be present for a postion:
         assert(len(neighbour_list) == 0)
 

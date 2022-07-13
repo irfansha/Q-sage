@@ -40,7 +40,7 @@ class GtttWitnessBased:
     return cur_variable_list
 
 
-  # Generate up neighbour clauses:
+  # Generate up/side neighbour clauses:
   def generate_neighbour_clauses(self, neighbour_dict, first, second):
     step_neighbour_output_gates = []
     # Connections with nieghbour information for a given pair:
@@ -52,7 +52,7 @@ class GtttWitnessBased:
       binary_format_clause = self.generate_binary_format(first,i)
       self.gates_generator.and_gate(binary_format_clause)
       if_condition_output_gate = self.gates_generator.output_gate
-      if (neighbour_dict[i] != 'NA'):
+      if (neighbour_dict[i] != 'na'):
         temp_binary_format_clause = self.generate_binary_format(second,neighbour_dict[i])
         self.gates_generator.and_gate(temp_binary_format_clause)
       else:

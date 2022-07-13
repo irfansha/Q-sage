@@ -1,10 +1,10 @@
 # Irfansha Shaik, 09.11.2021, Linz.
 
-from utils.variables_dispatcher import VarDispatcher as vd
-from utils.gates import GatesGen as ggen
 import math
-import utils.lessthen_cir as lsc
 
+import utils.lessthen_cir as lsc
+from utils.gates import GatesGen as ggen
+from utils.variables_dispatcher import VarDispatcher as vd
 
 
 class TicTacToe:
@@ -294,7 +294,7 @@ class TicTacToe:
 
       for j in range(4):
         neighbour = self.parsed.neighbour_dict[i][j]
-        if (neighbour == 'NA'):
+        if (neighbour == 'na'):
           # If then clause for the neighbour implication:
           self.encoding.append(['# if then clause : '])
           # If the neighbour is not available the boolean not true:
