@@ -504,7 +504,7 @@ if __name__ == '__main__':
         print(' '.join(cur_boarder_list))
     elif (args.output_format == "egf"):
       for cur_start_pos in cur_boarder_list:
-        print("S " + cur_start_pos)
+        print("s " + cur_start_pos)
 
     # printing end boarder:
     if (args.output_format == "gex"):
@@ -518,8 +518,8 @@ if __name__ == '__main__':
         print(' '.join(cur_boarder_list))
     elif (args.output_format == "egf"):
       for cur_end_pos in cur_boarder_list:
-        print("T " + cur_end_pos)
+        print("t " + cur_end_pos)
 
     if (args.output_format == "egf"):
-      print("#source\nS\n#target\nT")
+      print("#source\ns\n#target\nt")
   #=====================================================================================================================================
