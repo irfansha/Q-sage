@@ -74,7 +74,7 @@ if __name__ == '__main__':
   input_end_boarder_string = ' '.join(parsed_dict['#endboarder'][0])
   first_player_end_list = []
   for i in range(board_size):
-    first_player_end_list.append('s' + str(i+1))
+    first_player_end_list.append(chr(ord('a') + board_size - 1) + str(i+1))
   first_player_end_boarder_string = ' '.join(first_player_end_list)
 
   second_player_end_list = []
