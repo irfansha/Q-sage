@@ -4,8 +4,16 @@ import argparse
 
 import networkx as nx
 
+# we specify the original dictional globally:
+neighbour_dict = {}
+# we also need original black and white positions:
 white_initial_positions = []
 black_initial_positions = []
+
+# initializing max path lenth to 0 (update later):
+max_path_length = 0
+
+# when generating the new dictionary from recursion, we use a global declaration:
 new_neighbours_dict = {}
 
 
@@ -28,6 +36,33 @@ def find_neighbours(position, recursion_list):
         new_current_neighbours.append(neighbour)
   return new_current_neighbours
 
+
+# We use bfs recursively, we do not explore a start border node again and we stop if we encounter an end border node
+# since we start from start node, we only need to look at max_path_length - 1 steps:
+def find_reachable(reachable_dict, reachable_distance, new_int_start_boarder, new_int_end_boarder):
+  reachable_distance = reachable_distance + 1
+  if(reachable_distance == max_path_length):
+    return reachable_dict
+  else:
+    # at each level we add the reachable nodes, so we only extend the previous level:
+    cur_nodes = reachable_dict[reachable_distance - 1]
+    cur_neighbours = []
+    for cur_node in cur_nodes:
+      # if current node is an end border node, then we do not expand:
+      if cur_node in new_int_end_boarder:
+        continue
+      # if reachable_distance is greater than 1, then should not visit a start node:
+      if (reachable_distance > 1):
+        assert(cur_node not in new_int_start_boarder)
+      for cur_neighbour in simplified_neighbour_dict[cur_node]:
+        # only adding unique nodes, and if not a start border node:
+        if (cur_neighbour not in cur_neighbours and cur_neighbour not in new_int_start_boarder):
+          cur_neighbours.append(cur_neighbour)
+    # sorting for the sake of readability:
+    cur_neighbours.sort()
+    reachable_dict[reachable_distance] = list(cur_neighbours)
+    reachable_dict = find_reachable(reachable_dict, reachable_distance,new_int_start_boarder, new_int_end_boarder)
+    return reachable_dict
 
 # Main:
 if __name__ == '__main__':
@@ -69,6 +104,8 @@ if __name__ == '__main__':
   else:
     depth = args.depth
 
+  max_path_length = int((depth + 1)/2)
+
   # Pushing already placed positions to the end, and renumbering variables accordingly:
   rearranged_positions = []
   new_positions = []
@@ -100,7 +137,6 @@ if __name__ == '__main__':
     black_initial_positions.append(position)
 
 
-  neighbour_dict = {}
   for neighbour_list in parsed_dict['#neighbours']:
     # The neighbours list contains itself as its first element, which is the key for the dict:
     cur_position = rearranged_positions.index(neighbour_list.pop(0))
@@ -242,7 +278,6 @@ if __name__ == '__main__':
       for neighbour in neighbour_list:
         G.add_edge(key, neighbour)
 
-    max_path_length = int((depth + 1)/2)
 
     spl = dict(nx.all_pairs_shortest_path_length(G))
 
@@ -334,7 +369,6 @@ if __name__ == '__main__':
       for value in value_list:
         min_G.add_edge(key, value)
 
-    max_path_length = int((depth + 1)/2)
 
     all_final_paths = []
 
@@ -436,7 +470,30 @@ if __name__ == '__main__':
     simplified_positions = list(temp_simplified_positions)
 
   #=====================================================================================================================================
+  # Generates list of reachable distances to source for each node,
+  # first finding reachable distances from each of the start borders with the depth of the instance as limit:
+  # We generate the reachable distances for all the start border nodes:
+  recursion_depth = 0
+  reachable_dict = dict()
+  # adding the start border at level 0:
+  reachable_dict[0] = list(new_int_start_boarder)
+  out_reachable_dict = find_reachable(reachable_dict, recursion_depth, new_int_start_boarder, new_int_end_boarder)
 
+  start_distance_dict = dict()
+
+  for pos in simplified_positions:
+    cur_distance_list = []
+    for i in range(max_path_length):
+      if (pos in out_reachable_dict[i]):
+        cur_distance_list.append(i)
+    start_distance_dict[pos] = cur_distance_list
+
+  #for key, value in start_distance_dict.items():
+  #  print(key, value)
+
+  # we can also give unreachable pairs for start and end border nodes:
+  # TODO:
+  #=====================================================================================================================================
   if (len(simplified_positions) != 0):
     # printing input files:
     print("#blackinitials")
