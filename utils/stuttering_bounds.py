@@ -54,6 +54,78 @@ def tight_neighbours(parser):
 
 
 
+def distance_tight_neighbours(parser):
+  start_distance_dict = dict()
+  end_distance_dict = dict()
+
+  # maximum path length, same as other computations:
+  max_path_length = len(parser.black_initial_positions) + int((parser.depth + 1)/2)
+
+  # first store distances in dictionaries, easier to access:
+  for lst in parser.parsed_dict['#distances']:
+    position = parser.rearranged_positions.index(lst.pop(0))
+    if (len(lst) == 1):
+      # if the node is not reachable then we move to next position:
+      assert(lst[0] == "na")
+      continue
+    else:
+      end_distance = int(lst.pop(0))
+      end_distance_dict[position] = end_distance
+      # appending start distances in the start_distance_dict:
+      temp = []
+      for start in lst:
+        temp.append(int(start))
+      start_distance_dict[position] = list(temp)
+
+  #print(start_distance_dict)
+  #print(end_distance_dict)
+
+  final_distance_neighbour_pairs = []
+  # for each witness position, we consider the neighbour relation and loop through the combinations:
+  # since we are looking at neighbour pairs, it is enough to look upto max path length - 1:
+  for witness_index in range(max_path_length-1):
+    cur_index_pairs = []
+    #print(witness_index)
+    # we only add the edge if the distance from start is there and end is reachable i.e., shorest distance < the distance available in path:
+    for pos, cur_neighbour_list in parser.neighbour_dict.items():
+      # distance to start board must be same the current position index:
+      cur_start_distance = witness_index
+      # its neighbour distance must be next position index
+      neigh_start_distance = witness_index + 1
+      # remaining distance to end position is (max_path_length - cur_start_distance - 1):
+      cur_end_distance = max_path_length - cur_start_distance - 1
+      # remaining distance is 1 less than for it neighbour:
+      neigh_end_distance = max_path_length - cur_start_distance - 2
+      #print(pos, cur_neighbour_list)
+      #print(cur_start_distance, neigh_start_distance)
+      #print(cur_end_distance, neigh_end_distance)
+
+      # If the pos is not at the cur_start_distance from any start node, we continue to next one:
+      if (pos not in start_distance_dict or pos not in end_distance_dict):
+        continue
+      elif(cur_start_distance not in start_distance_dict[pos]):
+        continue
+      # if reachable by start node but to far from end node then also we continue to next one:
+      elif(cur_end_distance < end_distance_dict[pos]):
+        continue
+      else:
+        # now we loop through its neighbours and add pairs if they are reachable:
+        for neigh in cur_neighbour_list:
+          # same conditions for its neighbours as well:
+          if (neigh not in start_distance_dict or neigh not in end_distance_dict):
+            continue
+          elif(neigh_start_distance not in start_distance_dict[neigh]):
+            continue
+          # if reachable by start node but to far from end node then also we continue to next one:
+          elif(neigh_end_distance < end_distance_dict[neigh]):
+            continue
+          else:
+            cur_index_pairs.append((pos,neigh))
+    # sorting the pairs:
+    cur_index_pairs.sort()
+    final_distance_neighbour_pairs.append(cur_index_pairs)
+
+  return final_distance_neighbour_pairs
 
 # Computes the unreachable nodes i.e., any node which cannot be in the path from a start node to an end node:
 def unreachable_nodes(parser):

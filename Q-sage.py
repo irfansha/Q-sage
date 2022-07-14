@@ -87,6 +87,7 @@ if __name__ == '__main__':
                                        none = no restrictions (default)'''), default = 'none')
   parser.add_argument("--remove_unreachable_nodes", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--tight_neighbour_pruning", type=int, help="[0/1], default 0" ,default = 0)
+  parser.add_argument("--tight_neighbours_with_distances", type=int, help="computer tight neighbours with distances, less powerful but also less overhead [0/1], default 0" ,default = 0)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off

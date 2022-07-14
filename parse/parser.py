@@ -191,11 +191,13 @@ class Parse:
         if (len(temp_list)  != 0):
           self.neighbour_dict[cur_position] = temp_list
 
-
+      # Generating tight neighbours from distances directly:
+      if (args.tight_neighbours_with_distances == 1 and args.e == 'cp' and args.tight_neighbour_pruning == 1):
+        assert("#distances" in self.parsed_dict)
+        self.tight_neighbour_pairs_list = sb.distance_tight_neighbours(self)
       # tight nieghbours for cp encoding:
-      if (args.e == 'cp' and args.tight_neighbour_pruning == 1):
+      elif (args.tight_neighbours_with_distances == 0 and args.e == 'cp' and args.tight_neighbour_pruning == 1):
         self.tight_neighbour_pairs_list = sb.tight_neighbours(self)
-        #print(self.tight_neighbour_pairs_list)
 
       # only for explicit goals, we generate the winning configurations:
       if (args.e == 'ew' or args.e == 'eg'):
