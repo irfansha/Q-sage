@@ -74,7 +74,7 @@ if __name__ == '__main__':
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
-  parser.add_argument("--compute_distances",  type=int, help="computed distances from start nodes and minimum distance from end nodes [0/1], default 1", default=1)
+  parser.add_argument("--compute_distances",  type=int, help="computed distances from start nodes and minimum distance from end nodes [0/1], default 0", default=0)
   args = parser.parse_args()
 
   #=====================================================================================================================================
