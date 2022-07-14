@@ -91,7 +91,7 @@ if __name__ == '__main__':
   for file in bhex_files_list:
     cur_instance_name = file.split("/")[-1]
     # best to write to a file and read the contents:
-    rgex_command = "python3 transform_hex_board.py  --prune_unreachable_nodes 1 --ignore_file_depth 1 --problem " +  file + " --depth " + str(args.instance_depth) + " > intermediate_files/cur_gex_file"
+    rgex_command = "python3 transform_hex_board.py  --prune_unreachable_nodes 1  --compute_distances 1 --ignore_file_depth 1 --problem " +  file + " --depth " + str(args.instance_depth) + " > intermediate_files/cur_gex_file"
     #print(rgex_command)
     os.system(rgex_command)
     #print(file)
@@ -113,7 +113,7 @@ if __name__ == '__main__':
   # Generate R-Gex in EGF-format
   for file in reachable_instances:
     # we use the transform_hex_board.py to print in EGF-fromat:
-    rgex_egf_command = "python3 transform_hex_board.py --output_format egf --problem " + args.output_dir + "/R-Gex/Gex-format/depth_" + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/R-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file
+    rgex_egf_command = "python3 transform_hex_board.py --compute_distances 1 --output_format egf --problem " + args.output_dir + "/R-Gex/Gex-format/depth_" + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/R-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file
     #print(rgex_egf_command)
     os.system(rgex_egf_command)
   print("Complete.")
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     for file in reachable_instances:
       # we use the transform_hex_board.py to print in Gex-fromat:
       # we use the R-Gex directly to compute the MR-Gex:
-      mrgex_command = "python3 transform_hex_board.py --prune_unreachable_nodes 1 --prune_minimal_path_unreachable_nodes 1 --problem " + args.output_dir + "/R-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file
+      mrgex_command = "python3 transform_hex_board.py  --compute_distances 1 --prune_unreachable_nodes 1 --prune_minimal_path_unreachable_nodes 1 --problem " + args.output_dir + "/R-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file
       #print(mrgex_command)
       os.system(mrgex_command)
     print("Complete.")
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     for file in reachable_instances:
       # we use the transform_hex_board.py to print in EGF-fromat:
       # using already computed MR-Gex files to avoid redundant computation:
-      mrgex_egf_command = "python3 transform_hex_board.py --output_format egf --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file
+      mrgex_egf_command = "python3 transform_hex_board.py --compute_distances 1 --output_format egf --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file
       #print(mrgex_egf_command)
       os.system(mrgex_egf_command)
     print("Complete.")
