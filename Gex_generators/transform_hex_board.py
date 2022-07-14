@@ -74,7 +74,7 @@ if __name__ == '__main__':
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
-  parser.add_argument("--compute_distances",  type=int, help="computed distances from start nodes and minimum distance from end nodes [0/1], default 0", default=0)
+  parser.add_argument("--compute_distances",  type=int, help="computed distances from start nodes and minimum distance from end nodes [0/1], default 1", default=1)
   args = parser.parse_args()
 
   #=====================================================================================================================================
@@ -515,8 +515,18 @@ if __name__ == '__main__':
       if (cur_min_distance != 361):
         end_min_distances_dict[pos] = cur_min_distance
     #-------------------------------------------------------------------------------------------------------------------
-    # we can also give unreachable pairs for start and end border nodes:
-    # TODO:
+    # We can also give unreachable pairs for start and end border nodes:
+    unreachable_start_end_pairs = []
+    for start in new_int_start_boarder:
+      assert(start in spl_end_distances)
+      for end in new_int_end_boarder:
+        # if not in the distance then it is not reachable:
+        if end not in spl_end_distances[start]:
+          unreachable_start_end_pairs.append((start, end))
+        # if the minimum distance is more than the max path length -1, not reachable:
+        # note the the distance is number of steps one can start from one node to another, so max path length - 1 steps to reach the end:
+        elif spl_end_distances[start][end] > max_path_length - 1:
+          unreachable_start_end_pairs.append((start, end))
   #=====================================================================================================================================
   if (len(simplified_positions) != 0):
     # printing input files:
@@ -635,4 +645,7 @@ if __name__ == '__main__':
               # in easy graph format we have extra target node so distance + 1:
               print_string = print_string + " " + str(distance + 1)
           print(print_string)
+      print("#unreachablepairs")
+      for (pos1,pos2) in unreachable_start_end_pairs:
+        print(rearranged_positions[pos1],rearranged_positions[pos2])
   #=====================================================================================================================================
