@@ -74,6 +74,7 @@ if __name__ == '__main__':
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
+  parser.add_argument("--compute_distances",  type=int, help="computed distances from start nodes and minimum distance from end nodes [0/1], default 0", default=0)
   args = parser.parse_args()
 
   #=====================================================================================================================================
@@ -473,26 +474,49 @@ if __name__ == '__main__':
   # Generates list of reachable distances to source for each node,
   # first finding reachable distances from each of the start borders with the depth of the instance as limit:
   # We generate the reachable distances for all the start border nodes:
-  recursion_depth = 0
-  reachable_dict = dict()
-  # adding the start border at level 0:
-  reachable_dict[0] = list(new_int_start_boarder)
-  out_reachable_dict = find_reachable(reachable_dict, recursion_depth, new_int_start_boarder, new_int_end_boarder)
+  if (args.compute_distances == 1):
+    recursion_depth = 0
+    reachable_dict = dict()
+    # adding the start border at level 0:
+    reachable_dict[0] = list(new_int_start_boarder)
+    out_reachable_dict = find_reachable(reachable_dict, recursion_depth, new_int_start_boarder, new_int_end_boarder)
 
-  start_distance_dict = dict()
+    start_distance_dict = dict()
 
-  for pos in simplified_positions:
-    cur_distance_list = []
-    for i in range(max_path_length):
-      if (pos in out_reachable_dict[i]):
-        cur_distance_list.append(i)
-    start_distance_dict[pos] = cur_distance_list
+    for pos in simplified_positions:
+      cur_distance_list = []
+      for i in range(max_path_length):
+        if (pos in out_reachable_dict[i]):
+          cur_distance_list.append(i)
+      start_distance_dict[pos] = cur_distance_list
 
-  #for key, value in start_distance_dict.items():
-  #  print(key, value)
+    #-------------------------------------------------------------------------------------------------------------------
+    # We find shortest distances from all pairs, then compute minimum shortest distance for each node (exept start nodes):
+    G_end_distances = nx.Graph()
 
-  # we can also give unreachable pairs for start and end border nodes:
-  # TODO:
+    for key,neighbour_list in simplified_neighbour_dict.items():
+      for neighbour in neighbour_list:
+        G_end_distances.add_edge(key, neighbour)
+
+
+    spl_end_distances = dict(nx.all_pairs_shortest_path_length(G_end_distances))
+
+    end_min_distances_dict = dict()
+
+    for pos in simplified_positions:
+      # initializing minimum distance to maximum board size of 19* 19:
+      cur_min_distance = 361
+      for end in new_int_end_boarder:
+        if (end not in spl_end_distances or pos not in spl_end_distances[end]):
+          continue
+        elif (cur_min_distance > spl_end_distances[end][pos]):
+          cur_min_distance = spl_end_distances[end][pos]
+      # we only add to dict if the node is reachable,
+      if (cur_min_distance != 361):
+        end_min_distances_dict[pos] = cur_min_distance
+    #-------------------------------------------------------------------------------------------------------------------
+    # we can also give unreachable pairs for start and end border nodes:
+    # TODO:
   #=====================================================================================================================================
   if (len(simplified_positions) != 0):
     # printing input files:
@@ -579,4 +603,36 @@ if __name__ == '__main__':
 
     if (args.output_format == "egf"):
       print("#source\ns\n#target\nt")
+
+    # printing the distances for each position to start and end nodes:
+    if (args.compute_distances == 1):
+      print("#distances")
+      if (args.output_format == "gex"):
+        print("% format [pos] [minimum distance from end border node] [reachable distances from start nodes separated with spaces]")
+      else:
+        print("% format [pos] [minimum distance from target] [reachable distances from source separated with spaces]")
+      for pos in simplified_positions:
+        print_string = str(rearranged_positions[pos])
+        if pos not in end_min_distances_dict or end_min_distances_dict[pos] > max_path_length-1:
+          # if not reachable to end position we do not add it:
+          print_string = print_string + " na"
+          print(print_string)
+        elif len(start_distance_dict[pos]) == 0:
+          # if not reachable to start position within max path length we do not add it:
+          print_string = print_string + " na"
+          print(print_string)
+        else:
+          if (args.output_format == "gex"):
+            print_string = print_string + " " + str(end_min_distances_dict[pos])
+          elif(args.output_format == "egf"):
+            # in easy graph format we have extra source node so distance + 1:
+            print_string = print_string + " " + str(end_min_distances_dict[pos] + 1)
+          # adding the distances from source now:
+          for distance in start_distance_dict[pos]:
+            if (args.output_format == "gex"):
+              print_string = print_string + " " + str(distance)
+            elif(args.output_format == "egf"):
+              # in easy graph format we have extra target node so distance + 1:
+              print_string = print_string + " " + str(distance + 1)
+          print(print_string)
   #=====================================================================================================================================
