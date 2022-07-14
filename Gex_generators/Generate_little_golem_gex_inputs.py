@@ -13,6 +13,7 @@ if __name__ == '__main__':
   parser.add_argument("--output_dir", help="path to output directory", default = "intermediate_files/output")
   parser.add_argument("--unrolling_depth", help="number of move to unroll the game, default 1", type=int, default = 1)
   parser.add_argument("--instance_depth", help="gex input depth, default 11", type=int, default = 11)
+  parser.add_argument("--only_upto_rgex", help=" MR-Gex and minimal hyper graph are hard to compute so we can disable them, default 0", type=int, default = 0)
   args = parser.parse_args()
 
 
@@ -153,61 +154,65 @@ if __name__ == '__main__':
     os.system(rgex_egf_command)
   print("Complete.")
   print("======================================================================")
-  #=====================================================================================================================================
-  # Generate MR-Gex, and only reachable instances (in Gex-format and EGF-format)
-  print("Generating MR-GEX files...")
-  print("Warning: Can take long time for deeper games to compute minimal simple paths!")
-  # Generating MR-Gex directory:
-  if not Path(args.output_dir + "/MR-Gex").is_dir():
-    print("Creating new MR-Gex directory in output folder.")
-    os.mkdir(args.output_dir + "/MR-Gex")
-  # MR-Gex in Gex-format:
-  # Generating MR-Gex/Gex-format directory:
-  if not Path(args.output_dir + "/MR-Gex/Gex-format").is_dir():
-    print("Creating new MR-Gex/Gex-format directory in output folder.")
-    os.mkdir(args.output_dir + "/MR-Gex/Gex-format")
-  print("Writing to MR-Gex/Gex-format folder in output folder in Gex format...")
-  # Generate MR-Gex in Gex-format
-  for file in reachable_instances:
-    # we use the transform_hex_board.py to print in Gex-fromat:
-    # we use the R-Gex directly to compute the MR-Gex:
-    mrgex_command = "python3 transform_hex_board.py --prune_unreachable_nodes 1 --prune_minimal_path_unreachable_nodes 1 --problem " + args.output_dir + "/R-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file
-    #print(mrgex_command)
-    os.system(mrgex_command)
-  print("Complete.")
-  print("---------------------------------------------------------------------")
-  #-------------------------------------------------------------------------------------------------------------------------------------
-  # MR_Gex in EGF-format:
-  # Generating MR-Gex/EGF-format directory:
-  if not Path(args.output_dir + "/MR-Gex/EGF-format").is_dir():
-    print("Creating new MR-Gex/EGF-format directory in output folder.")
-    os.mkdir(args.output_dir + "/MR-Gex/EGF-format")
-  print("Writing to MR-Gex/EGF-format folder in output folder in EGF format...")
-  # Generate MR-Gex in EGF-format
-  for file in reachable_instances:
-    # we use the transform_hex_board.py to print in EGF-fromat:
-    # using already computed MR-Gex files to avoid redundant computation:
-    mrgex_egf_command = "python3 transform_hex_board.py --output_format egf --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file
-    #print(mrgex_egf_command)
-    os.system(mrgex_egf_command)
-  print("Complete.")
-  print("======================================================================")
-  #=====================================================================================================================================
-  # Generate PG_format (hypergraph), and only reachable instances
-  # Generating PG-format directory:
-  if not Path(args.output_dir + "/PG-format").is_dir():
-    print("Creating new PG-format directory in output folder.")
-    os.mkdir(args.output_dir + "/PG-format")
-  print("Writing to PG-format folder in output folder in PG format...")
-  # Generate Minimal hypergraph in PG-format
-  for file in reachable_instances:
-    # we use the generate_hypergraph.py to print in PG-fromat:
-    # we use the MR-Gex to compute, to avoid redundant computation:
-    pgformat_command = "python3 generate_hypergraph.py --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/PG-format/depth_"  + str(args.instance_depth) + "_" + file
-    os.system(pgformat_command)
-  print("Complete.")
-  print("======================================================================")
-  #=====================================================================================================================================
+  #=======================================================================================================================================
+  # we only need to generate if the flag is disabled:
+  if (args.only_upto_rgex == 0):
+    #=====================================================================================================================================
+    # Generate MR-Gex, and only reachable instances (in Gex-format and EGF-format)
+    print("Generating MR-GEX files...")
+    print("Warning: Can take long time for deeper games to compute minimal simple paths!")
+    # Generating MR-Gex directory:
+    if not Path(args.output_dir + "/MR-Gex").is_dir():
+      print("Creating new MR-Gex directory in output folder.")
+      os.mkdir(args.output_dir + "/MR-Gex")
+    # MR-Gex in Gex-format:
+    # Generating MR-Gex/Gex-format directory:
+    if not Path(args.output_dir + "/MR-Gex/Gex-format").is_dir():
+      print("Creating new MR-Gex/Gex-format directory in output folder.")
+      os.mkdir(args.output_dir + "/MR-Gex/Gex-format")
+    print("Writing to MR-Gex/Gex-format folder in output folder in Gex format...")
+    # Generate MR-Gex in Gex-format
+    for file in reachable_instances:
+      # we use the transform_hex_board.py to print in Gex-fromat:
+      # we use the R-Gex directly to compute the MR-Gex:
+      mrgex_command = "python3 transform_hex_board.py --prune_unreachable_nodes 1 --prune_minimal_path_unreachable_nodes 1 --problem " + args.output_dir + "/R-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file
+      #print(mrgex_command)
+      os.system(mrgex_command)
+    print("Complete.")
+    print("---------------------------------------------------------------------")
+    #-------------------------------------------------------------------------------------------------------------------------------------
+    # MR_Gex in EGF-format:
+    # Generating MR-Gex/EGF-format directory:
+    if not Path(args.output_dir + "/MR-Gex/EGF-format").is_dir():
+      print("Creating new MR-Gex/EGF-format directory in output folder.")
+      os.mkdir(args.output_dir + "/MR-Gex/EGF-format")
+    print("Writing to MR-Gex/EGF-format folder in output folder in EGF format...")
+    # Generate MR-Gex in EGF-format
+    for file in reachable_instances:
+      # we use the transform_hex_board.py to print in EGF-fromat:
+      # using already computed MR-Gex files to avoid redundant computation:
+      mrgex_egf_command = "python3 transform_hex_board.py --output_format egf --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/MR-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file
+      #print(mrgex_egf_command)
+      os.system(mrgex_egf_command)
+    print("Complete.")
+    print("======================================================================")
+    #=====================================================================================================================================
+    # Generate PG_format (hypergraph), and only reachable instances
+    # Generating PG-format directory:
+    if not Path(args.output_dir + "/PG-format").is_dir():
+      print("Creating new PG-format directory in output folder.")
+      os.mkdir(args.output_dir + "/PG-format")
+    print("Writing to PG-format folder in output folder in PG format...")
+    # Generate Minimal hypergraph in PG-format
+    for file in reachable_instances:
+      # we use the generate_hypergraph.py to print in PG-fromat:
+      # we use the MR-Gex to compute, to avoid redundant computation:
+      pgformat_command = "python3 generate_hypergraph.py --problem " + args.output_dir + "/MR-Gex/Gex-format/depth_"  + str(args.instance_depth) + "_" + file + " > " + args.output_dir + "/PG-format/depth_"  + str(args.instance_depth) + "_" + file
+      os.system(pgformat_command)
+    print("Complete.")
+    print("======================================================================")
+    #=====================================================================================================================================
+  #=======================================================================================================================================
   # Generate white flipped B-Hex, and only reachable instances (in EGF-format)
   print("Generating White flipped B-Hex files...")
   # Generating White flipped directory:
