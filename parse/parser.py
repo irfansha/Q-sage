@@ -199,6 +199,15 @@ class Parse:
       elif (args.tight_neighbours_with_distances == 0 and args.e == 'cp' and args.tight_neighbour_pruning == 1):
         self.tight_neighbour_pairs_list = sb.tight_neighbours(self)
 
+      if (args.e == 'cp' and args.tight_neighbour_pruning == 1):
+        assert("#unreachablepairs" in self.parsed_dict)
+        # computing unreachable pairs:
+        self.unreachable_start_end_pairs = []
+        for pair_list in self.parsed_dict['#unreachablepairs']:
+          assert(len(pair_list) == 2)
+          self.unreachable_start_end_pairs.append([self.rearranged_positions.index(pair_list[0]), self.rearranged_positions.index(pair_list[1])])
+
+
       # only for explicit goals, we generate the winning configurations:
       if (args.e == 'ew' or args.e == 'eg'):
         self.black_win_configurations, self.max_win_config_length = sb.all_short_simple_paths(self)

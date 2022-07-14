@@ -258,6 +258,23 @@ class CompactPositonal:
     self.gates_generator.or_gate(end_border_output_gates)
     self.step_output_gates.append(self.gates_generator.output_gate)
 
+    # Adding unreachable start end clauses when tight neighbour pruning is computed:
+    if (self.parsed.args.e == 'cp' and self.parsed.args.tight_neighbour_pruning == 1):
+      self.encoding.append(['# unreachable start and end pairs : '])
+      for pair in self.parsed.unreachable_start_end_pairs:
+        assert(len(pair) == 2)
+        start_binary_format_clause = self.generate_binary_format(self.witness_variables[0],pair[0])
+        self.gates_generator.and_gate(start_binary_format_clause)
+        start_gate = self.gates_generator.output_gate
+
+        end_binary_format_clause = self.generate_binary_format(self.witness_variables[-1],pair[1])
+        self.gates_generator.and_gate(end_binary_format_clause)
+        end_gate = self.gates_generator.output_gate
+
+        # exclusive clause with unreachable start and end pairs:
+        self.gates_generator.or_gate([-start_gate, -end_gate])
+        self.step_output_gates.append(self.gates_generator.output_gate)
+
     # Black restrictions as option:
     if (self.parsed.num_available_moves != int(math.pow(2, self.num_move_variables)) and self.parsed.args.black_move_restrictions == 1):
       self.encoding.append(['# Restricted black moves: '])
