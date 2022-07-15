@@ -81,6 +81,7 @@ if __name__ == '__main__':
                                        2 = extra equality clauses for the transformed board with only open positions (default 0)''') ,default = 0)
   parser.add_argument("--restricted_position_constraints", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--black_move_restrictions", type=int, help="[0/1], default 1" ,default = 1)
+  parser.add_argument("--black_overwriting_black_enable", type=int, help=" for witness encoding (compact positional) we can either allow black overwriting itself or not [0/1], default 1" ,default = 1)
   parser.add_argument("--forall_move_restrictions", help=textwrap.dedent('''
                                        in = let forall restrictions in each if condition
                                        out = forall restrictions outside the transition functions
