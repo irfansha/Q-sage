@@ -176,7 +176,8 @@ class CompactPositonal:
       for pos in reachable_start_nodes:
         binary_format_clause = self.generate_binary_format(self.witness_variables[0],pos)
         self.gates_generator.and_gate(binary_format_clause)
-        start_border_output_gates.append(self.gates_generator.output_gate)
+        if (self.gates_generator.output_gate not in start_border_output_gates):
+          start_border_output_gates.append(self.gates_generator.output_gate)
 
       self.encoding.append(['# disjunction of all reachable start boarder positions : '])
       self.gates_generator.or_gate(start_border_output_gates)
@@ -242,6 +243,10 @@ class CompactPositonal:
                   self.gates_generator.and_gate(temp_binary_format_clause)
                   neighbour_output_gates.append(self.gates_generator.output_gate)
         #====================================================================================================
+
+        # if the neighbour output gates are empty, we do not need an implication
+        if (len(neighbour_output_gates) == 0):
+          continue
 
         # One of the values must be true, so a disjunction:
         if (len(neighbour_output_gates) > 1):
