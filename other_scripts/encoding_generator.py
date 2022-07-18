@@ -21,7 +21,6 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--output_dir", help="path to output directory", default = "intermediate_files/output")
   parser.add_argument("--input_dir", help="path to input directory (expecting Gex input files)")
-  parser.add_argument("--move_artifact_path", help="path to move artifact directory")
   args = parser.parse_args()
 
   #====================================================================================
