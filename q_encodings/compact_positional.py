@@ -117,7 +117,7 @@ class CompactPositonal:
 
     # black cannot overwrite as black option, if disabled:
     if (parsed.args.black_overwriting_black_enable == 0):
-      self.encoding.append(['# Black does not overwrite the white moves : '])
+      self.encoding.append(['# Black does not overwrite the black moves : '])
       for i in range(self.parsed.depth):
         if (i%2 == 0):
           # Iterating through all the black moves:
