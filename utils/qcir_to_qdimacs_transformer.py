@@ -14,6 +14,9 @@ import argparse
 # for each variable/gate we specify the level (in matrix)
 level_dict = dict()
 
+# inverse level dict, can be used to append to matrix in appropriate levels:
+inverse_level_dict = dict()
+
 # parsed matrix, without circuit keywords:
 parsed_matrix = []
 
@@ -227,6 +230,30 @@ if __name__ == '__main__':
     temp_list.append("e")
     temp_list.extend(intermediate_gates)
     f.write(" ".join(temp_list) + " 0\n")
+  else:
+    # we first fill the inverse dict:
+    for var, level in level_dict.items():
+      if level not in inverse_level_dict:
+        # if an intermediate gate then, check if the level is universal variable
+        # if universal level, then you add to next existential layer:
+        if (var in intermediate_gates and parsed_matrix[level - 1] == 'a'):
+          inverse_level_dict[level+1] = [var]
+        else:
+          # if first var then initialising list with a single var:
+          inverse_level_dict[level] = [var]
+      else:
+        # if an intermediate gate then, check if the level is universal variable
+        # if universal level, then you add to next existential layer:
+        if (var in intermediate_gates and parsed_matrix[level - 1] == 'a'):
+          inverse_level_dict[level+1].append(var)
+        else:
+          # appending at the appropriate level:
+          inverse_level_dict[level].append(var)
+
+    for level, var_list in inverse_level_dict.items():
+      # we get the quantifier type from the parsed matrix:
+      f.write(parsed_matrix[level-1][0] + " " + " ".join(var_list) + " 0\n")
+
 
   # qdimacs clauses:
   for line in qdimacs_clauses_list:
