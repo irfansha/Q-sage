@@ -2,7 +2,7 @@
 #                    "implicit_gex_symbolic_1_hour_stats","implicit_gex_symbolic_3_hour_stats",
 #                    "implicit_gex_witness_1_hour_stats","implicit_gex_witness_3_hour_stats"]
 
-stats_file_paths = ["cor_stats"]
+stats_file_paths = ["AAAI_first_run_stats_22_07_2022.txt"]
 
 for i in range(1):
   # Now filling up the stats dictionary:
@@ -16,6 +16,7 @@ for i in range(1):
   max_mem = 0
   cpu_time = 0
   name = ''
+  time_out = 0
 
   stats_dict = {}
 
@@ -25,12 +26,17 @@ for i in range(1):
       if (name != ''):
         stats_dict[name] = (max_mem,cpu_time)
         #print(name, max_mem)
-        f_new_file.write(str(name) + " " + str(max_mem) + " " + str(cpu_time) + "\n")
+        if (time_out == 0):
+          f_new_file.write(str(name) + " " + str(max_mem) + " " + str(cpu_time) + "\n")
+        else:
+          f_new_file.write(str(name) + " " + str(max_mem) + " TO\n")
       # creating a new name line:
       name = line.strip("\n").split(" ")[-1]
       #print(name)
       # resetting
       max_mem = 0
+      cpu_time = 0
+      time_out = 0
     elif ("Max Mem used" in line):
       max_mem_string = line.split(" ")[-2]
       max_mem = round(float(max_mem_string[:-1]),2)
@@ -46,9 +52,16 @@ for i in range(1):
       if (cpu_time == 0):
         # avoiding the 0 seconds:
         cpu_time = 0.1
+    elif ("State" in line):
+      if ("TIMEOUT" in line):
+        time_out = 1
 
   stats_dict[name] = max_mem
-  f_new_file.write(str(name) + " " + str(max_mem) + " " + str(cpu_time) + "\n")
+  if (time_out == 0):
+    f_new_file.write(str(name) + " " + str(max_mem) + " " + str(cpu_time) + "\n")
+  else:
+    f_new_file.write(str(name) + " " + str(max_mem) + " TO\n")
+  #f_new_file.write(str(name) + " " + str(max_mem) + " " + str(cpu_time) + "\n")
   # creating a new name line:
   f_new_file.close()
   #print(stats_dict)
