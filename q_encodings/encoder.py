@@ -136,7 +136,14 @@ def generate_encoding(parsed_instance):
       # checking if both are same files:
       os.system("cmp " + parsed_instance.args.encoding_out + " " + parsed_instance.args.encoding_out + "_out")
       print("# ===========================================================================================\n")
-
+  # QDIMACS + moved:
+  elif(parsed_instance.args.encoding_format == 5):
+    # For QDIMACS, we write the encoding to an intermediate file and change
+    # to right format:
+    encoding.print_encoding_tofile(parsed_instance.args.intermediate_encoding_out)
+    # Using local script for moving:
+    converter_script_path = os.path.join(parsed_instance.args.planner_path, 'utils', 'qcir_to_qdimacs_transformer.py')
+    os.system("python3 " + converter_script_path + ' --move_intermediate_gates 1 --input_file ' + parsed_instance.args.intermediate_encoding_out + ' --output_file ' + parsed_instance.args.encoding_out)
   elif(parsed_instance.args.encoding_format == 3):
     encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
   else:

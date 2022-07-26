@@ -61,7 +61,8 @@ if __name__ == '__main__':
                                        1 = QCIR14
                                        2 = QDIMACS (default)
                                        3 = DQCIR
-                                       4 = DQDIMACS'''),default = 2)
+                                       4 = DQDIMACS
+                                       5 = QDIMACS-moved'''),default = 2)
   parser.add_argument("--encoding_out", help="output encoding file",default = 'intermediate_files/encoding')
   parser.add_argument("--intermediate_encoding_out", help="output intermediate encoding file",default = 'intermediate_files/intermediate_encoding')
   parser.add_argument("--solver", type=int, help=textwrap.dedent('''
