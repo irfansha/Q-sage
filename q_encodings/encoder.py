@@ -124,9 +124,19 @@ def generate_encoding(parsed_instance):
     # For QDIMACS, we write the encoding to an intermediate file and change
     # to right format:
     encoding.print_encoding_tofile(parsed_instance.args.intermediate_encoding_out)
-    converter_tool_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'qcir_to_dimacs_convertor' , 'qcir2qdimacs')
-    # Calling the tool
-    os.system(converter_tool_path + ' ' + parsed_instance.args.intermediate_encoding_out + ' > ' + parsed_instance.args.encoding_out)
+    # Using local script for moving:
+    converter_script_path = os.path.join(parsed_instance.args.planner_path, 'utils', 'qcir_to_qdimacs_transformer.py')
+    os.system("python3 " + converter_script_path + ' --input_file ' + parsed_instance.args.intermediate_encoding_out + ' --output_file ' + parsed_instance.args.encoding_out)
+    # when debug we generate both the conversion and checks if they are the same:
+    if (parsed_instance.args.debug == 1):
+      converter_tool_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'qcir_to_dimacs_convertor' , 'qcir2qdimacs')
+      # Calling the tool
+      os.system(converter_tool_path + ' ' + parsed_instance.args.intermediate_encoding_out + ' > ' + parsed_instance.args.encoding_out + "_out")
+      print("\n# testing if both conversions are same (correct if next line is empty) =================")
+      # checking if both are same files:
+      os.system("cmp " + parsed_instance.args.encoding_out + " " + parsed_instance.args.encoding_out + "_out")
+      print("# ===========================================================================================\n")
+
   elif(parsed_instance.args.encoding_format == 3):
     encoding.print_encoding_tofile(parsed_instance.args.encoding_out)
   else:
