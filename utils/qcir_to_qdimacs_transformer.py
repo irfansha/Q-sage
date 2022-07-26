@@ -79,12 +79,18 @@ def parse_gates(gate_lines):
       # first seperating intermediate gate:
       [cur_gate, cur_list] = cleaned_line.split("=")
       cur_var_list = cur_list.strip("or(").strip(")").split(",")
+      # if empty gate, we make the list empty:
+      if (cur_var_list == ['']):
+        cur_var_list = []
       cur_type = 'or'
     else:
       assert("and" in cleaned_line)
       # first seperating intermediate gate:
       [cur_gate, cur_list] = cleaned_line.split("=")
       cur_var_list = cur_list.strip("and(").strip(")").split(",")
+      # if empty gate, we make the list empty:
+      if (cur_var_list == ['']):
+        cur_var_list = []
       cur_type = 'and'
 
     parsed_gate_lines.append((cur_type, cur_gate, cur_var_list))
