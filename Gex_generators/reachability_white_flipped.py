@@ -19,7 +19,7 @@ if __name__ == '__main__':
   lines = f.readlines()
   f.close()
 
-  parsed_dict = {}
+  rgex_parsed_dict = {}
 
   for line in lines:
     stripped_line = line.strip("\n").strip(" ").split(" ")
@@ -28,27 +28,27 @@ if __name__ == '__main__':
       continue
     if ("#" in line):
       new_key = line.strip("\n")
-      parsed_dict[new_key] = []
+      rgex_parsed_dict[new_key] = []
     else:
-      parsed_dict[new_key].append(stripped_line)
+      rgex_parsed_dict[new_key].append(stripped_line)
 
   #for key,value in parsed_dict.items():
   #  print(key, value)
 
-  r_gex_positions = parsed_dict['#positions'][0]
+  r_gex_positions = rgex_parsed_dict['#positions'][0]
 
-  r_gex_depth = len(parsed_dict['#times'][0])
+  r_gex_depth = len(rgex_parsed_dict['#times'][0])
 
   #print(r_gex_positions)
   #print(r_gex_depth)
   #=====================================================================================================================================
   # first gex transformation:
-  wb_gex_command = "python3 transform_hex_board.py --ignore_file_depth 1 --output_format gex --problem " + str(args.white_flipped_bhex_problem) + " --depth " + str(r_gex_depth) + " > temp_white_flip_gex_transformation.pg"
-  os.system(wb_gex_command)
+  #wb_gex_command = "python3 transform_hex_board.py --ignore_file_depth 1 --output_format gex --problem " + str(args.white_flipped_bhex_problem) + " --depth " + str(r_gex_depth) + " > temp_white_flip_gex_transformation.pg"
+  #os.system(wb_gex_command)
   #=====================================================================================================================================
   # parsing:
 
-  f = open("temp_white_flip_gex_transformation.pg", 'r')
+  f = open(args.white_flipped_bhex_problem, 'r')
   lines = f.readlines()
   f.close()
 
@@ -69,17 +69,24 @@ if __name__ == '__main__':
 
   #=====================================================================================================================================
   #  writing everything to another file:
-  f = open("temp_white_flip_rgex_transformation.pg","w")
+  f = open("temp_white_flip_bhex.pg","w")
   f.write("#blackinitials\n")
-  for pos in positions:
-    if (pos not in r_gex_positions):
-      f.write(pos + "\n")
+  for [pos] in parsed_dict['#blackinitials']:
+    f.write(pos+ "\n")
+  # updating with new black nodes:
   # add black, i.e., everything not in the original R-Gex file:
+  for pos in positions:
+    if pos not in r_gex_positions:
+      # if not in black initials and not in white initials:
+      if ([pos] not in parsed_dict['#blackinitials'] and [pos] not in parsed_dict['#whiteinitials']):
+        f.write(pos+ "\n")
   f.write("#whiteinitials\n")
+  for [pos] in parsed_dict['#whiteinitials']:
+    f.write(pos+ "\n")
   f.write("#times" + "\n")
-  f.write(" ".join(parsed_dict["#times"][0]) + "\n")
+  f.write(" ".join(rgex_parsed_dict["#times"][0]) + "\n")
   f.write("#blackturns" + "\n")
-  f.write(" ".join(parsed_dict["#blackturns"][0]) + "\n")
+  f.write(" ".join(rgex_parsed_dict["#blackturns"][0]) + "\n")
   f.write("#positions" + "\n")
   f.write(" ".join(positions) + "\n")
   f.write("#neighbours" + "\n")
@@ -94,5 +101,5 @@ if __name__ == '__main__':
   #=====================================================================================================================================
   # Running the final Gex transformation:
 
-  wb_gex_command = "python3 transform_hex_board.py --output_format egf --problem temp_white_flip_rgex_transformation.pg"
+  wb_gex_command = "python3 transform_hex_board.py --output_format egf --problem temp_white_flip_bhex.pg --drop_start_end_board_edges 0"
   os.system(wb_gex_command)
