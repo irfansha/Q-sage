@@ -75,6 +75,7 @@ if __name__ == '__main__':
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)
   parser.add_argument("--output_format", help="gex/egf(easy-graph-format) default=gex", default = 'gex')
   parser.add_argument("--compute_distances",  type=int, help="computed distances from start nodes and minimum distance from end nodes [0/1], default 0", default=0)
+  parser.add_argument("--drop_start_end_board_edges",  type=int, help="[0/1], default 1", default=1)
   args = parser.parse_args()
 
   #=====================================================================================================================================
@@ -205,6 +206,7 @@ if __name__ == '__main__':
   #=====================================================================================================================================
 
   #=====================================================================================================================================
+
   # simplifying the neighbour dict:
   simplified_neighbour_dict = dict()
 
@@ -230,12 +232,13 @@ if __name__ == '__main__':
       continue
     temp = []
     for neighbour in neighbour_list:
-      if (key in new_int_start_boarder and neighbour in new_int_start_boarder):
-        #print("start", rearranged_positions[key], rearranged_positions[neighbour])
-        continue
-      if (key in new_int_end_boarder and neighbour in new_int_end_boarder):
-        #print("end", rearranged_positions[key], rearranged_positions[neighbour])
-        continue
+      if (args.drop_start_end_board_edges == 1):
+        if (key in new_int_start_boarder and neighbour in new_int_start_boarder):
+          #print("start", rearranged_positions[key], rearranged_positions[neighbour])
+          continue
+        if (key in new_int_end_boarder and neighbour in new_int_end_boarder):
+          #print("end", rearranged_positions[key], rearranged_positions[neighbour])
+          continue
       # we do not need to add black positions:
       if (neighbour in black_initial_positions):
         continue

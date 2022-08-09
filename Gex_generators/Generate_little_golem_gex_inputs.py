@@ -13,7 +13,7 @@ if __name__ == '__main__':
   parser.add_argument("--output_dir", help="path to output directory", default = "intermediate_files/output")
   parser.add_argument("--unrolling_depth", help="number of move to unroll the game, default 1", type=int, default = 1)
   parser.add_argument("--instance_depth", help="gex input depth, default 11", type=int, default = 11)
-  parser.add_argument("--only_upto_rgex", help=" MR-Gex and minimal hyper graph are hard to compute so we can disable them, default 0", type=int, default = 0)
+  parser.add_argument("--only_upto_rgex", help=" MR-Gex and minimal hyper graph are hard to compute so we can disable them, default 1", type=int, default = 1)
   args = parser.parse_args()
 
 
@@ -242,12 +242,25 @@ if __name__ == '__main__':
   # Generate Gex in EGF-format
   for file in reachable_instances:
     # we use the transform_hex_board.py to print in Gex-fromat:
-    wb_gex_egf_command = "python3 transform_hex_board.py --ignore_file_depth 1 --output_format egf --problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " --depth " + str(args.instance_depth) + " > " + args.output_dir + "/White_flipped/Gex_EGF-format/depth_"  + str(args.instance_depth) + "_" + file
+    wb_gex_egf_command = "python3 transform_hex_board.py --ignore_file_depth 1 --drop_start_end_board_edges 0 --output_format egf --problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " --depth " + str(args.instance_depth) + " > " + args.output_dir + "/White_flipped/Gex_EGF-format/depth_"  + str(args.instance_depth) + "_" + file
     #print(rgex_egf_command)
     os.system(wb_gex_egf_command)
   print("Complete.")
   print("======================================================================")
   #=====================================================================================================================================
+  # Generate white flipped R-Gex, and only reachable instances (in EGF-format)
+  if not Path(args.output_dir + "/White_flipped/R-Gex_EGF-format").is_dir():
+    print("Creating new /White_flipped/R-Gex_EGF-format directory in output folder.")
+    os.mkdir(args.output_dir + "/White_flipped/R-Gex_EGF-format")
+  print("Writing to /White_flipped/R-Gex_EGF-format folder in output folder in EGF format...")
+  # Generate R-Gex in EGF-format
+  for file in reachable_instances:
+    # we use the transform_hex_board.py to print in R-Gex-fromat:
+    wb_rgex_egf_command = "python3 reachability_white_flipped.py --r_gex_problem " + args.output_dir + "/R-Gex/EGF-format/depth_"  + str(args.instance_depth) + "_" + file + " --white_flipped_bhex_problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " > " + args.output_dir + "/White_flipped/R-Gex_EGF-format/depth_"  + str(args.instance_depth) + "_" + file
+    #print(wb_rgex_egf_command)
+    os.system(wb_rgex_egf_command)
+  print("Complete.")
+  print("======================================================================")
   # removing intermediate files folder:
   os.system("rm -r intermediate_files")
   #=====================================================================================================================================

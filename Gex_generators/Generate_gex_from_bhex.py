@@ -11,7 +11,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--input_dir", help="Input B-Hex dir path")
   parser.add_argument("--output_dir", help="path to output directory", default = "intermediate_files/output")
-  parser.add_argument("--only_upto_rgex", help=" MR-Gex and minimal hyper graph are hard to compute so we can disable them, default 0", type=int, default = 0)
+  parser.add_argument("--only_upto_rgex", help=" MR-Gex and minimal hyper graph are hard to compute so we can disable them, default 1", type=int, default = 1)
 
   args = parser.parse_args()
 
@@ -220,9 +220,24 @@ if __name__ == '__main__':
   # Generate Gex in EGF-format
   for file in reachable_instances:
     # we use the transform_hex_board.py to print in Gex-fromat:
-    wb_gex_egf_command = "python3 transform_hex_board.py --output_format egf --problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " > " + args.output_dir + "/White_flipped/Gex_EGF-format/" + file
+    wb_gex_egf_command = "python3 transform_hex_board.py --output_format egf --drop_start_end_board_edges 0 --problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " > " + args.output_dir + "/White_flipped/Gex_EGF-format/" + file
     #print(rgex_egf_command)
     os.system(wb_gex_egf_command)
+  print("Complete.")
+  print("======================================================================")
+  #=====================================================================================================================================
+  # Generate white flipped R_Gex, and only reachable instances (in EGF-format)
+  # Generating White_flipped/R-Gex directory:
+  if not Path(args.output_dir + "/White_flipped/R-Gex_EGF-format").is_dir():
+    print("Creating new /White_flipped/R-Gex_EGF-format directory in output folder.")
+    os.mkdir(args.output_dir + "/White_flipped/R-Gex_EGF-format")
+  print("Writing to /White_flipped/R-Gex_EGF-format folder in output folder in EGF format...")
+  # Generate R-Gex in EGF-format
+  for file in reachable_instances:
+    # we use the transform_hex_board.py to print in R-Gex-fromat:
+    wb_rgex_egf_command = "python3 reachability_white_flipped.py --r_gex_problem " + args.output_dir + "/R-Gex/EGF-format/" + file + " --white_flipped_bhex_problem " + args.output_dir + "/White_flipped/B-Hex/" + file + " > " + args.output_dir + "/White_flipped/R-Gex_EGF-format/" + file
+    #print(wb_rgex_egf_command)
+    os.system(wb_rgex_egf_command)
   print("Complete.")
   print("======================================================================")
   #=====================================================================================================================================
