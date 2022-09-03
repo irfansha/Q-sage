@@ -99,7 +99,7 @@ class IndexBasedGeneral:
       result_x_variables = x_variables
     else:
       x_value = int(constraint[0]) - 1
-    self.encoding.append(['# computing x variables for constraints, add/sub/none:'])
+    self.encoding.append(['# computing y variables for constraints, add/sub/none:'])
     # now computing y variables:
     if ('+' in constraint[1]):
       split_y_constraint = constraint[1].split("+")

@@ -1,12 +1,16 @@
 # Irfansha Shaik, 07.10.2021, Aarhus.
 
-import subprocess
 import os
+import subprocess
+
 
 class RunPedant():
 
   def run_pedant(self):
-    command = self.solver_path + " " + self.input_file_path + " > " + self.output_file_path
+    if (self.cert_gen == 0):
+      command = self.solver_path + " " + self.input_file_path + " > " + self.output_file_path
+    else:
+      command = self.solver_path + " " + self.input_file_path + " --cnf " + self.cert_path + " > " + self.output_file_path
     try:
       subprocess.run([command], shell = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT ,check=True, timeout=self.time_limit)
     except subprocess.TimeoutExpired:
@@ -49,6 +53,9 @@ class RunPedant():
     self.solver_path = os.path.join(args.planner_path, 'solvers', 'pedant-solver', 'pedant')
     self.sol_map = {}
     self.sat = -1 # by default plan not found.
+    # we generate certificate if viz testing is turned on:
+    self.cert_gen = args.viz_testing
+    self.cert_path = args.certificate_out
 
     self.run_pedant()
     self.parse_pedant_output()
