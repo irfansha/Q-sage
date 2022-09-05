@@ -1,6 +1,5 @@
 # Irfansha Shaik, 13.08.2021, Aarhus
 
-import os
 
 import utils.stuttering_bounds as sb
 
@@ -507,7 +506,7 @@ class Parse:
         self.black_goal_constraints.append(temp_list)
 
       # asserting there is no computation in the goal state for now:
-      assert("+" not in self.black_goal_constraints[0])
+      # assert("+" not in self.black_goal_constraints[0])
 
       self.white_goal_constraints = []
 

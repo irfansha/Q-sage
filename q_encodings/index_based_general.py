@@ -36,6 +36,45 @@ class IndexBasedGeneral:
     f.write('output(' + str(self.final_output_gate) + ')\n')
     for gate in self.encoding:
       self.print_gate_tofile(gate, f)
+    f.close()
+
+  # takes a list of ints and returns string from of list for printing:
+  def make_string(self,lst):
+    return "[" + ",".join(str(x) for x in lst) + "]"
+
+
+  # for visual testing, we need bounds, actions and necessary variables
+  # prints to a file:
+  def print_meta_data_tofile(self):
+    f_meta = open(self.parsed.args.viz_meta_data_out,"w")
+    # input information:
+    f_meta.write("#boardsize\n")
+    f_meta.write(str(self.parsed.xmax) + " " + str(self.parsed.ymax) + "\n")
+    f_meta.write("#depth\n")
+    f_meta.write(str(self.parsed.depth) + "\n")
+    # we need action names to choose for testing:
+    f_meta.write("#blackactions\n")
+    for action in self.parsed.black_action_list:
+      f_meta.write(action.action_name + "("+ ",".join(action.parameters)+")\n")
+    f_meta.write("#whiteactions\n")
+    for action in self.parsed.white_action_list:
+      f_meta.write(action.action_name + "("+ ",".join(action.parameters)+")\n")
+    # variables:
+    f_meta.write("#actionvars\n")
+    # writing the move variables, action and parameter variables (separating accordingly):
+    for i in range(self.parsed.depth):
+      f_meta.write(self.make_string(self.move_variables[i][0]) + " " + self.make_string(self.move_variables[i][1]) + " " + self.make_string(self.move_variables[i][2]) + "\n")
+    # symbolic position vars:
+    f_meta.write("#symbolicpos\n")
+    f_meta.write(self.make_string(self.forall_position_variables[0]) + " " + self.make_string(self.forall_position_variables[1]) + "\n")
+    # state vars:
+    f_meta.write("#statevars\n")
+    for i in range(self.parsed.depth+1):
+      f_meta.write(" ".join(str(x) for x in self.predicate_variables[i]) + "\n")
+    # state vars:
+    f_meta.write("#goalvar\n")
+    f_meta.write(str(self.goal_output_gate) + "\n")
+    f_meta.close()
 
   # Takes a list of clause variables and maps to a integer value:
   def generate_binary_format(self, clause_variables, corresponding_number):
@@ -967,3 +1006,5 @@ class IndexBasedGeneral:
     self.generate_goal_gate()
 
     self.generate_final_gate()
+
+    self.print_meta_data_tofile()

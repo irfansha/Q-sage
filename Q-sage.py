@@ -76,6 +76,7 @@ if __name__ == '__main__':
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--run_tests", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--viz_testing", type=int, help="vizual testing with certificate generation for general games (for now pedant)  [0/1], default 0" ,default = 0)
+  parser.add_argument("--viz_meta_data_out", help="visual testing meta data (input and vars) file path",default = 'intermediate_files/viz_meta_out')
   parser.add_argument("--seed", help="seed value for random generater for testing (default 0)", type=int,default = 0)
   parser.add_argument("--renumber_positions", type=int, help=textwrap.dedent('''
                                        renumber positions for tighter lessthan constraints:
