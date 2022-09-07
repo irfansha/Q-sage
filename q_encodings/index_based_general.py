@@ -647,7 +647,7 @@ class IndexBasedGeneral:
       self.gates_generator.if_then_gate(if_condition_output_gate, then_constraint_final_output_gate)
       self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
-      # if not valid
+      # if not valid, we let the black player to change the state
 
   def generate_d_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
