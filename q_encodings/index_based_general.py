@@ -243,17 +243,31 @@ class IndexBasedGeneral:
     self.quantifier_block.append(['# ' + str(self.num_black_action_variables) + '/' + str(self.num_white_action_variables) + ' (black/white) Action variables, ' + str(self.num_x_index_variables) + ' and ' + str(self.num_y_index_variables) +  ' (action parameter) index variables (x, y), and game stop variables : '])
     for i in range(self.parsed.depth):
       # starts with 0 and even is black (i.e., existential moves):
-      cur_all_action_vars = []
-      # adding action variables:
-      cur_all_action_vars.extend(self.move_variables[i][0])
-      # adding parameter variables:
-      cur_all_action_vars.extend(self.move_variables[i][1])
-      cur_all_action_vars.extend(self.move_variables[i][2])
       if (i % 2 == 0):
+        cur_all_action_vars = []
+        # adding action variables:
+        cur_all_action_vars.extend(self.move_variables[i][0])
+        # adding parameter variables:
+        cur_all_action_vars.extend(self.move_variables[i][1])
+        cur_all_action_vars.extend(self.move_variables[i][2])
+
         # adding game stop variable if present:
         cur_all_action_vars.extend(self.move_variables[i][3])
         self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
       else:
+
+        cur_all_action_vars = []
+        # adding action variables:
+        # if number of actions/moves are only 1, we make it existential:
+        if (self.num_white_actions == 1):
+          self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.move_variables[i][0]) + ')'])
+        else:
+          cur_all_action_vars.extend(self.move_variables[i][0])
+        # adding parameter variables:
+        cur_all_action_vars.extend(self.move_variables[i][1])
+        cur_all_action_vars.extend(self.move_variables[i][2])
+
+
         self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
         # if illegal move is present, then it is existential:
         if (len(self.move_variables[i][3]) != 0):
@@ -274,7 +288,8 @@ class IndexBasedGeneral:
     all_black_goal_vars = []
     all_black_goal_vars.extend(self.black_goal_index_variables[0])
     all_black_goal_vars.extend(self.black_goal_index_variables[1])
-    self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_black_goal_vars) + ')'])
+    if (len(all_black_goal_vars) > 0):
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_black_goal_vars) + ')'])
 
 
     # Forall position variables:
@@ -648,6 +663,10 @@ class IndexBasedGeneral:
       self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
       # if not valid, we let the black player to change the state
+
+    # if white moves are only 1, then we force the move variables to first one:
+    if (self.num_white_actions == 1):
+      self.transition_step_output_gates.append(-self.move_variables[time_step][0][0])
 
   def generate_d_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])

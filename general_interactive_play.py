@@ -222,7 +222,9 @@ if __name__ == '__main__':
 
       white_move_assignment = []
 
-      white_move_assignment.extend(generate_binary_format(action_vars[k][0], white_action_name_index))
+      # when there is only one action, it is existential:
+      if (len(parsed_dict["#whiteactions"]) > 1):
+        white_move_assignment.extend(generate_binary_format(action_vars[k][0], white_action_name_index))
       white_move_assignment.extend(generate_binary_format(action_vars[k][1], white_move_index_x))
       white_move_assignment.extend(generate_binary_format(action_vars[k][2], white_move_index_y))
 
