@@ -985,13 +985,83 @@ class IndexBasedGeneral:
         break
     self.black_goal_index_variables.append(temp_y_index_black_variables)
 
-    # for now only handing breakthrough and kinghtthrough, so we do not need any extra variables:
-    # as long as we only have a single conjunction in each line of the goal, we do not need any universal variables:
+    # by default we assume we do not need an extra alternation, this is the case for breakthough and knightthrough (ofcourse and all maker-breaker games):
+    self.extra_white_quantifier_alternation = 0
+    # we need the length of each white goal, we need it to be the same for all white goal constraints:
+    self.white_single_goal_num_constraints = 0
+
+
+    # if there is a conjunction in any white goal constraint, then we need an extra quantifier alternation,
+    # the negation of it becomes disjunction so we need existential variables to look at multiple branches:
     for line in parsed.white_goal_constraints:
-      assert(len(line) <= 1)
+      if (len(line) > 1):
+        self.extra_white_quantifier_alternation = 1
+      # if white goal num constraints is not set to 0, then they are should be equal:
+      if (self.white_single_goal_num_constraints == 0):
+        self.white_single_goal_num_constraints = len(line)
+      else:
+        assert(self.white_single_goal_num_constraints == len(line))
+
+
+    # allocating variables for white constraints, for now looking at the strings to check if both indexes are necessary,
+    # we only generate x,y variables for white if we need an extra quantifier alternation (otherwise we simply use the forall positions),
+    # note that right now we only handle goal constraints based on single position:
+
+    self.white_goal_index_variables = []
+    # checking for x index:
+    temp_x_index_white_variables = []
+    # we only generate variables if alternation is needed:
+    if (self.extra_white_quantifier_alternation == 1):
+      for line in parsed.white_goal_constraints:
+        for constraint in line:
+          if ('?x' in constraint):
+            # we have x indexed position:
+            temp_x_index_white_variables = self.encoding_variables.get_vars(self.num_x_index_variables)
+            break
+        # we only allocate the variables once:
+        if (len(temp_x_index_white_variables) != 0):
+          break
+    self.white_goal_index_variables.append(temp_x_index_white_variables)
+    # checking for y index
+    temp_y_index_white_variables = []
+    if (self.extra_white_quantifier_alternation == 1):
+      for line in parsed.white_goal_constraints:
+        for constraint in line:
+          if ('?y' in constraint):
+            # we have y indexed position:
+            temp_y_index_white_variables = self.encoding_variables.get_vars(self.num_y_index_variables)
+            break
+        # we only allocate the variables once:
+        if (len(temp_y_index_white_variables) != 0):
+          break
+    self.white_goal_index_variables.append(temp_y_index_white_variables)
+
+    # Allocating univeral variables for white goal constraints, each branch which constrain a single white goal,
+    # (in negated white constraints), we need to specify that all the constraints voilate in one of the individual constraints,
+    # for that we use boolean variables:
+    # we do not need boolean variables if there is only one goal conjunction though:
+    self.num_white_goal_constraints = len(self.parsed.white_goal_constraints)
+    if (self.num_white_goal_constraints > 1):
+      self.num_white_goal_conjunction_forall_variables = int(math.ceil(math.log2(self.num_white_goal_constraints)))
+      self.forall_conjunction_white_goal_boolean_variables = self.encoding_variables.get_vars(self.num_white_goal_conjunction_forall_variables)
+
+
+    # in each of the branch we need to specify where the white constraint fails (good for negation):
+    # only if we have more than 1 disjunct in the constraints, we need to generate boolean variables:
+    if (self.white_single_goal_num_constraints > 1):
+      self.num_white_goal_single_disjunct_boolean_variables = int(math.ceil(math.log2(self.white_single_goal_num_constraints)))
+      self.single_white_goal_disjunct_boolean_variables = self.encoding_variables.get_vars(self.num_white_goal_single_disjunct_boolean_variables)
+
+      # since existential, we need lessthan constraint in the white goal so we need the upper bound:
+      self.single_white_goal_disjunct_upper_limit = int(math.pow(2,self.num_white_goal_single_disjunct_boolean_variables))
+
+
 
     if (parsed.args.debug == 1):
       print("black goal variables: ",self.black_goal_index_variables)
+      print("extra quantifier alternative for white goal: ",self.extra_white_quantifier_alternation)
+      print("number of white single goal constraints: ",self.white_single_goal_num_constraints)
+      print("white goal variables: ",self.white_goal_index_variables)
 
     # Allocating forall position variables:
     self.forall_position_variables = []
