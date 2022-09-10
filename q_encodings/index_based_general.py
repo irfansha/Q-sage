@@ -291,6 +291,23 @@ class IndexBasedGeneral:
     if (len(all_black_goal_vars) > 0):
       self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in all_black_goal_vars) + ')'])
 
+    # white goal variables, first forall variables from x,y and conjunction choosing variables:
+    all_forall_white_goal_vars = []
+    self.quantifier_block.append(['# white goal index and conjunction variables: '])
+    # index variables:
+    all_forall_white_goal_vars.extend(self.white_goal_index_variables[0])
+    all_forall_white_goal_vars.extend(self.white_goal_index_variables[1])
+    # choosing conjunction variables:
+    if (self.num_white_goal_constraints > 1):
+      all_forall_white_goal_vars.extend(self.forall_conjunction_white_goal_boolean_variables)
+    if (len(all_forall_white_goal_vars) > 0):
+      self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in all_forall_white_goal_vars) + ')'])
+
+    # existential choosing variables,
+    # if we have a quantifier alternation, then there must be the disjunct variables:
+    if (self.extra_white_quantifier_alternation == 1):
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.single_white_goal_disjunct_boolean_variables) + ')'])
+
 
     # Forall position variables:
     self.quantifier_block.append(['# Forall index variables: '])
@@ -771,6 +788,7 @@ class IndexBasedGeneral:
     goal_step_output_gates = []
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
+    #================================================================================================================================================================================
     # generating black goal constraints:
     self.encoding.append(['# Black goal constraints: '])
     for single_conjunction_index in range(self.num_black_goal_constraints):
@@ -822,32 +840,36 @@ class IndexBasedGeneral:
         lsc.add_circuit(self.gates_generator, self.disjunction_goal_boolean_variables, self.num_black_goal_constraints)
         goal_step_output_gates.append(self.gates_generator.output_gate)
 
+    #================================================================================================================================================================================
 
     # generating white goal constraints if maker-maker game:
     if (self.makermaker_game == 1):
       self.encoding.append(['# White goal constraints: '])
-      # for now only handling breakthrough and kinghtthrough, to be extended:
-      assert(len(self.parsed.white_goal_constraints) == 1 and len(self.parsed.white_goal_constraints[0]) == 1)
-      white_constraint = self.parsed.white_goal_constraints[0][0]
-      # for now it is an integer:
-      white_y_constraint = int(white_constraint.split(",")[-1].strip(" ").strip(")")) - 1
-      # for now the x constraint is simple the ?x variable:
-      assert('?x' in white_constraint)
+      # for now handling breakthrough and kinghtthrough as a seperate case, to be integrated later:
+      if (self.num_white_goal_constraints == 1 and self.white_single_goal_num_constraints == 1):
+        white_constraint = self.parsed.white_goal_constraints[0][0]
+        # for now it is an integer:
+        white_y_constraint = int(white_constraint.split(",")[-1].strip(" ").strip(")")) - 1
+        # for now the x constraint is simple the ?x variable:
+        assert('?x' in white_constraint)
 
-      # generating binary format for the y white constraint:
-      self.encoding.append(['# y constraint white binary format with forall y variables: '])
-      y_white_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],white_y_constraint)
-      self.gates_generator.and_gate(y_white_constraint_binary_format)
-      if_y_white_constraint_output_gate = self.gates_generator.output_gate
+        # generating binary format for the y white constraint:
+        self.encoding.append(['# y constraint white binary format with forall y variables: '])
+        y_white_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],white_y_constraint)
+        self.gates_generator.and_gate(y_white_constraint_binary_format)
+        if_y_white_constraint_output_gate = self.gates_generator.output_gate
 
-      self.encoding.append(['# White position constraints: '])
-      self.gates_generator.and_gate([self.predicate_variables[-1][0], self.predicate_variables[-1][1]])
-      white_position_output_gate = self.gates_generator.output_gate
+        self.encoding.append(['# White position constraints: '])
+        self.gates_generator.and_gate([self.predicate_variables[-1][0], self.predicate_variables[-1][1]])
+        white_position_output_gate = self.gates_generator.output_gate
 
-      # non existence of white is necessary so we negate the white position constraints:
-      self.encoding.append(['# If then not white goal constraint: '])
-      self.gates_generator.if_then_gate(if_y_white_constraint_output_gate, -white_position_output_gate)
-      goal_step_output_gates.append(self.gates_generator.output_gate)
+        # non existence of white is necessary so we negate the white position constraints:
+        self.encoding.append(['# If then not white goal constraint: '])
+        self.gates_generator.if_then_gate(if_y_white_constraint_output_gate, -white_position_output_gate)
+        goal_step_output_gates.append(self.gates_generator.output_gate)
+      else:
+        # for now, we look at the grounded httt instances:
+        print("In progress")
 
     #----------------------------------------------------------------------------------------------------------------
     # Final goal gate:
