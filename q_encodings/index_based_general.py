@@ -968,9 +968,9 @@ class IndexBasedGeneral:
           # we have x indexed position:
           temp_x_index_black_variables = self.encoding_variables.get_vars(self.num_x_index_variables)
           break
-        # we only allocate the variables once:
-        if (len(temp_x_index_black_variables) != 0):
-          break
+      # we only allocate the variables once:
+      if (len(temp_x_index_black_variables) != 0):
+        break
     self.black_goal_index_variables.append(temp_x_index_black_variables)
     # checking for y index
     temp_y_index_black_variables = []
@@ -980,9 +980,9 @@ class IndexBasedGeneral:
           # we have y indexed position:
           temp_y_index_black_variables = self.encoding_variables.get_vars(self.num_y_index_variables)
           break
-        # we only allocate the variables once:
-        if (len(temp_y_index_black_variables) != 0):
-          break
+      # we only allocate the variables once:
+      if (len(temp_y_index_black_variables) != 0):
+        break
     self.black_goal_index_variables.append(temp_y_index_black_variables)
 
     # for now only handing breakthrough and kinghtthrough, so we do not need any extra variables:
