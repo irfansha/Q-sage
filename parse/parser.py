@@ -513,17 +513,52 @@ class Parse:
       for line in self.parsed_dict["#whitegoal"]:
         temp_list = []
         for constraint in line:
-          # asserting there is no computation along with min, max in the goal state for now:
-          if ('xmin' in constraint or 'xmax' in constraint or 'ymin' in constraint or 'ymax' in constraint):
-            assert("+" not in constraint)
-            assert("-" not in constraint)
           # replacing xmin with 1 and xmax with xmax from input:
           constraint = constraint.replace('xmin','1')
           constraint = constraint.replace('xmax',str(self.xmax))
           # replacing ymin with 1 and ymax with ymax from input:
           constraint = constraint.replace('ymin','1')
           constraint = constraint.replace('ymax',str(self.ymax))
-          temp_list.append(constraint)
+
+          # removing spaces:
+          constraint = constraint.replace(' ','')
+          # ========================================================
+          # computing the sum/diff in goal constriants:
+          if (constraint[:2] == 'le'):
+            # computing the addition and subtraction:
+            bound_computation = constraint.strip(")").split(",")[-1]
+            #print(bound_computation, constraint)
+            result = compute(bound_computation)
+            # we do not want negative numbers or zero for less than operator:
+            assert((result) > 0)
+            # replacing with the computed result:
+            constraint = constraint.replace(bound_computation, str(result))
+            # after changes now it is lessthan operator:
+            constraint = constraint.replace('le', 'lt')
+            if (result != 0):
+              temp_list.append(constraint)
+            # assert no addition and subtraction present in the string:
+            assert('+' not in constraint)
+            assert('-' not in constraint)
+          elif(constraint[:2] == 'ge'):
+            bound_computation = constraint.strip(")").split(",")[-1]
+            result = compute(bound_computation)
+            result = result - 1
+            # we do not want negative numbers or zero for less than operator:
+            # replacing with the computed result -1, since we substract 1 for ge case:
+            constraint = constraint.replace(bound_computation, str(result))
+            # after changes now it is not lessthan operator:
+            constraint = constraint.replace('ge', 'nlt')
+            if (result != 0):
+              temp_list.append(constraint)
+            # assert no addition and subtraction present in the string:
+            assert('+' not in constraint)
+            assert('-' not in constraint)
+          else:
+            # no computation is needed:
+            temp_list.append(constraint)
+
+          # ========================================================
         self.white_goal_constraints.append(temp_list)
 
 
