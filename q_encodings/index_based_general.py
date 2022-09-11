@@ -869,7 +869,71 @@ class IndexBasedGeneral:
         goal_step_output_gates.append(self.gates_generator.output_gate)
       else:
         # for now, we look at the grounded httt instances:
-        print("In progress")
+        # We specify each branch i.e., specific white conjunction forall variable branch, and disjunction choosing branch and specific forall positions variables (if present)
+        # if the solver is in any of the branches then the final state must be non-white, for now assuming all the constraints are simply white in white goal:
+        # constraints for each white goal constraints branch:
+        print("white===================================================================================")
+        for white_goal_conjunction_index in range(self.num_white_goal_constraints):
+          # generate binary constraint for the white goal index:
+          self.encoding.append(['# computing white goal forall index: '])
+          temp_binary_variables = self.generate_binary_format(self.forall_conjunction_white_goal_boolean_variables, white_goal_conjunction_index)
+          self.gates_generator.and_gate(temp_binary_variables)
+          white_goal_conjunction_index_binary_gate = self.gates_generator.output_gate
+          # constraint for each disjunct in the current single white goal branch:
+          for single_white_goal_disjunction_index in range(self.white_single_goal_num_constraints):
+            self.encoding.append(['# computing single white goal disjunct index: '])
+            temp_binary_variables = self.generate_binary_format(self.single_white_goal_disjunct_boolean_variables, single_white_goal_disjunction_index)
+            self.gates_generator.and_gate(temp_binary_variables)
+            single_white_goal_disjunction_index_binary_gate = self.gates_generator.output_gate
+
+            # using the both above indexes, we chose the forall position branch to look at:
+            cur_constraint = self.parsed.white_goal_constraints[white_goal_conjunction_index][single_white_goal_disjunction_index]
+            #==========================================================================================================================
+            # bounds to be handled properly later:
+            '''
+            if ("nlt" in cur_constraint):
+              assert(" " not in cur_constraint)
+              # passing x variables and y variables along with index constraint:
+              bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], cur_constraint)
+
+              if (bound_result != 'None'):
+                # negative bound so negation:
+                single_constraint_output_gates.append(-bound_result)
+            elif ("lt" in constraint):
+              assert(" " not in constraint)
+              # passing x variables and y variables along with index constraint:
+              bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
+
+              if (bound_result != 'None'):
+                single_constraint_output_gates.append(bound_result)
+            '''
+            #==========================================================================================================================
+            # assuming there are no lt or nlt in the constraint:
+            assert("nlt" not in cur_constraint)
+            assert("lt" not in cur_constraint)
+            split_condition = cur_constraint.strip(")").split("(")
+            predicate = split_condition[0]
+            # asserting the predicate is always white, for now:
+            assert(predicate == "white")
+            self.encoding.append(['# computing white goal constraint in white_goal[' + str(white_goal_conjunction_index) + "][" + str(single_white_goal_disjunction_index) + ']' ])
+            constraint_pair = split_condition[1].split(",")
+            # we need to handle any adders and subtractors if both variables are present:
+            cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.white_goal_index_variables[0],self.white_goal_index_variables[1], constraint_pair)
+            # conjunction of all the current if conditions, for now assumming there exists a quantifier alternation,
+            # we can also add only the specific if conditions based on the requirement:
+            self.gates_generator.and_gate([white_goal_conjunction_index_binary_gate,single_white_goal_disjunction_index_binary_gate,cur_equality_gate ])
+            cur_final_if_condition_output_gate = self.gates_generator.output_gate
+            # if the if_condition is true then the predicate must not be white:
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, self.parsed.depth ,"neg")
+            goal_step_output_gates.append(cur_constraint_gate)
+
+        # if the number of disjunction is not the max upper limit, we need less than constraint:
+        if (self.white_single_goal_num_constraints > 1):
+          if (self.single_white_goal_disjunct_upper_limit != self.white_single_goal_num_constraints):
+            lsc.add_circuit(self.gates_generator, self.single_white_goal_disjunct_boolean_variables, self.white_single_goal_num_constraints)
+          goal_step_output_gates.append(self.gates_generator.output_gate)
+
+
 
     #----------------------------------------------------------------------------------------------------------------
     # Final goal gate:
@@ -1084,6 +1148,8 @@ class IndexBasedGeneral:
       print("extra quantifier alternative for white goal: ",self.extra_white_quantifier_alternation)
       print("number of white single goal constraints: ",self.white_single_goal_num_constraints)
       print("white goal variables: ",self.white_goal_index_variables)
+      if (self.num_white_goal_constraints > 1):
+        print("forall conjunction white goal boolean variables: ",self.forall_conjunction_white_goal_boolean_variables)
 
     # Allocating forall position variables:
     self.forall_position_variables = []
