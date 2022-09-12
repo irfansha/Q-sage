@@ -872,7 +872,7 @@ class IndexBasedGeneral:
         # We specify each branch i.e., specific white conjunction forall variable branch, and disjunction choosing branch and specific forall positions variables (if present)
         # if the solver is in any of the branches then the final state must be non-white, for now assuming all the constraints are simply white in white goal:
         # constraints for each white goal constraints branch:
-        print("white===================================================================================")
+        #print("white===================================================================================")
         for white_goal_conjunction_index in range(self.num_white_goal_constraints):
           # generate binary constraint for the white goal index:
           self.encoding.append(['# computing white goal forall index: '])
@@ -890,42 +890,64 @@ class IndexBasedGeneral:
             cur_constraint = self.parsed.white_goal_constraints[white_goal_conjunction_index][single_white_goal_disjunction_index]
             #==========================================================================================================================
             # bounds to be handled properly later:
-            '''
+            #'''
+            # current if conditions for bound constraints:
+            cur_if_bound_gates = []
             if ("nlt" in cur_constraint):
               assert(" " not in cur_constraint)
+              cur_if_bound_gates.append(white_goal_conjunction_index_binary_gate)
+
               # passing x variables and y variables along with index constraint:
-              bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], cur_constraint)
+              bound_result = self.generate_index_constraint(self.white_goal_index_variables[0], self.white_goal_index_variables[1], cur_constraint)
 
               if (bound_result != 'None'):
                 # negative bound so negation:
-                single_constraint_output_gates.append(-bound_result)
-            elif ("lt" in constraint):
-              assert(" " not in constraint)
+                cur_if_bound_gates.append(-bound_result)
+
+              # if there is a valid bound constraint then it can not be the counter example:
+              self.gates_generator.and_gate(cur_if_bound_gates)
+              cur_if_bound_final_gate = self.gates_generator.output_gate
+
+              self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
+              if self.gates_generator.output_gate not in goal_step_output_gates:
+                goal_step_output_gates.append(self.gates_generator.output_gate)
+
+            elif ("lt" in cur_constraint):
+              assert(" " not in cur_constraint)
               # passing x variables and y variables along with index constraint:
-              bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
+              bound_result = self.generate_index_constraint(self.white_goal_index_variables[0], self.white_goal_index_variables[1], cur_constraint)
 
               if (bound_result != 'None'):
-                single_constraint_output_gates.append(bound_result)
-            '''
+                cur_if_bound_gates.append(bound_result)
+
+              # if there is a valid bound constraint then it can not be the counter example:
+              self.gates_generator.and_gate(cur_if_bound_gates)
+              cur_if_bound_final_gate = self.gates_generator.output_gate
+
+              self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
+              if self.gates_generator.output_gate not in goal_step_output_gates:
+                goal_step_output_gates.append(self.gates_generator.output_gate)
+            #'''
             #==========================================================================================================================
             # assuming there are no lt or nlt in the constraint:
-            assert("nlt" not in cur_constraint)
-            assert("lt" not in cur_constraint)
-            split_condition = cur_constraint.strip(")").split("(")
-            predicate = split_condition[0]
-            # asserting the predicate is always white, for now:
-            assert(predicate == "white")
-            self.encoding.append(['# computing white goal constraint in white_goal[' + str(white_goal_conjunction_index) + "][" + str(single_white_goal_disjunction_index) + ']' ])
-            constraint_pair = split_condition[1].split(",")
-            # we need to handle any adders and subtractors if both variables are present:
-            cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.white_goal_index_variables[0],self.white_goal_index_variables[1], constraint_pair)
-            # conjunction of all the current if conditions, for now assumming there exists a quantifier alternation,
-            # we can also add only the specific if conditions based on the requirement:
-            self.gates_generator.and_gate([white_goal_conjunction_index_binary_gate,single_white_goal_disjunction_index_binary_gate,cur_equality_gate ])
-            cur_final_if_condition_output_gate = self.gates_generator.output_gate
-            # if the if_condition is true then the predicate must not be white:
-            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, self.parsed.depth ,"neg")
-            goal_step_output_gates.append(cur_constraint_gate)
+            else:
+              assert("nlt" not in cur_constraint)
+              assert("lt" not in cur_constraint)
+              split_condition = cur_constraint.strip(")").split("(")
+              predicate = split_condition[0]
+              # asserting the predicate is always white, for now:
+              assert(predicate == "white")
+              self.encoding.append(['# computing white goal constraint in white_goal[' + str(white_goal_conjunction_index) + "][" + str(single_white_goal_disjunction_index) + ']' ])
+              constraint_pair = split_condition[1].split(",")
+              # we need to handle any adders and subtractors if both variables are present:
+              cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.white_goal_index_variables[0],self.white_goal_index_variables[1], constraint_pair)
+              # conjunction of all the current if conditions, for now assumming there exists a quantifier alternation,
+              # we can also add only the specific if conditions based on the requirement:
+              self.gates_generator.and_gate([white_goal_conjunction_index_binary_gate,single_white_goal_disjunction_index_binary_gate,cur_equality_gate ])
+              cur_final_if_condition_output_gate = self.gates_generator.output_gate
+              # if the if_condition is true then the predicate must not be white:
+              cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, self.parsed.depth ,"neg")
+              goal_step_output_gates.append(cur_constraint_gate)
 
         # if the number of disjunction is not the max upper limit, we need less than constraint:
         if (self.white_single_goal_num_constraints > 1):
