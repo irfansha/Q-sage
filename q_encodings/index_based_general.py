@@ -876,9 +876,11 @@ class IndexBasedGeneral:
         for white_goal_conjunction_index in range(self.num_white_goal_constraints):
           # generate binary constraint for the white goal index:
           self.encoding.append(['# computing white goal forall index: '])
-          temp_binary_variables = self.generate_binary_format(self.forall_conjunction_white_goal_boolean_variables, white_goal_conjunction_index)
-          self.gates_generator.and_gate(temp_binary_variables)
-          white_goal_conjunction_index_binary_gate = self.gates_generator.output_gate
+          # if there is only one constraint, then we do not need the universal variables:
+          if (self.num_white_goal_constraints > 1):
+            temp_binary_variables = self.generate_binary_format(self.forall_conjunction_white_goal_boolean_variables, white_goal_conjunction_index)
+            self.gates_generator.and_gate(temp_binary_variables)
+            white_goal_conjunction_index_binary_gate = self.gates_generator.output_gate
           # constraint for each disjunct in the current single white goal branch:
           for single_white_goal_disjunction_index in range(self.white_single_goal_num_constraints):
             self.encoding.append(['# computing single white goal disjunct index: '])
@@ -895,7 +897,8 @@ class IndexBasedGeneral:
             cur_if_bound_gates = []
             if ("nlt" in cur_constraint):
               assert(" " not in cur_constraint)
-              cur_if_bound_gates.append(white_goal_conjunction_index_binary_gate)
+              if (self.num_white_goal_constraints > 1):
+                cur_if_bound_gates.append(white_goal_conjunction_index_binary_gate)
 
               # passing x variables and y variables along with index constraint:
               bound_result = self.generate_index_constraint(self.white_goal_index_variables[0], self.white_goal_index_variables[1], cur_constraint)
@@ -904,29 +907,37 @@ class IndexBasedGeneral:
                 # negative bound so negation:
                 cur_if_bound_gates.append(-bound_result)
 
-              # if there is a valid bound constraint then it can not be the counter example:
-              self.gates_generator.and_gate(cur_if_bound_gates)
-              cur_if_bound_final_gate = self.gates_generator.output_gate
+              # if there is no bound and no conjunctive if condition, then we do not need the following constraints:
+              if (self.num_white_goal_constraints > 1):
+                # if there is a valid bound constraint then it can not be the counter example:
+                self.gates_generator.and_gate(cur_if_bound_gates)
+                cur_if_bound_final_gate = self.gates_generator.output_gate
 
-              self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
-              if self.gates_generator.output_gate not in goal_step_output_gates:
-                goal_step_output_gates.append(self.gates_generator.output_gate)
+                self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
+                if self.gates_generator.output_gate not in goal_step_output_gates:
+                  goal_step_output_gates.append(self.gates_generator.output_gate)
 
             elif ("lt" in cur_constraint):
               assert(" " not in cur_constraint)
+
+              if (self.num_white_goal_constraints > 1):
+                cur_if_bound_gates.append(white_goal_conjunction_index_binary_gate)
+
               # passing x variables and y variables along with index constraint:
               bound_result = self.generate_index_constraint(self.white_goal_index_variables[0], self.white_goal_index_variables[1], cur_constraint)
 
               if (bound_result != 'None'):
                 cur_if_bound_gates.append(bound_result)
 
-              # if there is a valid bound constraint then it can not be the counter example:
-              self.gates_generator.and_gate(cur_if_bound_gates)
-              cur_if_bound_final_gate = self.gates_generator.output_gate
+              # if there is no bound and no conjunctive if condition, then we do not need the following constraints:
+              if (self.num_white_goal_constraints > 1):
+                # if there is a valid bound constraint then it can not be the counter example:
+                self.gates_generator.and_gate(cur_if_bound_gates)
+                cur_if_bound_final_gate = self.gates_generator.output_gate
 
-              self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
-              if self.gates_generator.output_gate not in goal_step_output_gates:
-                goal_step_output_gates.append(self.gates_generator.output_gate)
+                self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
+                if self.gates_generator.output_gate not in goal_step_output_gates:
+                  goal_step_output_gates.append(self.gates_generator.output_gate)
             #'''
             #==========================================================================================================================
             # assuming there are no lt or nlt in the constraint:
@@ -943,8 +954,13 @@ class IndexBasedGeneral:
               cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.white_goal_index_variables[0],self.white_goal_index_variables[1], constraint_pair)
               # conjunction of all the current if conditions, for now assumming there exists a quantifier alternation,
               # we can also add only the specific if conditions based on the requirement:
-              self.gates_generator.and_gate([white_goal_conjunction_index_binary_gate,single_white_goal_disjunction_index_binary_gate,cur_equality_gate ])
-              cur_final_if_condition_output_gate = self.gates_generator.output_gate
+              # if there is only one constraint, then we do not need the universal variables:
+              if (self.num_white_goal_constraints > 1):
+                self.gates_generator.and_gate([white_goal_conjunction_index_binary_gate,single_white_goal_disjunction_index_binary_gate,cur_equality_gate])
+                cur_final_if_condition_output_gate = self.gates_generator.output_gate
+              else:
+                self.gates_generator.and_gate([single_white_goal_disjunction_index_binary_gate,cur_equality_gate])
+                cur_final_if_condition_output_gate = self.gates_generator.output_gate
               # if the if_condition is true then the predicate must not be white:
               cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, self.parsed.depth ,"neg")
               goal_step_output_gates.append(cur_constraint_gate)

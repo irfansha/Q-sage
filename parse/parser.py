@@ -561,6 +561,23 @@ class Parse:
           # ========================================================
         self.white_goal_constraints.append(temp_list)
 
+      #first finding the maximum number of constraints in a single goal:
+      max_white_goal_len = 0
+      for single_constraint in self.white_goal_constraints:
+        if (max_white_goal_len < len(single_constraint)):
+          max_white_goal_len = len(single_constraint)
+
+      # making the number of constraints in each single white goal same:
+      # if number of constraints are less than max, we simply append the last constraint multiple times:
+      for i in range(len(self.white_goal_constraints)):
+        last_constraint = self.white_goal_constraints[i][-1]
+        if (len(self.white_goal_constraints[i]) < max_white_goal_len):
+          # asserting it is an index bound:
+          assert('lt' in last_constraint)
+          num_iter = max_white_goal_len - len(self.white_goal_constraints[i])
+          # repeately appending the last constraint:
+          for j in range(num_iter):
+            self.white_goal_constraints[i].append(last_constraint)
 
 
       if (args.debug == 1):
