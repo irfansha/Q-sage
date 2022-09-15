@@ -25,6 +25,8 @@ if __name__ == '__main__':
   text = "A tool to generate ungrounded QBF encodings for 2-player positional games and computes winning statergy if requested."
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("-V", "--version", help="show program version", action="store_true")
+  parser.add_argument("--ib_domain", help=" index based domain file path", default = 'testcases/index_separate_inputs/domain.ig')
+  parser.add_argument("--ib_problem", help=" index based problem file path", default = 'testcases/index_separate_inputs/problem.ig')
   parser.add_argument("--problem", help="problem file path", default = 'testcases/winning_testcases_ungrounded_new_boards/hein_04_3x3-05.pg')
   parser.add_argument("--planner_path", help="path for Q-sage.py, allowing remote run", default = os.getcwd())
   parser.add_argument("--depth", help="Depth, default 3", type=int,default = 3)

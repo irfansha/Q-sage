@@ -26,11 +26,253 @@ def compute(str):
     # nothing to compute:
     return int(str)
 
+# we take a list of constraints and compute the bounds of the x and y if any:
+def compute_index_bounds(constraints):
+  xmin = 0
+  xmax = 0
+  ymin = 0
+  ymax = 0
+  # we will set a flag if there is computation:
+  no_computation = 1
+
+  for constraint in constraints:
+    # only when there is computation we will
+    if ('+' in constraint or '-' in constraint):
+      no_computation = 0
+      # we do not want any spaces:
+      constraint = constraint.replace(' ','')
+      # stripping any "(" or ")":
+      assert(" " not in constraint)
+      constraint = constraint.strip("(").strip(")")
+      constraint = constraint.strip("NOT").strip("black").strip("white").strip("open")
+      constraint = constraint.strip("(").strip(")")
+      x_index, y_index = constraint.split(",")
+      # computing the new bounds for both indexs:
+      if ('+' in x_index):
+        x_value = int(x_index.split("+")[-1])
+        if (xmax < x_value):
+          xmax = x_value
+      elif('-' in x_index):
+        x_value = int(x_index.split("-")[-1])
+        if (xmin < x_value):
+          xmin = x_value
+
+      if ('+' in y_index):
+        y_value = int(y_index.split("+")[-1])
+        if (ymax < y_value):
+          ymax = y_value
+      elif('-' in y_index):
+        y_value = int(y_index.split("-")[-1])
+        if (ymin < y_value):
+          ymin = y_value
+  final_list = []
+  if xmin == 0:
+    final_list.append("ge(?x,xmin)")
+  else:
+    final_list.append("ge(?x,xmin+" + str(xmin) + ")")
+
+  if xmax == 0:
+    final_list.append("le(?x,xmax)")
+  else:
+    final_list.append("le(?x,xmax-" + str(xmax) + ")")
+
+  if ymin == 0:
+    final_list.append("ge(?y,ymin)")
+  else:
+    final_list.append("ge(?y,ymin+" + str(ymin) + ")")
+
+  if ymax == 0:
+    final_list.append("le(?y,ymax)")
+  else:
+    final_list.append("le(?y,ymax-" + str(ymax) + ")")
+
+
+  return final_list, no_computation
+
+# reads both the domain and problem files and computes the index bounds where necessary,
+# writes to the intermediate problem file for rest of the encoding generation:
+def combine(args):
+
+  domain_file = args.ib_domain
+  problem_file = args.ib_problem
+
+  #============================================================================
+  # reading domain file:
+  f_domain = open(domain_file,"r")
+
+  lines = f_domain.readlines()
+
+  f_domain.close()
+
+  parsed_dict = {}
+
+
+  for line in lines:
+    stripped_line = line.strip("\n").strip(" ").split(" ")
+    # we ignore if it is a comment:
+    if ('%' == line[0] or line == '\n'):
+      continue
+    if ("#" in line):
+      new_key = line.strip("\n")
+      parsed_dict[new_key] = []
+    else:
+      parsed_dict[new_key].append(stripped_line)
+
+  # reading actions from domain file:
+  # reading black actions:
+  black_action_list = []
+  count  = 0
+  # initializing step action lines:
+  one_action_lines = []
+  for line in parsed_dict['#blackactions']:
+    # for every 5 lines, call the action to make an object and reset:
+    if (count == 4):
+      black_action_list.append(one_action_lines)
+      count = 0
+      one_action_lines = []
+    # with or without resetting we need to read the current line:
+    one_action_lines.append(line)
+    count = count + 1
+  black_action_list.append(one_action_lines)
+
+  #for single_action in black_action_list:
+  #  print(single_action)
+
+  #'''
+  # reading white actions:
+  white_action_list = []
+  count  = 0
+  # initializing step action lines:
+  one_action_lines = []
+  for line in parsed_dict['#whiteactions']:
+    # for every 5 lines, call the action to make an object and reset:
+    if (count == 4):
+      white_action_list.append(one_action_lines)
+      count = 0
+      one_action_lines = []
+    # with or without resetting we need to read the current line:
+    one_action_lines.append(line)
+    count = count + 1
+  # handiling the final action:
+  white_action_list.append(one_action_lines)
+  #'''
+  #============================================================================
+
+  # reading problem file:
+  # reading domain file:
+  f_problem = open(problem_file,"r")
+
+  p_lines = f_problem.readlines()
+
+  f_problem.close()
+
+  p_parsed_dict = {}
+
+
+  for p_line in p_lines:
+    p_stripped_line = p_line.strip("\n").strip(" ").split(" ")
+    # we ignore if it is a comment:
+    if ('%' == p_line[0] or p_line == '\n'):
+      continue
+    if ("#" in p_line):
+      new_key = p_line.strip("\n")
+      p_parsed_dict[new_key] = []
+    else:
+      p_parsed_dict[new_key].append(p_stripped_line)
+
+  #============================================================================
+
+
+  # combining the input along with index bounds computation:
+  f_combined_file = open(args.problem, 'w')
+  f_combined_file.write("#boardsize\n")
+  f_combined_file.write(' '.join(p_parsed_dict['#boardsize'][0]) + '\n')
+  f_combined_file.write("#blackinitials\n")
+  for b_init in p_parsed_dict['#blackinitials']:
+    f_combined_file.write(b_init[0] + "\n")
+  f_combined_file.write("#whiteinitials\n")
+  for b_init in p_parsed_dict['#whiteinitials']:
+    f_combined_file.write(b_init[0] + "\n")
+  f_combined_file.write("#depth\n")
+  f_combined_file.write(p_parsed_dict['#depth'][0][0] + "\n")
+
+  # printing actions and computing index bound at the same time:
+  f_combined_file.write("#blackactions\n")
+  for i in range(len(black_action_list)):
+    f_combined_file.write("%action " + str(i+1) + "\n")
+    cur_constraints = []
+    # gather preconditions and effects:
+    cur_constraints.extend(black_action_list[i][2][1:])
+    cur_constraints.extend(black_action_list[i][3][1:])
+    # sending separate copy, we do not want to change the original parse:
+    temp_cur_constraints = list(cur_constraints)
+    # compute index bounds:
+    index_list, no_computation = compute_index_bounds(temp_cur_constraints)
+    # printing the action lines:
+    f_combined_file.write(" ".join(black_action_list[i][0]) + "\n")
+    f_combined_file.write(" ".join(black_action_list[i][1]) + "\n")
+    # adding index bounds here:
+    f_combined_file.write(":indexbounds ("+" ".join(index_list) + ")\n")
+    f_combined_file.write(" ".join(black_action_list[i][2]) + "\n")
+    f_combined_file.write(" ".join(black_action_list[i][3]) + "\n")
+    #print(black_action_list[i])
+
+  # printing actions and computing index bound at the same time:
+  f_combined_file.write("#whiteactions\n")
+  for i in range(len(white_action_list)):
+    f_combined_file.write("%action " + str(i+1) + "\n")
+    cur_constraints = []
+    # gather preconditions and effects:
+    cur_constraints.extend(white_action_list[i][2][1:])
+    cur_constraints.extend(white_action_list[i][3][1:])
+    # sending separate copy, we do not want to change the original parse:
+    temp_cur_constraints = list(cur_constraints)
+    # compute index bounds:
+    index_list, no_computation = compute_index_bounds(temp_cur_constraints)
+    # printing the action lines:
+    f_combined_file.write(" ".join(white_action_list[i][0]) + "\n")
+    f_combined_file.write(" ".join(white_action_list[i][1]) + "\n")
+    # adding index bounds here:
+    f_combined_file.write(":indexbounds ("+" ".join(index_list) + ")\n")
+    f_combined_file.write(" ".join(white_action_list[i][2]) + "\n")
+    f_combined_file.write(" ".join(white_action_list[i][3]) + "\n")
+
+  f_combined_file.write("#blackgoal\n")
+  for goal in p_parsed_dict["#blackgoal"]:
+    # copy for index computation:
+    cur_temp_goal = list(goal)
+    index_list, no_computation = compute_index_bounds(cur_temp_goal)
+    # we do not need indexes if there is no computation at all, for now:
+    if (no_computation == 0):
+      cur_temp_goal.extend(index_list)
+    f_combined_file.write(" ".join(cur_temp_goal) + "\n")
+  f_combined_file.write("#whitegoal\n")
+  for goal in p_parsed_dict["#whitegoal"]:
+    # copy for index computation:
+    cur_temp_goal = list(goal)
+    index_list, no_computation = compute_index_bounds(cur_temp_goal)
+    # we do not need indexes if there is no computation at all, for now:
+    if (no_computation == 0):
+      cur_temp_goal.extend(index_list)
+    f_combined_file.write(" ".join(cur_temp_goal) + "\n")
+
+
 class Parse:
 
   # Parses domain and problem file:
   def __init__(self, args):
     self.args = args
+
+
+    #'''
+    # if index based games, we first combine the domain and problem files after computing the inferred index bounds:
+    if (args.e == 'ib' and args.game_type == 'general'):
+      # assigning new intermediate path to combined problem file:
+      args.problem = 'intermediate_files/combined_input.ig'
+      combine(args)
+    #'''
+
+
     problem_path = args.problem
     f = open(problem_path, 'r')
     lines = f.readlines()
