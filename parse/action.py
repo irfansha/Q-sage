@@ -1,7 +1,5 @@
 # Irfansha Shaik, 03.06.2022, Aarhus.
 
-import ast
-
 
 # Does addition and substration for now in the string,
 # assuming only two numbers in the computation string:
@@ -101,7 +99,18 @@ class Action:
 
     # Separating positive and negative preconditions:
     assert(cur_action_lines[3][0] == ':precondition')
+
+    # assuming there is not computation with xmax and xmin, or ymax or ymin:
     original_line = ' '.join(cur_action_lines[3][1:])
+    # replacing xmin with 1 and xmax with xmax from input:
+    original_line = original_line.replace('xmin','1')
+    original_line = original_line.replace('xmax',str(parsed.xmax))
+    # replacing ymin with 1 and ymax with ymax from input:
+    original_line = original_line.replace('ymin','1')
+    original_line = original_line.replace('ymax',str(parsed.ymax))
+
+
+
     original_line_split = original_line[1:-1].replace(", ",",").split(" ")
     for condition in original_line_split:
       if ('NOT' not in condition):
@@ -113,6 +122,13 @@ class Action:
     # Separating positive and negative effects:
     assert(cur_action_lines[4][0] == ':effect')
     original_line = ' '.join(cur_action_lines[4][1:])
+    # replacing xmin with 1 and xmax with xmax from input:
+    original_line = original_line.replace('xmin','1')
+    original_line = original_line.replace('xmax',str(parsed.xmax))
+    # replacing ymin with 1 and ymax with ymax from input:
+    original_line = original_line.replace('ymin','1')
+    original_line = original_line.replace('ymax',str(parsed.ymax))
+
     original_line_split = original_line[1:-1].replace(", ",",").split(" ")
     for condition in original_line_split:
       if ('NOT' not in condition):
