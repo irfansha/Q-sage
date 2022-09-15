@@ -845,28 +845,19 @@ class IndexBasedGeneral:
     # generating white goal constraints if maker-maker game:
     if (self.makermaker_game == 1):
       self.encoding.append(['# White goal constraints: '])
-      # for now handling breakthrough and kinghtthrough as a seperate case, to be integrated later:
+      # if only one constraint and one goal in white, we consider as a seperate case, we do not need to allocate new variables:
       if (self.num_white_goal_constraints == 1 and self.white_single_goal_num_constraints == 1):
-        white_constraint = self.parsed.white_goal_constraints[0][0]
-        # for now it is an integer:
-        white_y_constraint = int(white_constraint.split(",")[-1].strip(" ").strip(")")) - 1
-        # for now the x constraint is simple the ?x variable:
-        assert('?x' in white_constraint)
-
-        # generating binary format for the y white constraint:
-        self.encoding.append(['# y constraint white binary format with forall y variables: '])
-        y_white_constraint_binary_format = self.generate_binary_format(self.forall_position_variables[1],white_y_constraint)
-        self.gates_generator.and_gate(y_white_constraint_binary_format)
-        if_y_white_constraint_output_gate = self.gates_generator.output_gate
-
-        self.encoding.append(['# White position constraints: '])
-        self.gates_generator.and_gate([self.predicate_variables[-1][0], self.predicate_variables[-1][1]])
-        white_position_output_gate = self.gates_generator.output_gate
-
-        # non existence of white is necessary so we negate the white position constraints:
-        self.encoding.append(['# If then not white goal constraint: '])
-        self.gates_generator.if_then_gate(if_y_white_constraint_output_gate, -white_position_output_gate)
-        goal_step_output_gates.append(self.gates_generator.output_gate)
+        split_condition = self.parsed.white_goal_constraints[0][0].strip(")").split("(")
+        predicate = split_condition[0]
+        # asserting the predicate is always white, for now:
+        assert(predicate == "white")
+        constraint_pair = split_condition[1].split(",")
+        # we need to handle any adders and subtractors if both variables are present:
+        # instead of white variables we use the forall variables:
+        cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.forall_position_variables[0],self.forall_position_variables[1], constraint_pair)
+        # if the if_condition is true then the predicate must not be white:
+        cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"neg")
+        goal_step_output_gates.append(cur_constraint_gate)
       else:
         # for now, we look at the grounded httt instances:
         # We specify each branch i.e., specific white conjunction forall variable branch, and disjunction choosing branch and specific forall positions variables (if present)
