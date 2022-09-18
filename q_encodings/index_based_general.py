@@ -938,7 +938,8 @@ class IndexBasedGeneral:
               split_condition = cur_constraint.strip(")").split("(")
               predicate = split_condition[0]
               # asserting the predicate is always white, for now:
-              assert(predicate == "white")
+              # we allow other predicates, but not negation for now:
+              #assert(predicate == "white")
               self.encoding.append(['# computing white goal constraint in white_goal[' + str(white_goal_conjunction_index) + "][" + str(single_white_goal_disjunction_index) + ']' ])
               constraint_pair = split_condition[1].split(",")
               # we need to handle any adders and subtractors if both variables are present:
