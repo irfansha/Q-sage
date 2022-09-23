@@ -1,6 +1,7 @@
 # Irfansha Shaik, 06.09.2022, Aarhus.
 
 import argparse
+import os
 import textwrap
 
 from pysat.formula import CNF
@@ -106,9 +107,9 @@ def run_sat_solver(m, assm):
 
 # Main:
 if __name__ == '__main__':
-  text = "Given a certificate and meta input for a game, plays interactively and checks if the winning condition is satisfied"
+  text = "Given a certificate and meta input for a game, plays interactively and checks if the winning condition is satisfied/n handle both ascii-aiger and cnf formats for certificates"
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
-  parser.add_argument("--certificate_path", help="certificate path", default = 'intermediate_files/certificate.cnf')
+  parser.add_argument("--certificate_path", help="certificate path", default = 'intermediate_files/certificate')
   parser.add_argument("--meta_path", help="meta information for game file path", default = 'intermediate_files/viz_meta_out')
   parser.add_argument("--player", help=textwrap.dedent('''
                                   player type:
@@ -121,7 +122,6 @@ if __name__ == '__main__':
 
   # Reading the input problem file
   parsed_dict = parse(args.meta_path)
-  print(parsed_dict)
 
   # Initialising required info
   board_size_x = int(parsed_dict["#boardsize"][0][0])
@@ -151,8 +151,19 @@ if __name__ == '__main__':
 
   state_vars = parsed_dict["#statevars"]
 
+  # checking the first line of the file for the certificate type:
+  with open(args.certificate_path,"r") as f:
+    first_line = f.readline()
 
-  formula = CNF(from_file=args.certificate_path)
+  if ("cnf" in first_line):
+    formula = CNF(from_file=args.certificate_path)
+  else:
+    # first converting aiger to cnf:
+    cnf_translator_command = "python3 utils/aag_to_dimacs.py --input_file " + args.certificate_path + " --output_file intermediate_files/translated_cert.cnf"
+    os.system(cnf_translator_command)
+    formula = CNF(from_file="intermediate_files/translated_cert.cnf")
+
+    #print(formula)
 
   m = Minisat22(bootstrap_with=formula.clauses)
 
@@ -182,7 +193,9 @@ if __name__ == '__main__':
         all_assumptions.extend(moves_played_vars)
 
         cur_model = run_sat_solver(m, all_assumptions)
+        #print(all_assumptions, cur_model)
         bin_string = get_binary_string(state_vars[k], cur_model)
+        #print(state_vars[k],bin_string)
         board_state[(i,j)] = pred_map[bin_string]
     print_board(board_size_x,board_size_y,board_state)
 

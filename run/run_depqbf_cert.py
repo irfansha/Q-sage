@@ -22,9 +22,10 @@ class RunDepqbfCert():
       if ("exit status 10" not in str(e) and "exit status 20"  not in str(e)):
         print("Error from solver :", e, e.output)
 
-    cert_generation_command = self.cert_gen_path + " --aiger-ascii --simplify intermediate_files/depqbf_qrp_trace.qrp > " + self.cert_path
-    # this must be very light process no need of time limit:
-    os.system(cert_generation_command)
+    if (self.cert_gen == 1):
+      cert_generation_command = self.cert_gen_path + " --aiger-ascii --simplify intermediate_files/depqbf_qrp_trace.qrp > " + self.cert_path
+      # this must be very light process no need of time limit:
+      os.system(cert_generation_command)
 
   # parsing the depqbf solver output:
   def parse_depqbf_output(self):
