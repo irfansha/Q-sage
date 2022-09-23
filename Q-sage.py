@@ -67,13 +67,14 @@ if __name__ == '__main__':
                                        5 = QDIMACS-moved'''),default = 2)
   parser.add_argument("--encoding_out", help="output encoding file",default = 'intermediate_files/encoding')
   parser.add_argument("--intermediate_encoding_out", help="output intermediate encoding file",default = 'intermediate_files/intermediate_encoding')
-  parser.add_argument("--certificate_out", help="certificate file path (assuming cnf)",default = 'intermediate_files/certificate.cnf')
+  parser.add_argument("--certificate_out", help="certificate file path",default = 'intermediate_files/certificate')
   parser.add_argument("--solver", type=int, help=textwrap.dedent('''
                                        Solver:
                                        1 = quabs
                                        2 = CAQE (default)
                                        3 = RaReQS
-                                       4 = Pedant'''),default = 2)
+                                       4 = Pedant
+                                       5 = DepQBF-qrp-cert (for now, main focus on certificate generation)'''),default = 2)
   parser.add_argument("--solver_out", help="solver output file",default = 'intermediate_files/solver_output')
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--run_tests", type=int, help="[0/1], default 0" ,default = 0)

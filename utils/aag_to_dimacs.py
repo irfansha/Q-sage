@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
   # qdimacs clauses:
   for line in dimacs_clauses_list:
-    print(line)
+    #print(line)
     string_line = ""
     for var in line:
       string_line += str(var) + " "
