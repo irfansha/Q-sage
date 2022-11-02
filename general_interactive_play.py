@@ -87,7 +87,8 @@ def print_board(board_size_x, board_size_y, board_state):
 
   index_line = '  '
   for i in range(board_size_x):
-    index_line += chr(97+i) + " "
+    #index_line += chr(97+i) + " "
+    index_line += str(i+1) + " "
 
   print(index_line)
 
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     formula = CNF(from_file=args.certificate_path)
   else:
     # first converting aiger to cnf:
-    cnf_translator_command = "python3 utils/aag_to_dimacs.py --input_file " + args.certificate_path + " --output_file intermediate_files/translated_cert.cnf"
+    cnf_translator_command = "python3 utils/aag_to_dimacs.py --input_file " + args.certificate_path + " > intermediate_files/translated_cert.cnf"
     os.system(cnf_translator_command)
     formula = CNF(from_file="intermediate_files/translated_cert.cnf")
 
@@ -192,6 +193,8 @@ if __name__ == '__main__':
         all_assumptions = list(cur_sym_pos_list)
         all_assumptions.extend(moves_played_vars)
 
+        #print(all_assumptions)
+
         cur_model = run_sat_solver(m, all_assumptions)
         #print(all_assumptions, cur_model)
         bin_string = get_binary_string(state_vars[k], cur_model)
@@ -204,13 +207,15 @@ if __name__ == '__main__':
     # if black player move then we get the winning move:
     if (k%2 == 0):
       cur_move_model = run_sat_solver(m,moves_played_vars)
+      #print(moves_played_vars)
       action_name_bin = get_binary_string(action_vars[k][0], cur_move_model)
       cur_action_name = parsed_dict["#blackactions"][int(action_name_bin,2)][0].split("(")[0]
 
       move_x_bin = get_binary_string(action_vars[k][1], cur_move_model)
       move_y_bin = get_binary_string(action_vars[k][2], cur_move_model)
 
-      print("\nmove played by black:", cur_action_name+ "(" +get_index(int(move_x_bin,2), int(move_y_bin,2)) + ")")
+      #print("\nmove played by black:", cur_action_name+ "(" +get_index(int(move_x_bin,2), int(move_y_bin,2)) + ")")
+      print("\nmove played by black:", cur_action_name+ "(" +str(int(move_x_bin,2)+1)+ "," + str(int(move_y_bin,2)+1) + ")")
 
       for i in range(3):
         moves_played_vars.extend(get_model_assignmet(action_vars[k][i], cur_move_model))
@@ -218,8 +223,8 @@ if __name__ == '__main__':
     # if white player (for now user), then we get the move from terminal:
     elif (k < depth):
       white_move = input("\nEnter your white move: ")
-      [white_move_name, white_move_index] = white_move.strip(")").split("(")
-      #print(white_move_name, white_move_index)
+      white_move_name = white_move.strip(")").split("(")[0]
+      #print(white_move_name)
 
       # getting the index of the action name:
       for i in range(len(parsed_dict["#whiteactions"])):
@@ -227,9 +232,13 @@ if __name__ == '__main__':
           white_action_name_index = i
 
       # the board starts with 'a' so mapping to zero:
-      white_move_index_x = ord(white_move_index[0]) - 97
+      #white_move_index_x = ord(white_move_index[0]) - 97
       # the boolean vars mapped to zero:
-      white_move_index_y = int(white_move_index[1:]) - 1
+      #white_move_index_y = int(white_move_index[1:]) - 1
+      white_move_indices = white_move.strip(")").split("(")[1].split(",")
+      white_move_index_x = int(white_move_indices[0])-1
+      white_move_index_y = int(white_move_indices[1])-1
+
 
       #print(white_move_index_x, white_move_index_y)
 
