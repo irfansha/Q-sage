@@ -24,7 +24,7 @@ def run_single_solver(encoding):
     # No solution extraction yet:
     #sol_map = instance.sol_map
   elif (args.solver == 5):
-    instance = rd(args)
+    instance = rd(args, encoding)
     sol_map = instance.sol_map
 
   # Checking existence of plan:
@@ -76,8 +76,10 @@ def run_single_solver(encoding):
       y_index = int(y_index_string, 2)
       # x_index is mapped to character starting from 'a' and
       # y index is increased by 1 to match the indexes:
-      winning_move = chr(ord('a')+x_index) + str(y_index + 1)
-      print("First winning move: " + str(winning_action) + "(" + str(winning_move) + ")")
+      #winning_move = chr(ord('a')+x_index) + str(y_index + 1)
+      #print("First winning move: " + str(winning_action) + "(" + str(winning_move) + ")")
+      # simply printing the proper index:
+      print("First winning move: " + str(winning_action) + "(" + str(x_index+1) + "," + str(y_index+1) + ")")
 
     else:
       # if already solved, just print any open position:
