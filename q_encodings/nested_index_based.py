@@ -658,7 +658,7 @@ class NestedIndexBased:
       all_valid_constraints.append(cur_bound_boolean_var)
       all_valid_constraints.extend(cur_precondition_boolean_variables)
       self.gates_generator.and_gate(all_valid_constraints)
-      self.valid_move_output_gate = self.gates_generator.output_gate
+      valid_move_output_gate = self.gates_generator.output_gate
 
       # remember effect positions, later for frame axioms:
       touched_position_output_gates = []
@@ -703,7 +703,7 @@ class NestedIndexBased:
 
 
       # finally the if then constraints for effects and propogation when the boolean variables hold for each action and when game is not stopped:
-      self.gates_generator.and_gate([self.valid_move_output_gate, -cur_game_stop_var, cur_action_binary_output_gate])
+      self.gates_generator.and_gate([valid_move_output_gate, -cur_game_stop_var, cur_action_binary_output_gate])
       if_condition_output_gate = self.gates_generator.output_gate
 
       # if then constraint:
@@ -731,10 +731,6 @@ class NestedIndexBased:
       else:
         self.generate_white_transition(i)
 
-
-    self.encoding.append(['# Final transition gate: '])
-    self.gates_generator.and_gate(self.transition_step_output_gates)
-    self.transition_output_gate = self.gates_generator.output_gate
 
 
   def generate_initial_gate(self):
@@ -1011,6 +1007,58 @@ class NestedIndexBased:
 
   # Final output gate is an and-gate with inital, goal and transition gates:
   def generate_final_gate(self):
+
+    self.encoding.append(["# ------------------------------------------------------------------------"])
+    self.encoding.append(['# Nested gates: '])
+
+    #'''
+    # starting with goal gate and last black gate:
+    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.goal_output_gate])
+    #print(self.transition_step_output_gates[-1], "&" ,self.goal_output_gate)
+    cur_outgate = self.gates_generator.output_gate
+    #print("and", cur_outgate)
+
+    #print(self.parsed.depth-1)
+
+    for i in range(self.parsed.depth):
+      reverse_index = self.parsed.depth-i-1
+      if (reverse_index%2==1):
+        # gathering legal boolen variables:
+        all_valid_constraints = []
+        all_valid_constraints.append(self.move_variables[reverse_index][3][0])
+        all_valid_constraints.extend(self.move_variables[reverse_index][4])
+        self.gates_generator.and_gate(all_valid_constraints)
+        valid_move_output_gate = self.gates_generator.output_gate
+        #print(reverse_index-1, reverse_index)
+
+        # first implying the cur_outgate with valid move gate:
+        self.gates_generator.if_then_gate(valid_move_output_gate, cur_outgate)
+        #print(valid_move_output_gate, "->", cur_outgate)
+
+        # conjunction with this round of constraints:
+        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index-1], self.transition_step_output_gates[reverse_index], self.gates_generator.output_gate])
+
+        cur_outgate = self.gates_generator.output_gate
+        #print("and", cur_outgate)
+
+    self.encoding.append(["# ------------------------------------------------------------------------"])
+    self.encoding.append(['# Final gate: '])
+
+    assert(self.initial_output_gate != 0)
+
+    self.encoding.append(['# Conjunction of Initial gate and nested output gate: '])
+    self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
+    self.final_output_gate = self.gates_generator.output_gate
+
+    #'''
+
+
+    ''' # previous gate costruction:
+    # computing conjunction of transition step gates first:
+    self.encoding.append(['# Final transition gate: '])
+    self.gates_generator.and_gate(self.transition_step_output_gates)
+    self.transition_output_gate = self.gates_generator.output_gate
+
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Final gate: '])
 
@@ -1019,7 +1067,7 @@ class NestedIndexBased:
     self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
     self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
     self.final_output_gate = self.gates_generator.output_gate
-
+    '''
 
   def __init__(self, parsed):
     self.parsed = parsed
