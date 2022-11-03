@@ -44,7 +44,8 @@ if __name__ == '__main__':
                                   cp = compact positional
                                   cgcp = compact goal compact positional
                                   ntpg = path based goal, without transition function
-                                  ib = index based (gomuku and general games, now for breakthrough first)
+                                  ib = index based (grid games)
+                                  nib = nested index based (grid games)
                                   wgttt = witness based gttt)'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):

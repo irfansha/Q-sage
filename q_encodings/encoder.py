@@ -17,6 +17,7 @@ from q_encodings.index_based_general import IndexBasedGeneral as ibgen
 from q_encodings.index_based_gomuku import IndexBasedGomuku as ibg
 from q_encodings.iterative_squaring_witness_based import \
     IterativeSquaringWitnessBased as iswb
+from q_encodings.nested_index_based import NestedIndexBased as nib
 from q_encodings.no_transitions_path_based import \
     NoTransitionsPathBasedGoal as ntpbg
 from q_encodings.path_based_goal import PathBasedGoal as pbg
@@ -104,6 +105,10 @@ def generate_encoding(parsed_instance):
     if (parsed_instance.args.debug > -1):
       print("Generating General game encoding")
     encoding = ibgen(parsed_instance)
+  elif (parsed_instance.args.e == 'nib' and parsed_instance.args.game_type == "general"):
+    if (parsed_instance.args.debug > -1):
+      print("Generating Nested Index Based Encoding")
+    encoding = nib(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
     if (parsed_instance.args.debug > -1):
       print("Generating Compact Positional encoding")
