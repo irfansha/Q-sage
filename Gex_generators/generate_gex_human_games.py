@@ -40,6 +40,8 @@ if __name__ == '__main__':
     player_action = split_line.pop(0)
     # Length of game:
     game_length = int(split_line.pop(0))
+    if (game_length < 10):
+      continue
     # popping the resigned position:
     if (player_action == 'resigned'):
       split_line.pop(-1)

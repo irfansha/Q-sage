@@ -52,7 +52,11 @@ def cactus_data(lst, exclude_value):
 
 
 
-f_stats = open("parsed_AAAI_first_run_stats_22_07_2022.txt.R", "r")
+#f_stats = open("all_stats_second_run_hein_wf_rgex.R", "r")
+#f_stats = open("all_champ_27_stats.R", "r")
+#f_stats = open("all_27_stats_final_run_white_rgex.R", "r")
+f_stats = open("unsat_27_stats_final_white_rgex.R", "r")
+#f_stats = open("unsat_second_run_wf_rgex.R", "r")
 stats_lines = f_stats.readlines()
 f_stats.close()
 
@@ -136,7 +140,7 @@ preprocessors = ["N", "B", "H", "Q"]
 mpreprocessors =["M-N", "M-B", "M-H", "M-Q"]
 
 expb_encodings = ["EBL", "EBP","EBWD"]
-impb_encodings = ["LL","SW","SWB"]
+impb_encodings = ["LL","SWB", "LE", "SWE"]
 
 # checking explicit board qdimacs encodings:
 for expb_encoding in expb_encodings:
@@ -173,11 +177,25 @@ for impb_encoding in impb_encodings:
   print("------------------------------------------")
 print("=================================================================")
 
+'''
 best_combinations = [("SW","CT","N","QC"),("EBP","CQ","B","QD"),("EBL","CQ","N","QD"),("EBWD","CQ","H","QD"),("LL","CQ","B","QD"),("SWB","CQ","B","QD")]
-
 labels = ["SW-CT","EBP-CQ-B","EBL-CQ","EBWD-CQ-H","LL-CQ-B","SWB-CQ-B"]
+'''
+#'''
+best_combinations = [("SWB","CQ","B","QD"), ("LL","CQ","B","QD"), ("EBL","CQ","B","QD"), ("EBWD","CQ","B","QD")]
+labels = ["SN","LN","EN","ET"]
+markers = ['x','+','^','<',]
+colors = ['m','c','g','r']
+#'''
 
-markers = ['o','v','^','<','+','x']
+'''
+best_combinations = [("EBP","CQ","B","QD"),("EBL","CQ","B","QD"),("EBWD","CQ","B","QD"),("LL","CQ","B","QD"),("SWB","CQ","B","QD"), ("LE","CQ","B","QD"), ("SWE","CQ","B","QD") ]
+labels = ["EA","EN","ET","LN","SN", "LA","SA"]
+
+
+markers = ['v','^','<','+','x','.','o']
+colors = ["b","g","r","c","m","k","y"]
+'''
 
 #=======================================================================================
 # time plot:
@@ -186,7 +204,7 @@ markers = ['o','v','^','<','+','x']
 for index in range(len(best_combinations)):
   b_comb = best_combinations[index]
   time_lst, count_lst =  cactus_data(time_dict[(b_comb)], int_timeout)
-  plt.scatter(count_lst, time_lst, label = labels[index],marker = markers[index])
+  plt.scatter(count_lst, time_lst, label = labels[index],marker = markers[index], color=colors[index])
 
 plt.grid()
 plt.xlabel("Cumulative instances solved")
@@ -203,13 +221,24 @@ plt.show()
 #'''
 for index in range(len(best_combinations)):
   b_comb = best_combinations[index]
-  if ("EB" not in b_comb[0]):
-    continue
+  #if ("EB" not in b_comb[0]):
+  #  continue
   mem_lst, count_lst =  cactus_data(mem_dict[(b_comb)], mem_timeout)
-  plt.scatter(count_lst, mem_lst, label = labels[index],marker = markers[index])
+  print(mem_lst, count_lst,b_comb)
+  #''
+  if (mem_lst[0] == 1.4):
+    mem_lst.pop(0)
+    count_lst.pop(0)
+  if (mem_lst[0] == 1.41):
+    mem_lst.pop(0)
+    count_lst.pop(0)
+  #''
+  print(mem_lst, count_lst)
+  #plt.scatter(count_lst[2:], mem_lst[2:], label = labels[index],marker = markers[index])
+  plt.scatter(count_lst, mem_lst, label = labels[index],marker = markers[index],color=colors[index])
 plt.grid()
 plt.xlabel("Cumulative instances solved")
-plt.ylabel("mem taken in mb (log scale)")
+plt.ylabel("mem taken in mb (log scale) ")
 plt.yscale('log')
 plt.legend()
 plt.show()

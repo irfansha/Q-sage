@@ -2,7 +2,17 @@
 #                    "implicit_gex_symbolic_1_hour_stats","implicit_gex_symbolic_3_hour_stats",
 #                    "implicit_gex_witness_1_hour_stats","implicit_gex_witness_3_hour_stats"]
 
-stats_file_paths = ["AAAI_first_run_stats_22_07_2022.txt"]
+#stats_file_paths = ["03_08_22_SW_stats.txt", "03_08_22_SWB_stats.txt", "03_08_22_SW_dis_stats.txt", "03_08_22_SWB_dis_stats.txt"]
+
+#stats_file_paths = ["03_08_champ_27_SWL_stats.txt", "03_08_champ_27_LL_stats.txt", "03_08_champ_27_EBL_stats.txt", "03_08_champ_27_EBWD_stats.txt"]
+
+#stats_file_paths = ["08_08_game2291873_SWL_stats.txt", "08_08_game2291873_LL_stats.txt", "08_08_game2291873_EBL_stats.txt", "08_08_game2291873_EBWD_stats.txt"]
+
+#stats_file_paths = ["09_08_champ_27_data_EBWD-R-Gex_stats.txt", "09_08_game2291873_EBWD-R-Gex_stats.txt", "AAAI_second_run_data_09_08_EBWD-R-Gex_stats.txt"]
+
+stats_file_paths = ["stats.txt"]
+
+#stats_file_paths = ["explicit_gex_symbolic_stats", "explicit_gex_witness_stats"]
 
 for i in range(1):
   # Now filling up the stats dictionary:
