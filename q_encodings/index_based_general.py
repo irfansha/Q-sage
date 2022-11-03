@@ -46,6 +46,9 @@ class IndexBasedGeneral:
   # for visual testing, we need bounds, actions and necessary variables
   # prints to a file:
   def print_meta_data_tofile(self):
+    # remembering required certificate output variables:
+    sat_cert_vars = []
+    unsat_cert_vars = []
     f_meta = open(self.parsed.args.viz_meta_data_out,"w")
     # input information:
     f_meta.write("#boardsize\n")
@@ -64,6 +67,15 @@ class IndexBasedGeneral:
     # writing the move variables, action and parameter variables (separating accordingly):
     for i in range(self.parsed.depth):
       f_meta.write(self.make_string(self.move_variables[i][0]) + " " + self.make_string(self.move_variables[i][1]) + " " + self.make_string(self.move_variables[i][2]) + "\n")
+      # appending vars:
+      if (i % 2 == 0):
+        sat_cert_vars.extend(self.move_variables[i][0])
+        sat_cert_vars.extend(self.move_variables[i][1])
+        sat_cert_vars.extend(self.move_variables[i][2])
+      else:
+        unsat_cert_vars.extend(self.move_variables[i][0])
+        unsat_cert_vars.extend(self.move_variables[i][1])
+        unsat_cert_vars.extend(self.move_variables[i][2])
     # symbolic position vars:
     f_meta.write("#symbolicpos\n")
     f_meta.write(self.make_string(self.forall_position_variables[0]) + " " + self.make_string(self.forall_position_variables[1]) + "\n")
@@ -71,10 +83,16 @@ class IndexBasedGeneral:
     f_meta.write("#statevars\n")
     for i in range(self.parsed.depth+1):
       f_meta.write(" ".join(str(x) for x in self.predicate_variables[i]) + "\n")
+      sat_cert_vars.extend(self.predicate_variables[i])
     # state vars:
     f_meta.write("#goalvar\n")
     f_meta.write(str(self.goal_output_gate) + "\n")
     f_meta.close()
+
+    # generating string:
+    self.output_sat_index_string += ",".join(str(x) for x in sat_cert_vars)
+    #print(self.output_index_string)
+    self.output_unsat_index_string += ",".join(str(x) for x in unsat_cert_vars)
 
   # Takes a list of clause variables and maps to a integer value:
   def generate_binary_format(self, clause_variables, corresponding_number):
@@ -997,6 +1015,10 @@ class IndexBasedGeneral:
     self.transition_output_gate = 0 # Can never be 0
     self.final_output_gate = 0 # Can never be 0
 
+
+    # output string index:
+    self.output_sat_index_string = '-e '
+    self.output_unsat_index_string = '-e '
 
     # We generate game stop variables and white illegal variable only for maker-maker games, otherwise no need,
     # remembering which type of game:
