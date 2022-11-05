@@ -359,14 +359,6 @@ class DoubleNestedIndexBased:
       #self.transition_step_output_gates.append(self.gates_generator.output_gate)
       current_transition_step_output_gates.append(self.gates_generator.output_gate)
 
-    # The ladder chain for game stop variables, if the previous game stop variable is true then the current game stop variable is also true:
-    if (time_step > 0):
-      self.encoding.append(['# ladder variables for the game stop variables:'])
-      # even single boolean for game stop variable is a list in our data structure:
-      self.gates_generator.if_then_gate(self.move_variables[time_step - 2][3][0], self.move_variables[time_step][3][0])
-      #self.transition_step_output_gates.append(self.gates_generator.output_gate)
-      current_transition_step_output_gates.append(self.gates_generator.output_gate)
-
 
     # for each action we generate constraints:
     for i in range(self.num_black_actions):
@@ -375,10 +367,7 @@ class DoubleNestedIndexBased:
       binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
       self.gates_generator.and_gate(binary_format_clause)
       temp_if_condition_output_gates.append(self.gates_generator.output_gate)
-      # only if the game is not stopped, we force the action constraints so generating conjunction for if condition:
-      # there is no game stop variable before the first action variable:
-      if (time_step > 0):
-        temp_if_condition_output_gates.append(-self.move_variables[time_step - 2][3][0])
+
       # final if condition for current action:
       self.gates_generator.and_gate(temp_if_condition_output_gates)
       final_if_condition_output_gate = self.gates_generator.output_gate
@@ -484,9 +473,6 @@ class DoubleNestedIndexBased:
 
     self.encoding.append(['# Player 2 (white) transition function for time step ' + str(time_step)+ ': '])
 
-    # previous black game stop is valid for the current white move:
-    cur_game_stop_var = self.move_variables[time_step - 1][3][0]
-
 
     # bound boolean variable for the current move:
     # asserting there is only one variable:
@@ -505,15 +491,8 @@ class DoubleNestedIndexBased:
     propagation_output_gate = self.gates_generator.output_gate
 
     #================================================================================================
-    # game stop constraints:
+    # less than action constraints:
     #================================================================================================
-
-    # if game stop variable is true in previous black turn, then the state is simply propagated:
-    self.encoding.append(['# if then constraints for the propagation:'])
-    # even single boolean for game stop variable is a list in our data structure:
-    self.gates_generator.if_then_gate(cur_game_stop_var, propagation_output_gate)
-    #self.transition_step_output_gates.append(self.gates_generator.output_gate)
-    current_transition_step_output_gates.append(self.gates_generator.output_gate)
 
     bound_variable_output_gates = []
 
@@ -701,7 +680,7 @@ class DoubleNestedIndexBased:
 
 
       # finally the if then constraints for effects and propogation when the boolean variables hold for each action and when game is not stopped:
-      self.gates_generator.and_gate([valid_move_output_gate, -cur_game_stop_var, cur_action_binary_output_gate])
+      self.gates_generator.and_gate([valid_move_output_gate, cur_action_binary_output_gate])
       if_condition_output_gate = self.gates_generator.output_gate
 
       # if then constraint:
@@ -1004,7 +983,7 @@ class DoubleNestedIndexBased:
 
 
   # Final output gate is an and-gate with inital, goal and transition gates:
-  def generate_final_gate(self):
+  def generate_final_end_check_gate(self):
 
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Nested gates: '])
@@ -1050,22 +1029,95 @@ class DoubleNestedIndexBased:
 
     #'''
 
+# Final output gate is an nested-gate with inital, goal and transition gates:
+  def generate_final_gate(self):
 
-    ''' # previous gate costruction:
-    # computing conjunction of transition step gates first:
-    self.encoding.append(['# Final transition gate: '])
-    self.gates_generator.and_gate(self.transition_step_output_gates)
-    self.transition_output_gate = self.gates_generator.output_gate
+    self.encoding.append(["# ------------------------------------------------------------------------"])
+    self.encoding.append(['# Nested gates: '])
+
+    #'''
+    # starting with goal gate and last black gate:
+    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.goal_output_gate])
+    #print(self.transition_step_output_gates[-1], "&" ,self.goal_output_gate)
+    cur_outgate = self.gates_generator.output_gate
+    #print("and", cur_outgate)
+
+    #print(self.parsed.depth)
+
+    for i in range(self.parsed.depth-1):
+      reverse_index = self.parsed.depth-i-2
+      # for white we imply with white legal condition:
+      if (reverse_index%2==1):
+        # gathering legal boolen variables:
+        all_valid_constraints = []
+        all_valid_constraints.append(self.move_variables[reverse_index][3][0])
+        all_valid_constraints.extend(self.move_variables[reverse_index][4])
+        self.gates_generator.and_gate(all_valid_constraints)
+        valid_move_output_gate = self.gates_generator.output_gate
+        #print(reverse_index-1, reverse_index)
+
+        # first implying the cur_outgate with valid move gate:
+        self.gates_generator.if_then_gate(valid_move_output_gate, cur_outgate)
+        #print(valid_move_output_gate, "->", cur_outgate)
+
+        # conjunction with this round of constraints:
+        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], self.gates_generator.output_gate])
+
+        cur_outgate = self.gates_generator.output_gate
+        #print("and", cur_outgate)
+      # for black we imply with game stop condition:
+      else:
+        # first implying the cur_outgate with negated game stop gate:
+        self.gates_generator.or_gate([self.move_variables[reverse_index][3][0], cur_outgate])
+        # conjunction with this round of constraints:
+        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], self.gates_generator.output_gate])
+
+        cur_outgate = self.gates_generator.output_gate
+
+
 
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Final gate: '])
 
     assert(self.initial_output_gate != 0)
 
-    self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+    self.encoding.append(['# Conjunction of Initial gate and nested output gate: '])
+    self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
+    nested_output_gate = self.gates_generator.output_gate
+
+    implication_gates = []
+
+    boolean_list = []
+
+    # implications at each black stop, allowing goal checking at any point before last round:
+    for i in range(self.parsed.depth-1):
+     if (i%2== 0):
+       self.encoding.append(['# propagation constraints '+ str(i)+":"])
+       # equality with last round:
+       self.gates_generator.complete_equality_gate(self.predicate_variables[i+1], self.predicate_variables[self.parsed.depth])
+
+       boolean_list.append(self.move_variables[i][3][0])
+
+       # if game stopped then, equality and goal is implied:
+       self.gates_generator.if_then_gate(self.move_variables[i][3][0], [self.gates_generator.output_gate,self.goal_output_gate])
+       implication_gates.append(self.gates_generator.output_gate)
+
+    # also adding the last bit:
+    boolean_list.append(self.move_variables[-1][3][0])
+    #print(boolean_list)
+    # atmostone clause for game stop
+    for i in range(len(boolean_list)):
+      for j in range(i):
+        self.gates_generator.or_gate([-boolean_list[j],-boolean_list[i]])
+        implication_gates.append(self.gates_generator.output_gate)
+
+
+    # final conjunction:
+    self.gates_generator.and_gate(implication_gates)
+    # last step is always not stopped:
+    self.gates_generator.and_gate([self.gates_generator.output_gate, nested_output_gate])
     self.final_output_gate = self.gates_generator.output_gate
-    '''
+
 
   def __init__(self, parsed):
     self.parsed = parsed
