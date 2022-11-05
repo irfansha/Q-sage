@@ -7,12 +7,6 @@ import utils.lessthen_cir as lsc
 from utils.gates import GatesGen as ggen
 from utils.variables_dispatcher import VarDispatcher as vd
 
-'''
-# Main TODOS:
-1. move the conjunction of transition functions to final gate
-2. update conjunctions with nested implications until goal conditions
-3. update game stop constraints to allow checking early goal conditions
-'''
 
 class NestedIndexBased:
 
