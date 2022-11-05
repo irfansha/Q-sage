@@ -6,6 +6,8 @@ from q_encodings.compact_goal_compact_positional import \
     CompactGoalCompactPositonal as cgcp
 from q_encodings.compact_path_based_goal import CompactPathBasedGoal as cpbg
 from q_encodings.compact_positional import CompactPositonal as cp
+from q_encodings.double_nested_index_based import \
+    DoubleNestedIndexBased as dnib
 from q_encodings.explicit_goal_encoding import ExplicitGoalEncoding as ege
 from q_encodings.explicit_goal_witness_based import \
     ExplicitGoalWitnessBased as egwb
@@ -109,6 +111,10 @@ def generate_encoding(parsed_instance):
     if (parsed_instance.args.debug > -1):
       print("Generating Nested Index Based Encoding")
     encoding = nib(parsed_instance)
+  elif (parsed_instance.args.e == 'dnib' and parsed_instance.args.game_type == "general"):
+    if (parsed_instance.args.debug > -1):
+      print("Generating Double Nested Index Based Encoding")
+    encoding = dnib(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
     if (parsed_instance.args.debug > -1):
       print("Generating Compact Positional encoding")

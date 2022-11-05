@@ -46,6 +46,7 @@ if __name__ == '__main__':
                                   ntpg = path based goal, without transition function
                                   ib = index based (grid games)
                                   nib = nested index based (grid games)
+                                  dnib = double nested index based (grid games)
                                   wgttt = witness based gttt)'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
