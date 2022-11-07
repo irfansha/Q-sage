@@ -793,8 +793,8 @@ class DoubleNestedIndexBased:
 
 
 
-  # Generating goal constraints:
-  def generate_goal_gate(self):
+  # Generating goal constraints for indexth predicates:
+  def generate_goal_gate(self, index):
     goal_step_output_gates = []
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
@@ -833,7 +833,7 @@ class DoubleNestedIndexBased:
           # we need to handle any adders and subtractors if both variables are present:
           cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
           # for now no negations in goal condition:
-          cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"pos")
+          cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"pos")
           single_constraint_output_gates.append(cur_constraint_gate)
 
       # conjunction for single constraint output gates:
@@ -866,7 +866,7 @@ class DoubleNestedIndexBased:
         # instead of white variables we use the forall variables:
         cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.forall_position_variables[0],self.forall_position_variables[1], constraint_pair)
         # if the if_condition is true then the predicate must not be white:
-        cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"neg")
+        cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"neg")
         goal_step_output_gates.append(cur_constraint_gate)
       else:
         # for now, we look at the grounded httt instances:
@@ -964,7 +964,7 @@ class DoubleNestedIndexBased:
                 self.gates_generator.and_gate([single_white_goal_disjunction_index_binary_gate,cur_equality_gate])
                 cur_final_if_condition_output_gate = self.gates_generator.output_gate
               # if the if_condition is true then the predicate must not be white:
-              cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, self.parsed.depth ,"neg")
+              cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, index ,"neg")
               goal_step_output_gates.append(cur_constraint_gate)
 
         # if the number of disjunction is not the max upper limit, we need less than constraint:
@@ -977,25 +977,25 @@ class DoubleNestedIndexBased:
 
     #----------------------------------------------------------------------------------------------------------------
     # Final goal gate:
-    self.encoding.append(['# And gate for goal constraints: '])
+    self.encoding.append(['# And gate for goal constraints, at index '+ str(index)])
     self.gates_generator.and_gate(goal_step_output_gates)
-    self.goal_output_gate = self.gates_generator.output_gate
+    #self.goal_output_gate = self.gates_generator.output_gate
+    return self.gates_generator.output_gate
 
 
-  # Final output gate is an and-gate with inital, goal and transition gates:
-  def generate_final_end_check_gate(self):
+# Final output gate is an nested-gate with inital, goal and transition gates:
+  def generate_final_nostop_gate(self):
 
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Nested gates: '])
 
     #'''
     # starting with goal gate and last black gate:
-    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.goal_output_gate])
-    #print(self.transition_step_output_gates[-1], "&" ,self.goal_output_gate)
+    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.generate_goal_gate(self.parsed.depth)])
     cur_outgate = self.gates_generator.output_gate
     #print("and", cur_outgate)
 
-    #print(self.parsed.depth-1)
+    #print(self.parsed.depth)
 
     for i in range(self.parsed.depth):
       reverse_index = self.parsed.depth-i-1
@@ -1027,7 +1027,6 @@ class DoubleNestedIndexBased:
     self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
     self.final_output_gate = self.gates_generator.output_gate
 
-    #'''
 
 # Final output gate is an nested-gate with inital, goal and transition gates:
   def generate_final_gate(self):
@@ -1037,8 +1036,7 @@ class DoubleNestedIndexBased:
 
     #'''
     # starting with goal gate and last black gate:
-    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.goal_output_gate])
-    #print(self.transition_step_output_gates[-1], "&" ,self.goal_output_gate)
+    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.generate_goal_gate(self.parsed.depth)])
     cur_outgate = self.gates_generator.output_gate
     #print("and", cur_outgate)
 
@@ -1069,8 +1067,11 @@ class DoubleNestedIndexBased:
       else:
         # first implying the cur_outgate with negated game stop gate:
         self.gates_generator.or_gate([self.move_variables[reverse_index][3][0], cur_outgate])
+        negated_implication_gate = self.gates_generator.output_gate
+        self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], self.generate_goal_gate(reverse_index+1)])
+        unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
-        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], self.gates_generator.output_gate])
+        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], negated_implication_gate, unnegated_implication_gate])
 
         cur_outgate = self.gates_generator.output_gate
 
@@ -1083,39 +1084,6 @@ class DoubleNestedIndexBased:
 
     self.encoding.append(['# Conjunction of Initial gate and nested output gate: '])
     self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
-    nested_output_gate = self.gates_generator.output_gate
-
-    implication_gates = []
-
-    boolean_list = []
-
-    # implications at each black stop, allowing goal checking at any point before last round:
-    for i in range(self.parsed.depth-1):
-     if (i%2== 0):
-       self.encoding.append(['# propagation constraints '+ str(i)+":"])
-       # equality with last round:
-       self.gates_generator.complete_equality_gate(self.predicate_variables[i+1], self.predicate_variables[self.parsed.depth])
-
-       boolean_list.append(self.move_variables[i][3][0])
-
-       # if game stopped then, equality and goal is implied:
-       self.gates_generator.if_then_gate(self.move_variables[i][3][0], [self.gates_generator.output_gate,self.goal_output_gate])
-       implication_gates.append(self.gates_generator.output_gate)
-
-    # also adding the last bit:
-    boolean_list.append(self.move_variables[-1][3][0])
-    #print(boolean_list)
-    # atmostone clause for game stop
-    for i in range(len(boolean_list)):
-      for j in range(i):
-        self.gates_generator.or_gate([-boolean_list[j],-boolean_list[i]])
-        implication_gates.append(self.gates_generator.output_gate)
-
-
-    # final conjunction:
-    self.gates_generator.and_gate(implication_gates)
-    # last step is always not stopped:
-    self.gates_generator.and_gate([self.gates_generator.output_gate, nested_output_gate])
     self.final_output_gate = self.gates_generator.output_gate
 
 
@@ -1347,7 +1315,7 @@ class DoubleNestedIndexBased:
 
     self.generate_initial_gate()
 
-    self.generate_goal_gate()
+    #self.generate_goal_gate()
 
     self.generate_final_gate()
 
