@@ -256,6 +256,10 @@ def combine(args):
       cur_temp_goal.extend(index_list)
     f_combined_file.write(" ".join(cur_temp_goal) + "\n")
 
+  if ("#goalcheck" in p_parsed_dict):
+    f_combined_file.write("#goalcheck\n")
+    f_combined_file.write(str(p_parsed_dict["#goalcheck"][0][0]))
+
 
 class Parse:
 
@@ -637,7 +641,14 @@ class Parse:
         self.black_initial_positions.append((x_index,y_index))
 
       # reading the x and y axis lengths:
-      self.xmax, self.ymax = int(self.parsed_dict['#boardsize'][0][0]), int(self.parsed_dict['#boardsize'][0][1])
+      if(args.ignore_file_boardsize == 0):
+        self.xmax, self.ymax = int(self.parsed_dict['#boardsize'][0][0]), int(self.parsed_dict['#boardsize'][0][1])
+      else:
+        self.xmax = args.xmax
+        self.ymax = args.ymax
+        if (args.debug == 1):
+          print("Board size", self.xmax, self.ymax)
+
 
       # reading black actions:
       self.black_action_list = []
@@ -820,6 +831,13 @@ class Parse:
           # repeately appending the last constraint:
           for j in range(num_iter):
             self.white_goal_constraints[i].append(last_constraint)
+
+
+      # if game to be stopped at the end:
+      if ("#goalcheck" in self.parsed_dict):
+        self.goal_check = self.parsed_dict["#goalcheck"][0][0]
+      else:
+        self.goal_check = "NA"
 
 
       if (args.debug == 1):
