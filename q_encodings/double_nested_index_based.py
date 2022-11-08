@@ -7,10 +7,6 @@ import utils.lessthen_cir as lsc
 from utils.gates import GatesGen as ggen
 from utils.variables_dispatcher import VarDispatcher as vd
 
-'''
-# Main TODOS:
-1. update game stop constraints to allow checking early goal conditions
-'''
 
 class DoubleNestedIndexBased:
 
@@ -351,6 +347,7 @@ class DoubleNestedIndexBased:
     self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
     propagation_output_gate = self.gates_generator.output_gate
 
+    '''
     # if game stop variable is true in previous black turn, then the state is simply propagated:
     if (time_step > 0):
       self.encoding.append(['# if then constraints for the propagation:'])
@@ -358,7 +355,7 @@ class DoubleNestedIndexBased:
       self.gates_generator.if_then_gate(self.move_variables[time_step - 2][3][0], propagation_output_gate)
       #self.transition_step_output_gates.append(self.gates_generator.output_gate)
       current_transition_step_output_gates.append(self.gates_generator.output_gate)
-
+    '''
 
     # for each action we generate constraints:
     for i in range(self.num_black_actions):
@@ -794,6 +791,7 @@ class DoubleNestedIndexBased:
 
 
   # Generating goal constraints for indexth predicates:
+  # TODO negations in white:
   def generate_goal_gate(self, index):
     goal_step_output_gates = []
     self.encoding.append(["# ------------------------------------------------------------------------"])
@@ -827,13 +825,24 @@ class DoubleNestedIndexBased:
           if (bound_result != 'None'):
             single_constraint_output_gates.append(bound_result)
         else:
-          split_condition = constraint.strip(")").split("(")
+          if("NOT" in constraint):
+            negated = True
+            trimmed_constraint = constraint[5:-2]
+          else:
+            negated = False
+            trimmed_constraint = constraint
+          split_condition = trimmed_constraint.strip(")").split("(")
           predicate = split_condition[0]
           constraint_pair = split_condition[1].split(",")
+          #print(constraint_pair, constraint, trimmed_constraint)
           # we need to handle any adders and subtractors if both variables are present:
           cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
           # for now no negations in goal condition:
-          cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"pos")
+          if (negated==True):
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"neg")
+            #print("negated")
+          else:
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"pos")
           single_constraint_output_gates.append(cur_constraint_gate)
 
       # conjunction for single constraint output gates:
@@ -984,14 +993,18 @@ class DoubleNestedIndexBased:
 
 
 # Final output gate is an nested-gate with inital, goal and transition gates:
-  def generate_final_nostop_gate(self):
+# we specify the goals at arbitrary time steps as mentioned:
+  def generate_final_arb_gate(self):
 
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Nested gates: '])
 
     #'''
     # starting with goal gate and last black gate:
-    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.generate_goal_gate(self.parsed.depth)])
+    if (self.parsed.goal_check == "atend"):
+      self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.generate_goal_gate(self.parsed.depth)])
+    else:
+      self.gates_generator.and_gate([self.transition_step_output_gates[-1]])
     cur_outgate = self.gates_generator.output_gate
     #print("and", cur_outgate)
 
@@ -1018,14 +1031,39 @@ class DoubleNestedIndexBased:
         cur_outgate = self.gates_generator.output_gate
         #print("and", cur_outgate)
 
+    stop_vars = []
+    # setting all stop game vars to 0:
+    for i in range(self.parsed.depth):
+      if (i%2==0):
+        stop_vars.append(self.move_variables[i][3][0])
+
+    self.gates_generator.and_gate(stop_vars)
+    nostop_gate = self.gates_generator.output_gate
+
+    if (self.parsed.goal_check == "all-white"):
+      self.encoding.append(['# all white goal output gates: '])
+      goals_outputgates = []
+      for i in range(self.parsed.depth):
+        if (i%2==1):
+          goals_outputgates.append(self.generate_goal_gate(i+1))
+      self.gates_generator.and_gate(goals_outputgates)
+      goals_final_gate = self.gates_generator.output_gate
+
+
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Final gate: '])
 
     assert(self.initial_output_gate != 0)
 
-    self.encoding.append(['# Conjunction of Initial gate and nested output gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
+    if (self.parsed.goal_check == "atend"):
+      self.encoding.append(['# Conjunction of Initial gate, nested output gate, and nostop gate: '])
+      self.gates_generator.and_gate([self.initial_output_gate, cur_outgate, nostop_gate])
+    else:
+      self.encoding.append(['# Conjunction of Initial gate, nested output gate, nostop gate, final goalgate: '])
+      self.gates_generator.and_gate([self.initial_output_gate, cur_outgate, nostop_gate, goals_final_gate])
     self.final_output_gate = self.gates_generator.output_gate
+
+
 
 
 # Final output gate is an nested-gate with inital, goal and transition gates:
@@ -1317,6 +1355,9 @@ class DoubleNestedIndexBased:
 
     #self.generate_goal_gate()
 
-    self.generate_final_gate()
+    if (self.parsed.goal_check == "NA"):
+      self.generate_final_gate()
+    else:
+      self.generate_final_arb_gate()
 
     self.print_meta_data_tofile()
