@@ -811,7 +811,12 @@ class IndexBasedGeneral:
       single_constraint_output_gates = []
       # for each constraint in the goal:
       for constraint in single_conjunction:
-        if ("nlt" in constraint):
+        if ("False" in constraint):
+          #print(constraint)
+          # empty or gate is false:
+          self.gates_generator.or_gate([])
+          single_constraint_output_gates.append(self.gates_generator.output_gate)
+        elif ("nlt" in constraint):
           assert(" " not in constraint)
           # passing x variables and y variables along with index constraint:
           bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
@@ -984,12 +989,27 @@ class IndexBasedGeneral:
 
   # Final output gate is an and-gate with inital, goal and transition gates:
   def generate_final_gate(self):
+
+    # gathering legal boolen variables:
+    all_valid_constraints = []
+    for i in range(self.parsed.depth):
+      if (i%2==1):
+        all_valid_constraints.append(self.move_variables[i][3][0])
+        all_valid_constraints.extend(self.move_variables[i][4])
+    self.gates_generator.and_gate(all_valid_constraints)
+    valid_move_output_gate = self.gates_generator.output_gate
+
+
+    # only when valid move gate is true, we constraint goal:
+    self.gates_generator.or_gate([-valid_move_output_gate, self.goal_output_gate])
+    implied_goal_gate = self.gates_generator.output_gate
+
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Final gate: '])
 
     if (self.initial_output_gate != 0):
       self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-      self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
+      self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, implied_goal_gate])
     else:
       self.encoding.append(['# Conjunction of Transition gate and Goal gate: '])
       self.gates_generator.and_gate([self.transition_output_gate, self.goal_output_gate])

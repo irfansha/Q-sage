@@ -809,7 +809,12 @@ class DoubleNestedIndexBased:
       single_constraint_output_gates = []
       # for each constraint in the goal:
       for constraint in single_conjunction:
-        if ("nlt" in constraint):
+        if ("False" in constraint):
+          #print(constraint)
+          # empty or gate is false:
+          self.gates_generator.or_gate([])
+          single_constraint_output_gates.append(self.gates_generator.output_gate)
+        elif ("nlt" in constraint):
           assert(" " not in constraint)
           # passing x variables and y variables along with index constraint:
           bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
