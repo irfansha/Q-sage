@@ -41,10 +41,15 @@ if __name__ == '__main__':
 print("#boardsize")
 print(str(int(math.sqrt(len(parsed_dict['#positions'][0])))) + " " + str(int(math.sqrt(len(parsed_dict['#positions'][0])))))
 print("#blackinitials")
+for var in parsed_dict['#blackinitials']:
+  print(var[0])
 print("#whiteinitials")
+for var in parsed_dict['#whiteinitials']:
+  print(var[0])
 print("#depth")
 print(len(parsed_dict['#times'][0]))
-print("#blackactions\n%action 1\n:action occupy\n:parameters (?x, ?y)\n:indexbounds (ge(?x, xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))\n:precondition (open(?x,?y))\n:effect (black(?x,?y))\n#whiteactions\n%action 1\n:action occupy\n:parameters (?x, ?y)\n:indexbounds (ge(?x, xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))\n:precondition (open(?x,?y))\n:effect (white(?x,?y))\n#blackgoal")
+#print("#blackactions\n%action 1\n:action occupy\n:parameters (?x, ?y)\n:indexbounds (ge(?x, xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))\n:precondition (open(?x,?y))\n:effect (black(?x,?y))\n#whiteactions\n%action 1\n:action occupy\n:parameters (?x, ?y)\n:indexbounds (ge(?x, xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))\n:precondition (open(?x,?y))\n:effect (white(?x,?y))\n#blackgoal")
+print("#blackgoal")
 for win in parsed_dict['#blackwins']:
   cur_string = ''
   for pos in win:
@@ -52,7 +57,7 @@ for win in parsed_dict['#blackwins']:
     y = int(pos[1:])
     cur_string += 'black('+ str(x) + "," + str(y) + ") "
   print(cur_string)
-print("#whitewins")
+print("#whitegoal")
 #for win in parsed_dict['#whitewins']:
 #  cur_string = ''
 #  for pos in win:
