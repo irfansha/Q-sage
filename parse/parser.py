@@ -261,6 +261,11 @@ def combine(args):
     f_combined_file.write(str(p_parsed_dict["#goalcheck"][0][0]))
 
 
+  if ("#blackturn" in p_parsed_dict):
+    f_combined_file.write("#blackturn\n")
+    f_combined_file.write(str(p_parsed_dict["#blackturn"][0][0]))
+
+
 class Parse:
 
   # Parses domain and problem file:
@@ -839,6 +844,11 @@ class Parse:
       else:
         self.goal_check = "NA"
 
+      # if black turn is first or second:
+      if ("#blackturn" in self.parsed_dict):
+        self.blackturn = self.parsed_dict["#blackturn"][0][0]
+      else:
+        self.blackturn = "first"
 
       if (args.debug == 1):
         print(self.black_goal_constraints)
