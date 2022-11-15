@@ -175,6 +175,7 @@ def generate_encoding(parsed_instance):
     # We preprocess only qdimacs format encoding:
     assert(parsed_instance.args.encoding_format == 2)
     os.system(preprocessor_path + ' ' + parsed_instance.args.encoding_out + ' > ' + parsed_instance.args.preprocessed_encoding_out)
+    print("preprocesing with Bloqqer complete")
 
 
   # Returning encoding for plan extraction:

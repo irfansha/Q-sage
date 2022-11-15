@@ -79,7 +79,8 @@ if __name__ == '__main__':
                                        2 = CAQE (default)
                                        3 = RaReQS
                                        4 = Pedant
-                                       5 = DepQBF-qrp-cert (for now, main focus on certificate generation)'''),default = 2)
+                                       5 = DepQBF-qrp-cert (for now, main focus on certificate generation)
+                                       6 = DepQBF'''),default = 2)
   parser.add_argument("--solver_out", help="solver output file",default = 'intermediate_files/solver_output')
   parser.add_argument("--debug", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--run_tests", type=int, help="[0/1], default 0" ,default = 0)

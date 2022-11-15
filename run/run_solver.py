@@ -2,6 +2,7 @@
 
 from run.run_caqe import RunCaqe as rc
 from run.run_depqbf_cert import RunDepqbfCert as rd
+from run.run_depqbf import RunDepqbf as rdep
 from run.run_pedant import RunPedant as rp
 from run.run_quabs import RunQuabs as rq
 from run.run_rareqs import RunRareqs as rr
@@ -26,6 +27,8 @@ def run_single_solver(encoding):
   elif (args.solver == 5):
     instance = rd(args, encoding)
     sol_map = instance.sol_map
+  elif (args.solver == 6):
+    instance = rdep(args)
 
   # Checking existence of plan:
   if instance.sat == 1 or encoding.parsed.solved == 1:
