@@ -263,16 +263,27 @@ class NestedIndexBased:
 
         cur_all_action_vars = []
         # adding action variables:
+        exists_action_vars = []
         # if number of actions/moves are only 1, we make it existential:
         if (self.num_white_actions == 1):
-          self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.move_variables[i][0]) + ')'])
+          exists_action_vars.extend(self.move_variables[i][0])
+
         else:
           cur_all_action_vars.extend(self.move_variables[i][0])
         # adding parameter variables:
-        cur_all_action_vars.extend(self.move_variables[i][1])
-        cur_all_action_vars.extend(self.move_variables[i][2])
+        if (self.xmax == 1):
+          exists_action_vars.extend(self.move_variables[i][1])
+        else:
+          cur_all_action_vars.extend(self.move_variables[i][1])
 
+        if (self.ymax == 1):
+          exists_action_vars.extend(self.move_variables[i][2])
+        else:
+          cur_all_action_vars.extend(self.move_variables[i][2])
 
+        if(len(exists_action_vars) !=0):
+          self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in exists_action_vars) + ')'])
+        assert(len(cur_all_action_vars) !=0)
         self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
         # if illegal move is present, then it is existential:
         if (len(self.move_variables[i][3]) != 0):
@@ -315,10 +326,25 @@ class NestedIndexBased:
 
 
     # Forall position variables:
-    self.quantifier_block.append(['# Forall index variables: '])
+    # if forced to single then existential:
+    exists_index_variables = []
+
     forall_index_variables = []
-    forall_index_variables.extend(self.forall_position_variables[0])
-    forall_index_variables.extend(self.forall_position_variables[1])
+    if (self.xmax == 1):
+      exists_index_variables.extend(self.forall_position_variables[0])
+    else:
+      forall_index_variables.extend(self.forall_position_variables[0])
+
+    if(self.ymax == 1):
+      exists_index_variables.extend(self.forall_position_variables[1])
+    else:
+      forall_index_variables.extend(self.forall_position_variables[1])
+
+    if(len(exists_index_variables) !=0):
+      self.quantifier_block.append(['# exists symbolic index variables: '])
+      self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in exists_index_variables) + ')'])
+    assert(len(forall_index_variables)!=0)
+    self.quantifier_block.append(['# Forall index variables: '])
     self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in forall_index_variables) + ')'])
 
     # Finally predicate variables for each time step:
@@ -745,6 +771,51 @@ class NestedIndexBased:
     self.gates_generator.and_gate(current_transition_step_output_gates)
     self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
+  def generate_strong_linear_constraints(self):
+
+    cur_temp_gates = []
+
+    # if any action, x, y have only 1, then we force it to 1 to avoid search:
+    for i in range(self.parsed.depth):
+      if(i%2==0):
+        if (self.num_black_actions == 1):
+          #assert(len(self.move_variables[time_step][0])==1)
+          #print("action linear")
+          cur_temp_gates.append(-self.move_variables[i][0][0])
+      else:
+        if (self.num_white_actions == 1):
+          #assert(len(self.move_variables[time_step][0])==1)
+          #print("action linear")
+          cur_temp_gates.append(-self.move_variables[i][0][0])
+
+      if(self.xmax == 1):
+        assert(len(self.move_variables[i][1])==1)
+        #print("x linear")
+        cur_temp_gates.append(-self.move_variables[i][1][0])
+
+      if(self.ymax == 1):
+        assert(len(self.move_variables[i][2])==1)
+        #print("y linear")
+        cur_temp_gates.append(-self.move_variables[i][2][0])
+
+    # if the max x and y indices are 1, then we also force symbolic variables:
+    if(self.xmax == 1):
+      assert(len(self.forall_position_variables[0])==1)
+      cur_temp_gates.append(-self.forall_position_variables[0][0])
+
+    if(self.ymax == 1):
+      assert(len(self.forall_position_variables[1])==1)
+      cur_temp_gates.append(-self.forall_position_variables[1][0])
+
+    # final and gate:
+    if (len(cur_temp_gates) !=0):
+      self.encoding.append(['# forcing single index maps to 1: '])
+      self.gates_generator.and_gate(cur_temp_gates)
+      self.forced_single_output_gate = self.gates_generator.output_gate
+    else:
+      self.forced_single_output_gate = 0
+
+
 
   def generate_d_transitions(self):
     self.encoding.append(["# ------------------------------------------------------------------------"])
@@ -1081,28 +1152,16 @@ class NestedIndexBased:
 
     assert(self.initial_output_gate != 0)
 
-    self.encoding.append(['# Conjunction of Initial gate and nested output gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
+    # if forced is 0, normal generation:
+    if(self.forced_single_output_gate == 0):
+      self.encoding.append(['# Conjunction of Initial gate and nested output gate: '])
+      self.gates_generator.and_gate([self.initial_output_gate, cur_outgate])
+    else:
+      self.encoding.append(['# Conjunction of Initial gate, forced gate and nested output gate: '])
+      self.gates_generator.and_gate([self.initial_output_gate, self.forced_single_output_gate, cur_outgate])
     self.final_output_gate = self.gates_generator.output_gate
 
     #'''
-
-
-    ''' # previous gate costruction:
-    # computing conjunction of transition step gates first:
-    self.encoding.append(['# Final transition gate: '])
-    self.gates_generator.and_gate(self.transition_step_output_gates)
-    self.transition_output_gate = self.gates_generator.output_gate
-
-    self.encoding.append(["# ------------------------------------------------------------------------"])
-    self.encoding.append(['# Final gate: '])
-
-    assert(self.initial_output_gate != 0)
-
-    self.encoding.append(['# Conjunction of Initial gate and Transition gate and Goal gate: '])
-    self.gates_generator.and_gate([self.initial_output_gate, self.transition_output_gate, self.goal_output_gate])
-    self.final_output_gate = self.gates_generator.output_gate
-    '''
 
   def __init__(self, parsed):
     self.parsed = parsed
@@ -1132,6 +1191,14 @@ class NestedIndexBased:
     # for general board the board can be rectangular, allocating for both indexes separately:
     self.num_x_index_variables = int(math.ceil(math.log2(parsed.xmax)))
     self.num_y_index_variables = int(math.ceil(math.log2(parsed.ymax)))
+
+    # if single x,y then log is 0:
+    if (self.num_x_index_variables == 0):
+      self.num_x_index_variables = 1
+
+    if (self.num_y_index_variables == 0):
+      self.num_y_index_variables = 1
+
     self.xmax = parsed.xmax
     self.ymax = parsed.ymax
     self.upperlimit_xmax = int(math.pow(2, self.num_x_index_variables))
@@ -1333,6 +1400,8 @@ class NestedIndexBased:
     self.generate_initial_gate()
 
     self.generate_goal_gate()
+
+    self.generate_strong_linear_constraints()
 
     self.generate_final_gate()
 
