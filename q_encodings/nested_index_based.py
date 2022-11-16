@@ -771,6 +771,36 @@ class NestedIndexBased:
     self.gates_generator.and_gate(current_transition_step_output_gates)
     self.transition_step_output_gates.append(self.gates_generator.output_gate)
 
+
+  def generate_last_dummy_transition(self, time_step):
+
+    # Allowing local conjunction transition step gates for nested implications later:
+    current_transition_step_output_gates = []
+
+    self.encoding.append(['# Dummy black move at time step ' + str(time_step)+ ': '])
+
+    # set all variables to 0, the game is not stopped either:
+    cur_disjunction = []
+    cur_disjunction.extend(self.move_variables[time_step][0])
+    cur_disjunction.extend(self.move_variables[time_step][1])
+    cur_disjunction.extend(self.move_variables[time_step][2])
+    cur_disjunction.append(-self.move_variables[time_step][3][0])
+
+    # disjunction first:
+    self.gates_generator.or_gate(cur_disjunction)
+    # negated or, none are true:
+    current_transition_step_output_gates.append(-self.gates_generator.output_gate)
+
+    # Propogation constraints:
+    self.encoding.append(['# propagation constraints:'])
+    self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
+    current_transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    # only at the end, we set the conjunction to step output gate:
+    self.gates_generator.and_gate(current_transition_step_output_gates)
+    self.transition_step_output_gates.append(self.gates_generator.output_gate)
+
+
   def generate_strong_linear_constraints(self):
 
     cur_temp_gates = []
@@ -826,12 +856,16 @@ class NestedIndexBased:
       self.generate_first_dummy_transition(0)
     else:
       assert(1==2)
-    for i in range(1,self.parsed.depth):
+    for i in range(1,self.parsed.depth-1):
       if (i%2 == 0):
         self.generate_black_transition(i)
       else:
         self.generate_white_transition(i)
 
+    if(self.parsed.last_turn == "black"):
+      self.generate_black_transition(self.parsed.depth-1)
+    else:
+      self.generate_last_dummy_transition(self.parsed.depth-1)
 
 
   def generate_initial_gate(self):

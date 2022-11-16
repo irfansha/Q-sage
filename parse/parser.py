@@ -315,6 +315,12 @@ class Parse:
         self.depth = int(self.parsed_dict['#depth'][0][0])
       else:
         self.depth = args.depth
+      # if depth is even, we set it to odd and make the last round dummy, keeps it consistent:
+      if(self.depth%2 == 0):
+        self.depth = self.depth + 1
+        self.last_turn = "white"
+      else:
+        self.last_turn = "black"
     else:
       if (args.ignore_file_depth == 0):
         # If no times are provided in the input file:
