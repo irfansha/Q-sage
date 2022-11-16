@@ -275,7 +275,7 @@ class Parse:
 
     #'''
     # if index based games, we first combine the domain and problem files after computing the inferred index bounds:
-    if ((args.e == 'ib' or args.e == 'nib' or args.e == 'dnib') and args.game_type == 'general'):
+    if (('ib' in  args.e) and args.game_type == 'general'):
       # assigning new intermediate path to combined problem file:
       args.problem = 'intermediate_files/combined_input.ig'
       combine(args)
@@ -310,7 +310,7 @@ class Parse:
       for key,value in self.parsed_dict.items():
         print(key, value)
     # for general games, we do not have times yet but just the depth:
-    if ((args.e == 'ib' or args.e == 'nib' or args.e == 'dnib') and args.game_type == 'general'):
+    if (('ib' in  args.e) and args.game_type == 'general'):
       if(args.ignore_file_depth == 0):
         self.depth = int(self.parsed_dict['#depth'][0][0])
       else:
@@ -633,7 +633,7 @@ class Parse:
         print("Max number of goal positions: ", self.max_num_goal_positions)
         print("First moves: ", self.first_moves)
 
-    elif ((args.e == 'ib' or args.e == 'nib' or args.e == 'dnib') and args.game_type == 'general'):
+    elif (('ib' in  args.e) and args.game_type == 'general'):
       self.white_initial_positions = []
       self.black_initial_positions = []
 

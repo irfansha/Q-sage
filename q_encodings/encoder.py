@@ -20,6 +20,7 @@ from q_encodings.index_based_gomuku import IndexBasedGomuku as ibg
 from q_encodings.iterative_squaring_witness_based import \
     IterativeSquaringWitnessBased as iswb
 from q_encodings.nested_index_based import NestedIndexBased as nib
+from q_encodings.black_white_nested_index_based import BlackWhiteNestedIndexBased as bwnib
 from q_encodings.no_transitions_path_based import \
     NoTransitionsPathBasedGoal as ntpbg
 from q_encodings.path_based_goal import PathBasedGoal as pbg
@@ -115,6 +116,10 @@ def generate_encoding(parsed_instance):
     if (parsed_instance.args.debug > -1):
       print("Generating Double Nested Index Based Encoding")
     encoding = dnib(parsed_instance)
+  elif (parsed_instance.args.e == 'bwnib' and parsed_instance.args.game_type == "general"):
+    if (parsed_instance.args.debug > -1):
+      print("Generating Black White Nested Index Based Encoding")
+    encoding = bwnib(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
     if (parsed_instance.args.debug > -1):
       print("Generating Compact Positional encoding")
@@ -173,7 +178,7 @@ def generate_encoding(parsed_instance):
     preprocessor_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'Bloqqer', 'bloqqer')
     # Calling the tool:
     # We preprocess only qdimacs format encoding:
-    assert(parsed_instance.args.encoding_format == 2)
+    assert(parsed_instance.args.encoding_format == 2 or parsed_instance.args.encoding_format == 5)
     os.system(preprocessor_path + ' ' + parsed_instance.args.encoding_out + ' > ' + parsed_instance.args.preprocessed_encoding_out)
     print("preprocesing with Bloqqer complete")
 
