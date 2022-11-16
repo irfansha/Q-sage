@@ -1127,7 +1127,7 @@ class DoubleNestedIndexBased:
         if (self.white_single_goal_num_constraints > 1):
           if (self.single_white_goal_disjunct_upper_limit != self.white_single_goal_num_constraints):
             lsc.add_circuit(self.gates_generator, self.single_white_goal_disjunct_boolean_variables, self.white_single_goal_num_constraints)
-          goal_step_output_gates.append(self.gates_generator.output_gate)
+            goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
 
@@ -1262,7 +1262,9 @@ class DoubleNestedIndexBased:
         # first implying the cur_outgate with negated game stop gate:
         self.gates_generator.or_gate([self.move_variables[reverse_index][3][0], cur_outgate])
         negated_implication_gate = self.gates_generator.output_gate
-        self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], self.generate_goal_gate(reverse_index+1)])
+        # propagate to the last step and imply black goal:
+        self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+        self.gates_generator.if_then_gate(self.move_variables[reverse_index][3][0], [self.gates_generator.output_gate, self.generate_goal_gate(self.parsed.depth)])
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
         self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], negated_implication_gate, unnegated_implication_gate])

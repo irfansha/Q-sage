@@ -281,6 +281,11 @@ class BlackWhiteNestedIndexBased:
         else:
           cur_all_action_vars.extend(self.move_variables[i][2])
 
+        # if maker-maker, we include white-gamestop in universal variables:
+        if(self.makermaker_game == 1):
+          cur_all_action_vars.extend(self.move_variables[i][5])
+
+
         if(len(exists_action_vars) !=0):
           self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in exists_action_vars) + ')'])
         assert(len(cur_all_action_vars) !=0)
@@ -932,10 +937,10 @@ class BlackWhiteNestedIndexBased:
 
 
 
-  # Generating goal constraints for indexth predicates:
+  # Generating goal constraints:
   # TODO negations in white:
-  def generate_goal_gate(self, index):
-    goal_step_output_gates = []
+  def generate_black_goal_gate(self):
+    black_goal_step_output_gates = []
     self.encoding.append(["# ------------------------------------------------------------------------"])
     self.encoding.append(['# Goal state: '])
     #================================================================================================================================================================================
@@ -986,10 +991,10 @@ class BlackWhiteNestedIndexBased:
           cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
           # for now no negations in goal condition:
           if (negated==True):
-            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"neg")
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"neg")
             #print("negated")
           else:
-            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"pos")
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"pos")
           single_constraint_output_gates.append(cur_constraint_gate)
 
       # conjunction for single constraint output gates:
@@ -998,16 +1003,23 @@ class BlackWhiteNestedIndexBased:
       if (self.num_black_goal_constraints > 1):
         self.gates_generator.if_then_gate(if_disjunction_output_gate, self.gates_generator.output_gate)
       # if variables are not present due to single goal constraint, we simply add the conjunction:
-      goal_step_output_gates.append(self.gates_generator.output_gate)
+      black_goal_step_output_gates.append(self.gates_generator.output_gate)
 
     # if the number of disjunction is not the max upper limit, we need less than constraint:
     if (self.num_black_goal_constraints > 1):
       if (self.disjunction_goal_upper_limit != self.num_black_goal_constraints):
         lsc.add_circuit(self.gates_generator, self.disjunction_goal_boolean_variables, self.num_black_goal_constraints)
-        goal_step_output_gates.append(self.gates_generator.output_gate)
+        black_goal_step_output_gates.append(self.gates_generator.output_gate)
 
-    #================================================================================================================================================================================
+    #----------------------------------------------------------------------------------------------------------------
+    # Final goal gate:
+    self.encoding.append(['# And gate for black goal constraints, at index '+ str(self.parsed.depth)])
+    self.gates_generator.and_gate(black_goal_step_output_gates)
+    self.black_goal_output_gate = self.gates_generator.output_gate
 
+  #================================================================================================================================================================================
+  def generate_white_goal_gate(self):
+    white_goal_step_output_gates = []
     # generating white goal constraints if maker-maker game:
     if (self.makermaker_game == 1):
       self.encoding.append(['# White goal constraints: '])
@@ -1022,8 +1034,8 @@ class BlackWhiteNestedIndexBased:
         # instead of white variables we use the forall variables:
         cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.forall_position_variables[0],self.forall_position_variables[1], constraint_pair)
         # if the if_condition is true then the predicate must not be white:
-        cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, index ,"neg")
-        goal_step_output_gates.append(cur_constraint_gate)
+        cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"neg")
+        white_goal_step_output_gates.append(cur_constraint_gate)
       else:
         # for now, we look at the grounded httt instances:
         # We specify each branch i.e., specific white conjunction forall variable branch, and disjunction choosing branch and specific forall positions variables (if present)
@@ -1071,8 +1083,8 @@ class BlackWhiteNestedIndexBased:
                 cur_if_bound_final_gate = self.gates_generator.output_gate
 
                 self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
-                if self.gates_generator.output_gate not in goal_step_output_gates:
-                  goal_step_output_gates.append(self.gates_generator.output_gate)
+                if self.gates_generator.output_gate not in white_goal_step_output_gates:
+                  white_goal_step_output_gates.append(self.gates_generator.output_gate)
 
             elif ("lt" in cur_constraint):
               assert(" " not in cur_constraint)
@@ -1093,8 +1105,8 @@ class BlackWhiteNestedIndexBased:
                 cur_if_bound_final_gate = self.gates_generator.output_gate
 
                 self.gates_generator.if_then_gate(cur_if_bound_final_gate, -single_white_goal_disjunction_index_binary_gate)
-                if self.gates_generator.output_gate not in goal_step_output_gates:
-                  goal_step_output_gates.append(self.gates_generator.output_gate)
+                if self.gates_generator.output_gate not in white_goal_step_output_gates:
+                  white_goal_step_output_gates.append(self.gates_generator.output_gate)
             #'''
             #==========================================================================================================================
             # assuming there are no lt or nlt in the constraint:
@@ -1120,104 +1132,23 @@ class BlackWhiteNestedIndexBased:
                 self.gates_generator.and_gate([single_white_goal_disjunction_index_binary_gate,cur_equality_gate])
                 cur_final_if_condition_output_gate = self.gates_generator.output_gate
               # if the if_condition is true then the predicate must not be white:
-              cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, index ,"neg")
-              goal_step_output_gates.append(cur_constraint_gate)
+              cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_final_if_condition_output_gate, predicate, self.parsed.depth ,"neg")
+              white_goal_step_output_gates.append(cur_constraint_gate)
 
         # if the number of disjunction is not the max upper limit, we need less than constraint:
         if (self.white_single_goal_num_constraints > 1):
           if (self.single_white_goal_disjunct_upper_limit != self.white_single_goal_num_constraints):
             lsc.add_circuit(self.gates_generator, self.single_white_goal_disjunct_boolean_variables, self.white_single_goal_num_constraints)
-          goal_step_output_gates.append(self.gates_generator.output_gate)
+            white_goal_step_output_gates.append(self.gates_generator.output_gate)
 
 
 
     #----------------------------------------------------------------------------------------------------------------
     # Final goal gate:
-    self.encoding.append(['# And gate for goal constraints, at index '+ str(index)])
-    self.gates_generator.and_gate(goal_step_output_gates)
-    #self.goal_output_gate = self.gates_generator.output_gate
-    return self.gates_generator.output_gate
+    self.encoding.append(['# And gate for white goal constraints, at index '+ str(self.parsed.depth)])
+    self.gates_generator.and_gate(white_goal_step_output_gates)
+    self.white_goal_output_gate = self.gates_generator.output_gate
 
-
-# Final output gate is an nested-gate with inital, goal and transition gates:
-# we specify the goals at arbitrary time steps as mentioned:
-  def generate_final_arb_gate(self):
-
-    self.encoding.append(["# ------------------------------------------------------------------------"])
-    self.encoding.append(['# Nested gates: '])
-
-    #'''
-    # starting with goal gate and last black gate:
-    if (self.parsed.goal_check == "atend"):
-      self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.generate_goal_gate(self.parsed.depth)])
-    else:
-      self.gates_generator.and_gate([self.transition_step_output_gates[-1]])
-    cur_outgate = self.gates_generator.output_gate
-    #print("and", cur_outgate)
-
-    #print(self.parsed.depth)
-
-    for i in range(self.parsed.depth):
-      reverse_index = self.parsed.depth-i-1
-      if (reverse_index%2==1):
-        # gathering legal boolen variables:
-        all_valid_constraints = []
-        all_valid_constraints.append(self.move_variables[reverse_index][3][0])
-        all_valid_constraints.extend(self.move_variables[reverse_index][4])
-        self.gates_generator.and_gate(all_valid_constraints)
-        valid_move_output_gate = self.gates_generator.output_gate
-        #print(reverse_index-1, reverse_index)
-
-        # first implying the cur_outgate with valid move gate:
-        self.gates_generator.if_then_gate(valid_move_output_gate, cur_outgate)
-        #print(valid_move_output_gate, "->", cur_outgate)
-
-        # conjunction with this round of constraints:
-        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index-1], self.transition_step_output_gates[reverse_index], self.gates_generator.output_gate])
-
-        cur_outgate = self.gates_generator.output_gate
-        #print("and", cur_outgate)
-
-    stop_vars = []
-    # setting all stop game vars to 0:
-    for i in range(self.parsed.depth):
-      if (i%2==0):
-        stop_vars.append(self.move_variables[i][3][0])
-
-    self.gates_generator.and_gate(stop_vars)
-    nostop_gate = self.gates_generator.output_gate
-
-    if (self.parsed.goal_check == "all-white"):
-      self.encoding.append(['# all white goal output gates: '])
-      goals_outputgates = []
-      for i in range(self.parsed.depth):
-        if (i%2==1):
-          goals_outputgates.append(self.generate_goal_gate(i+1))
-      self.gates_generator.and_gate(goals_outputgates)
-      goals_final_gate = self.gates_generator.output_gate
-
-
-    self.encoding.append(["# ------------------------------------------------------------------------"])
-    self.encoding.append(['# Final gate: '])
-
-    assert(self.initial_output_gate != 0)
-
-    # if forced is 0, normal generation:
-    if(self.forced_single_output_gate == 0):
-      if (self.parsed.goal_check == "atend"):
-        self.encoding.append(['# Conjunction of Initial gate, nested output gate, and nostop gate: '])
-        self.gates_generator.and_gate([self.initial_output_gate, cur_outgate, nostop_gate])
-      else:
-        self.encoding.append(['# Conjunction of Initial gate, nested output gate, nostop gate, final goalgate: '])
-        self.gates_generator.and_gate([self.initial_output_gate, cur_outgate, nostop_gate, goals_final_gate])
-    else:
-      if (self.parsed.goal_check == "atend"):
-        self.encoding.append(['# Conjunction of Initial gate, nested output gate, and nostop gate: '])
-        self.gates_generator.and_gate([self.initial_output_gate, self.forced_single_output_gate, cur_outgate, nostop_gate])
-      else:
-        self.encoding.append(['# Conjunction of Initial gate, nested output gate, nostop gate, final goalgate: '])
-        self.gates_generator.and_gate([self.initial_output_gate, self.forced_single_output_gate, cur_outgate, nostop_gate, goals_final_gate])
-    self.final_output_gate = self.gates_generator.output_gate
 
 
 
@@ -1230,7 +1161,7 @@ class BlackWhiteNestedIndexBased:
 
     #'''
     # starting with goal gate and last black gate:
-    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.generate_goal_gate(self.parsed.depth)])
+    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.black_goal_output_gate])
     cur_outgate = self.gates_generator.output_gate
     #print("and", cur_outgate)
 
@@ -1241,28 +1172,47 @@ class BlackWhiteNestedIndexBased:
       # for white we imply with white legal condition:
       if (reverse_index%2==1):
         # gathering legal boolen variables:
+        self.encoding.append(['# white valid constraints at reverse index: ' + str(reverse_index)])
         all_valid_constraints = []
         all_valid_constraints.append(self.move_variables[reverse_index][3][0])
         all_valid_constraints.extend(self.move_variables[reverse_index][4])
+        # if maker-maker game, only if white did not stop as well we imply next round:
+        if(self.makermaker_game == 1):
+          all_valid_constraints.append(-self.move_variables[reverse_index][5][0])
         self.gates_generator.and_gate(all_valid_constraints)
         valid_move_output_gate = self.gates_generator.output_gate
-        #print(reverse_index-1, reverse_index)
+
 
         # first implying the cur_outgate with valid move gate:
         self.gates_generator.if_then_gate(valid_move_output_gate, cur_outgate)
+        not_stopped_implication_gate = self.gates_generator.output_gate
         #print(valid_move_output_gate, "->", cur_outgate)
 
-        # conjunction with this round of constraints:
-        self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], self.gates_generator.output_gate])
+        # if maker-maker game, we also allow white to stop game:
+        if(self.makermaker_game == 1):
+          # we propagate to last step and check the white goal:
+          self.encoding.append(['# propagating to the last: '])
+          self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+          self.gates_generator.if_then_gate(self.move_variables[reverse_index][5][0], [self.gates_generator.output_gate, self.white_goal_output_gate])
+          stopped_implication_gate = self.gates_generator.output_gate
+          # conjunction with this round of constraints:
+          self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, stopped_implication_gate])
+        else:
+          # conjunction with this round of constraints:
+          self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate])
+
 
         cur_outgate = self.gates_generator.output_gate
         #print("and", cur_outgate)
       # for black we imply with game stop condition:
       else:
+        self.encoding.append(['# black imply constraints at reverse index: ' + str(reverse_index)])
         # first implying the cur_outgate with negated game stop gate:
         self.gates_generator.or_gate([self.move_variables[reverse_index][3][0], cur_outgate])
         negated_implication_gate = self.gates_generator.output_gate
-        self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], self.generate_goal_gate(reverse_index+1)])
+        # propagate to the last step and imply black goal:
+        self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+        self.gates_generator.if_then_gate(self.move_variables[reverse_index][3][0], [self.gates_generator.output_gate, self.black_goal_output_gate])
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
         self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], negated_implication_gate, unnegated_implication_gate])
@@ -1365,6 +1315,9 @@ class BlackWhiteNestedIndexBased:
       # only for white we need extra variables to specify which position is false in preconditions for illegal moves:
       if (i%2 == 1):
         temp_list.append(self.encoding_variables.get_vars(self.parsed.max_white_preconditions))
+        # also add white game stop variable if maker-maker game:
+        if (self.makermaker_game == 1):
+          temp_list.append(self.encoding_variables.get_vars(1))
 
       self.move_variables.append(temp_list)
 
@@ -1524,13 +1477,12 @@ class BlackWhiteNestedIndexBased:
 
     self.generate_initial_gate()
 
-    #self.generate_goal_gate()
+    self.generate_black_goal_gate()
+
+    self.generate_white_goal_gate()
 
     self.generate_strong_linear_constraints()
 
-    if (self.parsed.goal_check == "NA"):
-      self.generate_final_gate()
-    else:
-      self.generate_final_arb_gate()
+    self.generate_final_gate()
 
     self.print_meta_data_tofile()
