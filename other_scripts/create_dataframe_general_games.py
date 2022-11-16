@@ -5,7 +5,10 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import pandas as pd
 
-int_timeout = 9999
+import math
+import argparse
+
+int_timeout = 99999
 mem_timeout = 99999
 
 def accumulate(sub_data_frame):
@@ -52,12 +55,14 @@ def cactus_data(lst, exclude_value):
 
 
 
-#f_stats = open("all_stats_second_run_hein_wf_rgex.R", "r")
-#f_stats = open("all_champ_27_stats.R", "r")
-#f_stats = open("all_27_stats_final_run_white_rgex.R", "r")
-#f_stats = open("unsat_27_stats_final_white_rgex.R", "r")
-#f_stats = open("unsat_second_run_wf_rgex.R", "r")
-f_stats = open("parsed_AAAI_first_run_stats_22_07_2022.txt.R","r")
+# Main:
+if __name__ == '__main__':
+  text = "Takes a hex board"
+  parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument("--input", help="stats file path")
+  args = parser.parse_args()
+
+f_stats = open(args.input,"r")
 stats_lines = f_stats.readlines()
 f_stats.close()
 
@@ -83,125 +88,115 @@ mem_dict = dict()
 df = pd.DataFrame(columns=["solver", "preprocessor", "format", "encoding", "instance", "mem", "time"], index=index_list,dtype=object)
 
 for i in range(len(stats_lines)):
-  cur_split_line = stats_lines[i].strip("\n").split("_")
-  solver = cur_split_line[1]
-  preprocessor = cur_split_line[2]
-  format_type = cur_split_line[3]
-  # specifying if the instance is moved, in the prerpocessing:
-  if ("-M" in cur_split_line[4]):
-    preprocessor = "M-" + preprocessor
-    encoding = cur_split_line[4][:-2]
-  else:
-    encoding = cur_split_line[4]
-  # gathering the memory and time from last split cell:
-  last_split_cell = cur_split_line[-1].split(" ")
+
+  cur_line = stats_lines[i].strip("\n").split(" ")
+  #print(cur_line)
   # can be made into interger if needed:
-  if (last_split_cell[-1] == "TO"):
+  if (cur_line[-1] == "TO"):
     time = int_timeout
   else:
-    time = float(last_split_cell[-1])
-  if (last_split_cell[-1] == "TO"):
+    time = float(cur_line[-1])
+  if (cur_line[-1] == "TO"):
     mem = mem_timeout
   else:
-    mem = float(last_split_cell[-2])
+    mem = float(cur_line[-2])
+  
+  # for solver:
+  if ("CQ" in cur_line[0]):
+    solver = "CQ"
+  elif ("DQ" in cur_line[0]):
+    solver = "DQ"
+  elif ("CT" in cur_line[0]):
+    solver = "CT"
+  elif ("QU" in cur_line[0]):
+    solver = "QU"
+
+  # format:
+  if ("qcir" in cur_line[0]):
+    format_type = "cir"
+  elif ("qdimacs" in cur_line[0]):
+    format_type = "qdim"
+
+  # encoding:
+  if ("_ib" in cur_line[0]):
+    encoding = "ib"
+  elif ("_nib" in cur_line[0]):
+    encoding = "nib"
+  elif ("_dnib" in cur_line[0]):
+    encoding = "dnib"
+
+  # preprocessor:
+  if ("-B" in cur_line[0]):
+    preprocessor = "B"
+  else:
+    preprocessor = "N"
+
+
   # instance name:
-  instance = cur_split_line[5] + "_" + cur_split_line[6] + "_" + cur_split_line[7][:6]
+  instance = "N"
   df.loc[i+1,:] = [solver, preprocessor, format_type, encoding, instance, mem, time]
 
+  #print(solver, preprocessor, format_type, encoding, instance, mem, time)
 #print(df.to_string())
 
 
-
+#print(len(df))
 print("=================================================================")
 #================================================================================================================================================
 # qcir solvers:
 #================================================================================================================================================
 # checking circuit encodings:
-qcir_solvers = ["CT", "QF", "QT", "QU"]
-qcir_encodings = ["LL", "SW", "SWB"]
+qcir_solvers = ["CT", "QU"]
+qcir_encodings = ["ib","nib","dnib"]
 for qcir_encoding in qcir_encodings:
   for solver in qcir_solvers:
-    cur_subdf = df[(df['encoding'] == qcir_encoding) & (df['solver'] == solver) & (df['format'] == 'QC')]
+    cur_subdf = df[(df['encoding'] == qcir_encoding) & (df['solver'] == solver) & (df['format'] == 'cir')]
     #print(solver, qcir_encoding)
     # 4 tuple as key: (encoding, solver, preprocessor and format):
-    time_dict[(qcir_encoding,solver,'N','QC')] = cur_subdf['time'].tolist()
+    time_dict[(qcir_encoding,solver,'N','cir')] = cur_subdf['time'].tolist()
     # 4 tuple as key: (encoding, solver, preprocessor and format):
-    mem_dict[(qcir_encoding,solver,'N','QC')] = cur_subdf['mem'].tolist()
+    mem_dict[(qcir_encoding,solver,'N','cir')] = cur_subdf['mem'].tolist()
     num_solved, total_time, avg_time, mem_total, avg_mem = accumulate(cur_subdf)
-    print(qcir_encoding, solver,"  :  ", num_solved, total_time, avg_time, mem_total, avg_mem)
+    print(qcir_encoding, solver,"  :  ", str(num_solved) +"/"+ str(len(time_dict[(qcir_encoding,solver,'N','cir')])), total_time, avg_time, mem_total, avg_mem)
   print("------------------------------------------")
 
 print("=================================================================")
 #================================================================================================================================================
 # QDIMACS solvers:
 #================================================================================================================================================
-qdimacs_solvers = ["CQ","DQ","QE","QT"]
+qdimacs_solvers = ["CQ","DQ"]
 # we take input preprocessor folder names, we also add empty string for no preprocessing:
-preprocessors = ["N", "B", "H", "Q"]
-mpreprocessors =["M-N", "M-B", "M-H", "M-Q"]
+preprocessors = ["B"]
+#mpreprocessors =["M-N", "M-B", "M-H", "M-Q"]
 
-expb_encodings = ["EBL", "EBP","EBWD"]
-impb_encodings = ["LL","SWB", "LE", "SWE"]
+encodings = ["ib","nib","dnib"]
 
-# checking explicit board qdimacs encodings:
-for expb_encoding in expb_encodings:
+# checking qdimacs encodings:
+for expb_encoding in encodings:
   for solver in qdimacs_solvers:
     for preprocessor in preprocessors:
-      cur_subdf = df[(df['encoding'] == expb_encoding) & (df['solver'] == solver) & (df['preprocessor'] == preprocessor) & (df['format'] == 'QD')]
-      time_dict[(expb_encoding,solver,preprocessor,'QD')] = cur_subdf['time'].tolist()
-      mem_dict[(expb_encoding,solver,preprocessor,'QD')] = cur_subdf['mem'].tolist()
+      cur_subdf = df[(df['encoding'] == expb_encoding) & (df['solver'] == solver) & (df['preprocessor'] == preprocessor) & (df['format'] == 'qdim')]
+      time_dict[(expb_encoding,solver,preprocessor,'qdim')] = cur_subdf['time'].tolist()
+      mem_dict[(expb_encoding,solver,preprocessor,'qdim')] = cur_subdf['mem'].tolist()
       num_solved, total_time, avg_time, mem_total, avg_mem = accumulate(cur_subdf)
-      print(expb_encoding, solver, preprocessor, "  :  ", num_solved, total_time, avg_time, mem_total, avg_mem)
+      print(expb_encoding, solver, preprocessor, "  :  ", str(num_solved) +"/"+ str(len(time_dict[(expb_encoding,solver,preprocessor,'qdim')]))   , total_time, avg_time, mem_total, avg_mem)
   print("------------------------------------------")
 print("=================================================================")
 
-# checking implicit board qdimacs encodings:
-for impb_encoding in impb_encodings:
-  for solver in qdimacs_solvers:
-    for preprocessor in preprocessors:
-      cur_subdf = df[(df['encoding'] == impb_encoding) & (df['solver'] == solver) & (df['preprocessor'] == preprocessor) & (df['format'] == 'QD')]
-      time_dict[(impb_encoding,solver,preprocessor,'QD')] = cur_subdf['time'].tolist()
-      mem_dict[(impb_encoding,solver,preprocessor,'QD')] = cur_subdf['mem'].tolist()
-      num_solved, total_time, avg_time, mem_total, avg_mem = accumulate(cur_subdf)
-      print(impb_encoding, solver, preprocessor, "  :  ", num_solved, total_time, avg_time, mem_total, avg_mem)
-  print("------------------------------------------")
-print("=================================================================")
-# checking implicit board qdimacs encodings with moved preprocessors:
-for impb_encoding in impb_encodings:
-  for solver in qdimacs_solvers:
-    for mpreprocessor in mpreprocessors:
-      cur_subdf = df[(df['encoding'] == impb_encoding) & (df['solver'] == solver) & (df['preprocessor'] == mpreprocessor) & (df['format'] == 'QD')]
-      time_dict[(impb_encoding,solver,mpreprocessor,'QD')] = cur_subdf['time'].tolist()
-      mem_dict[(impb_encoding,solver,mpreprocessor,'QD')] = cur_subdf['mem'].tolist()
-      num_solved, total_time, avg_time, mem_total, avg_mem = accumulate(cur_subdf)
-      print(impb_encoding, solver, mpreprocessor, "  :  ", num_solved, total_time, avg_time, mem_total, avg_mem)
-  print("------------------------------------------")
-print("=================================================================")
 
-'''
-best_combinations = [("SW","CT","N","QC"),("EBP","CQ","B","QD"),("EBL","CQ","N","QD"),("EBWD","CQ","H","QD"),("LL","CQ","B","QD"),("SWB","CQ","B","QD")]
-labels = ["SW-CT","EBP-CQ-B","EBL-CQ","EBWD-CQ-H","LL-CQ-B","SWB-CQ-B"]
-'''
 #'''
-best_combinations = [("SWB","CQ","B","QD"), ("LL","CQ","B","QD"), ("EBL","CQ","B","QD"), ("EBWD","CQ","B","QD")]
-labels = ["SN","LN","EN","ET"]
-markers = ['x','+','^','<',]
-colors = ['m','c','g','r']
-#'''
-
-'''
-best_combinations = [("EBP","CQ","B","QD"),("EBL","CQ","B","QD"),("EBWD","CQ","B","QD"),("LL","CQ","B","QD"),("SWB","CQ","B","QD"), ("LE","CQ","B","QD"), ("SWE","CQ","B","QD") ]
-labels = ["EA","EN","ET","LN","SN", "LA","SA"]
+best_combinations = [("dnib","CQ","B","qdim"),("dnib","DQ","B","qdim"),("dnib","CT","N","cir"), ("dnib","QU","N","cir"),("nib","CQ","B","qdim"),("nib","DQ","B","qdim"),("nib","QU","N","cir")]
+labels = ["dcq","ddq","dct","dqu","ncq","ndq","nqu"]
 
 
 markers = ['v','^','<','+','x','.','o']
 colors = ["b","g","r","c","m","k","y"]
-'''
+#'''
 
 #=======================================================================================
 # time plot:
 #=======================================================================================
-'''
+#'''
 for index in range(len(best_combinations)):
   b_comb = best_combinations[index]
   time_lst, count_lst =  cactus_data(time_dict[(b_comb)], int_timeout)
@@ -213,13 +208,13 @@ plt.ylabel("time taken in sec (log scale)")
 plt.yscale('log')
 plt.legend()
 plt.show()
-'''
+#'''
 #=======================================================================================
 
 #=======================================================================================
 # mem plot:
 #=======================================================================================
-#'''
+'''
 for index in range(len(best_combinations)):
   b_comb = best_combinations[index]
   #if ("EB" not in b_comb[0]):
@@ -243,5 +238,5 @@ plt.ylabel("mem taken in mb (log scale) ")
 plt.yscale('log')
 plt.legend()
 plt.show()
-#'''
+'''
 #=======================================================================================
