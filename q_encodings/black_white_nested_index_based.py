@@ -1176,15 +1176,21 @@ class BlackWhiteNestedIndexBased:
         all_valid_constraints = []
         all_valid_constraints.append(self.move_variables[reverse_index][3][0])
         all_valid_constraints.extend(self.move_variables[reverse_index][4])
-        # if maker-maker game, only if white did not stop as well we imply next round:
-        if(self.makermaker_game == 1):
-          all_valid_constraints.append(-self.move_variables[reverse_index][5][0])
         self.gates_generator.and_gate(all_valid_constraints)
         valid_move_output_gate = self.gates_generator.output_gate
 
 
-        # first implying the cur_outgate with valid move gate:
-        self.gates_generator.if_then_gate(valid_move_output_gate, cur_outgate)
+        # if maker-maker game, only if white did not stop as well we imply next round:
+        if(self.makermaker_game == 1):
+          # valid not stopped, then we imply the next round:
+          self.gates_generator.and_gate([valid_move_output_gate,-self.move_variables[reverse_index][5][0]])
+          not_stopped_valid_gate = self.gates_generator.output_gate
+          self.gates_generator.if_then_gate(not_stopped_valid_gate, cur_outgate)
+        else:
+          # first implying the cur_outgate with valid move gate:
+          self.gates_generator.if_then_gate(valid_move_output_gate, cur_outgate)
+
+
         not_stopped_implication_gate = self.gates_generator.output_gate
         #print(valid_move_output_gate, "->", cur_outgate)
 
@@ -1193,7 +1199,11 @@ class BlackWhiteNestedIndexBased:
           # we propagate to last step and check the white goal:
           self.encoding.append(['# propagating to the last: '])
           self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
-          self.gates_generator.if_then_gate(self.move_variables[reverse_index][5][0], [self.gates_generator.output_gate, self.white_goal_output_gate])
+          complete_propogation_gate = self.gates_generator.output_gate
+          # only when valid and stopped we check the goal condition:
+          self.gates_generator.and_gate([valid_move_output_gate,self.move_variables[reverse_index][5][0]])
+          stopped_valid_gate = self.gates_generator.output_gate
+          self.gates_generator.if_then_gate(stopped_valid_gate, [complete_propogation_gate, self.white_goal_output_gate])
           stopped_implication_gate = self.gates_generator.output_gate
           # conjunction with this round of constraints:
           self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, stopped_implication_gate])
