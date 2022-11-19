@@ -1153,7 +1153,13 @@ class BlackWhiteNestedIndexBased:
     self.white_goal_output_gate = self.gates_generator.output_gate
 
 
+  # propagation gates at each time step:
+  def forced_propagation(self):
 
+    self.propagated_output_gates = []
+    for i in range(self.parsed.depth):
+      self.gates_generator.complete_equality_gate(self.predicate_variables[i],self.predicate_variables[i+1])
+      self.propagated_output_gates.append(self.gates_generator.output_gate)
 
 
 # Final output gate is an nested-gate with inital, goal and transition gates:
@@ -1199,9 +1205,17 @@ class BlackWhiteNestedIndexBased:
 
         # if maker-maker game, we also allow white to stop game:
         if(self.makermaker_game == 1):
-          # we propagate to last step and check the white goal:
-          self.encoding.append(['# propagating to the last: '])
-          self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+          if (self.parsed.args.force_white_player_stop == 1):
+            cur_forced_output_gates = []
+            self.encoding.append(['# propagating all further predicates: '])
+            for p_index in range(reverse_index+1,self.parsed.depth):
+              cur_forced_output_gates.append(self.propagated_output_gates[p_index])
+            # conjunction of all the gates:
+            self.gates_generator.and_gate(cur_forced_output_gates)
+          else:
+            # we propagate to last step and check the white goal:
+            self.encoding.append(['# propagating to the last: '])
+            self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
           complete_propogation_gate = self.gates_generator.output_gate
           # only when valid and stopped we check the goal condition:
           self.gates_generator.and_gate([valid_move_output_gate,self.move_variables[reverse_index][5][0]])
@@ -1224,7 +1238,16 @@ class BlackWhiteNestedIndexBased:
         self.gates_generator.or_gate([self.move_variables[reverse_index][3][0], cur_outgate])
         negated_implication_gate = self.gates_generator.output_gate
         # propagate to the last step and imply black goal:
-        self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+
+        if (self.parsed.args.force_black_player_stop == 1):
+          cur_forced_output_gates = []
+          self.encoding.append(['# propagating all further predicates: '])
+          for p_index in range(reverse_index+1,self.parsed.depth):
+            cur_forced_output_gates.append(self.propagated_output_gates[p_index])
+          # conjunction of all the gates:
+          self.gates_generator.and_gate(cur_forced_output_gates)
+        else:
+          self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
         self.gates_generator.if_then_gate(self.move_variables[reverse_index][3][0], [self.gates_generator.output_gate, self.black_goal_output_gate])
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
@@ -1495,6 +1518,9 @@ class BlackWhiteNestedIndexBased:
     self.generate_white_goal_gate()
 
     self.generate_strong_linear_constraints()
+
+    if (self.parsed.args.force_black_player_stop == 1 or self.parsed.args.force_white_player_stop == 1):
+      self.forced_propagation()
 
     self.generate_final_gate()
 
