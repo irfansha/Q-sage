@@ -105,12 +105,14 @@ if __name__ == '__main__':
   parser.add_argument("--tight_neighbours_with_distances", type=int, help="computer tight neighbours with distances, less powerful but also less overhead [0/1], default 0" ,default = 0)
   parser.add_argument("--force_black_player_stop", type=int, help="[0/1], default 0 once black player stops the game, rest of the predicates are forced to open" ,default = 0)
   parser.add_argument("--force_white_player_stop", type=int, help="[0/1], default 0 once white player stops the game, rest of the predicates are forced to open" ,default = 0)
+  parser.add_argument("--sort_internal_gates", type=int, help="[0/1], default 0 by sorting we create unique gates might be helpful" ,default = 0)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:
                                        0 = off
                                        1 = bloqqer (version 37)
                                        2 = bloqqer-qdo
-                                       3 = hqspre'''),default = 2)
+                                       3 = hqspre
+                                       4 = qrat+'''),default = 2)
   parser.add_argument("--preprocessed_encoding_out", help="output preprocessed encoding file",default = 'intermediate_files/preprocessed_encoding')
   parser.add_argument("--time_limit", type=float, help="Solving time limit in seconds, default 1800 seconds",default = 1800)
   parser.add_argument("--preprocessing_time_limit", type=int, help="Preprocessing time limit in seconds, default 900 seconds",default = 900)

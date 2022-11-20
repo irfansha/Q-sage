@@ -181,6 +181,13 @@ def generate_encoding(parsed_instance):
     assert(parsed_instance.args.encoding_format == 2 or parsed_instance.args.encoding_format == 5)
     os.system(preprocessor_path + ' ' + parsed_instance.args.encoding_out + ' > ' + parsed_instance.args.preprocessed_encoding_out)
     print("preprocesing with Bloqqer complete")
+  elif (parsed_instance.args.preprocessing == 3):
+    preprocessor_path = os.path.join(parsed_instance.args.planner_path, 'tools', 'HQSpre', 'hqspre')
+    # Calling the tool:
+    # We preprocess only qdimacs format encoding:
+    assert(parsed_instance.args.encoding_format == 2 or parsed_instance.args.encoding_format == 5)
+    os.system(preprocessor_path + ' --pipe ' + parsed_instance.args.encoding_out + ' > ' + parsed_instance.args.preprocessed_encoding_out)
+    print("preprocesing with HQSpre complete")
 
 
   # Returning encoding for plan extraction:

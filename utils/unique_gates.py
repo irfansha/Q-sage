@@ -1,9 +1,7 @@
-# Irfansha Shaik, 14.08.2021, Aarhus.
+# Irfansha Shaik, 19.11.2022, Aarhus.
 
 '''
 TODO: Some testing is needed.
-
-We use gate reuse map for reusing already generated gates.
 '''
 
 class GatesGen:
@@ -30,7 +28,7 @@ class GatesGen:
     if (len(list_key) == 1):
       self.output_gate = list_key[0]
       return
-    temp_gate = ['or', self.next_gate, current_list]
+    temp_gate = ['or', self.next_gate, list_key]
     self.gates.append(temp_gate)
     self.output_gate = self.next_gate
     self.next_gate = self.vd.get_single_var()
@@ -49,7 +47,7 @@ class GatesGen:
     if (len(list_key) == 1):
       self.output_gate = list_key[0]
       return
-    temp_gate = ['and', self.next_gate, current_list]
+    temp_gate = ['and', self.next_gate, list_key]
     self.gates.append(temp_gate)
     self.output_gate = self.next_gate
     self.next_gate = self.vd.get_single_var()
@@ -58,11 +56,13 @@ class GatesGen:
   # Takes list and current list of gates
   # generates if then gate i.e., if x then y -> y' = AND(y) and OR(-x, y'):
   def if_then_gate(self, if_gate, then_list):
+
+    if not isinstance(then_list, int):
+      list_key = self.clean_list(then_list)
     # checking if then_list is an int:
     if isinstance(then_list, int):
       key = ('ifthen', if_gate, then_list)
     else:
-      list_key = self.clean_list(then_list)
       #key = ('ifthen', if_gate, tuple(then_list))
       key = ('ifthen', if_gate, tuple(list_key))
     if key in self.gate_reuse_map:
@@ -72,7 +72,7 @@ class GatesGen:
     if isinstance(then_list, int):
       self.or_gate([-if_gate, then_list])
     else:
-      self.and_gate(then_list)
+      self.and_gate(list_key)
       self.or_gate([-if_gate, self.output_gate])
     self.gate_reuse_map[key] = self.output_gate
 

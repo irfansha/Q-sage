@@ -5,6 +5,7 @@ import math
 import utils.adder_cir as addc
 import utils.lessthen_cir as lsc
 from utils.gates import GatesGen as ggen
+from utils.unique_gates import GatesGen as uggen
 from utils.variables_dispatcher import VarDispatcher as vd
 
 
@@ -394,13 +395,13 @@ class BlackWhiteNestedIndexBased:
       # generate binary constraint for current action index:
       binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
       self.gates_generator.and_gate(binary_format_clause)
-      #'''
+      '''
       # apparently just removing this redundant gates makes a huge difference:
       # XXX testcase for bloqqer preprocessing, huge difference in file sizes:
       temp_if_condition_output_gates.append(self.gates_generator.output_gate)
       # final if condition for current action:
       self.gates_generator.and_gate(temp_if_condition_output_gates)
-      #'''
+      '''
       final_if_condition_output_gate = self.gates_generator.output_gate
       temp_then_constraint_output_gates = []
       # generate positive index bound constraints:
@@ -1506,7 +1507,10 @@ class BlackWhiteNestedIndexBased:
     # Generating quantifer blocks:
     self.generate_quantifier_blocks()
 
-    self.gates_generator = ggen(self.encoding_variables, self.encoding)
+    if (self.parsed.args.sort_internal_gates == 0):
+      self.gates_generator = ggen(self.encoding_variables, self.encoding)
+    else:
+      self.gates_generator = uggen(self.encoding_variables, self.encoding)
 
     # Generating d steps i.e., which includes black and white constraints:
     self.generate_d_transitions()
