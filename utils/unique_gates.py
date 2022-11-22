@@ -15,6 +15,7 @@ class GatesGen:
     new_list.sort()
     return new_list
 
+  '''
   # Takes list and current list of gates
   # generates OR gate:
   # TODO: if single length we can return with out gate:
@@ -28,17 +29,31 @@ class GatesGen:
     if (len(list_key) == 1):
       self.output_gate = list_key[0]
       return
-    temp_gate = ['or', self.next_gate, list_key]
+    temp_gate = ['or', self.next_gate, current_list]
     self.gates.append(temp_gate)
     self.output_gate = self.next_gate
     self.next_gate = self.vd.get_single_var()
     self.gate_reuse_map[key] = self.output_gate
+  '''
+
+
+  # Takes list and call and gate with negations:
+  def or_gate(self, current_list):
+    negated_list = []
+    for var in current_list:
+      negated_list.append(-var)
+    self.and_gate(negated_list)
+    self.output_gate = -self.output_gate
+
+
 
   # Takes list and current list of gates
   # generates AND gate:
   # TODO: if single length we can return with out gate:
   def and_gate(self, current_list):
     list_key = self.clean_list(current_list)
+    if(len(list_key)>4):
+      print(len(list_key))
     #key = ('and', tuple(current_list))
     key = ('and', tuple(list_key))
     if key in self.gate_reuse_map:
@@ -47,7 +62,7 @@ class GatesGen:
     if (len(list_key) == 1):
       self.output_gate = list_key[0]
       return
-    temp_gate = ['and', self.next_gate, list_key]
+    temp_gate = ['and', self.next_gate, current_list]
     self.gates.append(temp_gate)
     self.output_gate = self.next_gate
     self.next_gate = self.vd.get_single_var()
@@ -56,13 +71,11 @@ class GatesGen:
   # Takes list and current list of gates
   # generates if then gate i.e., if x then y -> y' = AND(y) and OR(-x, y'):
   def if_then_gate(self, if_gate, then_list):
-
-    if not isinstance(then_list, int):
-      list_key = self.clean_list(then_list)
     # checking if then_list is an int:
     if isinstance(then_list, int):
       key = ('ifthen', if_gate, then_list)
     else:
+      list_key = self.clean_list(then_list)
       #key = ('ifthen', if_gate, tuple(then_list))
       key = ('ifthen', if_gate, tuple(list_key))
     if key in self.gate_reuse_map:
@@ -72,7 +85,7 @@ class GatesGen:
     if isinstance(then_list, int):
       self.or_gate([-if_gate, then_list])
     else:
-      self.and_gate(list_key)
+      self.and_gate(then_list)
       self.or_gate([-if_gate, self.output_gate])
     self.gate_reuse_map[key] = self.output_gate
 
