@@ -128,33 +128,37 @@ class BlackWhiteNestedIndexBased:
     # after add/sub we use these lists for remembering:
     result_x_variables = []
     result_y_variables = []
-    self.encoding.append(['# computing x variables for constraints, add/sub/none:'])
+    self.encoding.append(['# computing x variables for constraints,' + str(constraint) +' add/sub/none:'])
     # first computing x variables:
     if ('+' in constraint[0]):
       split_x_constraint = constraint[0].split("+")
       assert("?x" == split_x_constraint[0])
       num_to_add = int(split_x_constraint[1])
+      self.encoding.append(['# adder circuit'])
       result_x_variables = addc.adder_circuit(self.gates_generator,x_variables,num_to_add)
     elif ('-' in constraint[0]):
       split_x_constraint = constraint[0].split("-")
       assert("?x" == split_x_constraint[0])
       num_to_sub = int(split_x_constraint[1])
+      self.encoding.append(['# subtractor circuit'])
       result_x_variables = addc.subtractor_circuit(self.gates_generator,x_variables,num_to_sub)
     elif ('?x' in constraint[0]):
       result_x_variables = x_variables
     else:
       x_value = int(constraint[0]) - 1
-    self.encoding.append(['# computing y variables for constraints, add/sub/none:'])
+    self.encoding.append(['# computing y variables for constraints,' + str(constraint) +' add/sub/none:'])
     # now computing y variables:
     if ('+' in constraint[1]):
       split_y_constraint = constraint[1].split("+")
       assert("?y" == split_y_constraint[0])
       num_to_add = int(split_y_constraint[1])
+      self.encoding.append(['# adder circuit'])
       result_y_variables = addc.adder_circuit(self.gates_generator,y_variables,num_to_add)
     elif ('-' in constraint[1]):
       split_y_constraint = constraint[1].split("-")
       assert("?y" == split_y_constraint[0])
       num_to_sub = int(split_y_constraint[1])
+      self.encoding.append(['# subtractor circuit'])
       result_y_variables = addc.subtractor_circuit(self.gates_generator,y_variables,num_to_sub)
     elif('?y' in constraint[1]):
       result_y_variables = y_variables
