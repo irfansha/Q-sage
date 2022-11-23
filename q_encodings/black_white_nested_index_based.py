@@ -1208,47 +1208,30 @@ class BlackWhiteNestedIndexBased:
         not_stopped_implication_gate = self.gates_generator.output_gate
         #print(valid_move_output_gate, "->", cur_outgate)
 
-        # if we are force propagating to the end:
-        if (self.parsed.args.force_black_player_stop == 1 or self.parsed.args.force_white_player_stop == 1 or self.parsed.args.force_white_player_invalid_or_stop == 1):
-          cur_forced_output_gates = []
-          self.encoding.append(['# propagating all further predicates: '])
-          for p_index in range(reverse_index+1,self.parsed.depth):
-            cur_forced_output_gates.append(self.propagated_output_gates[p_index])
-          # conjunction of all the gates:
-          self.gates_generator.and_gate(cur_forced_output_gates)
-        else:
-          # we propagate to last step and check the white goal:
-          self.encoding.append(['# propagating to the last: '])
-          self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
-        complete_propogation_gate = self.gates_generator.output_gate
-
         # if maker-maker game, we also allow white to stop game:
         if(self.makermaker_game == 1):
+          if (self.parsed.args.force_white_player_stop == 1):
+            cur_forced_output_gates = []
+            self.encoding.append(['# propagating all further predicates: '])
+            for p_index in range(reverse_index+1,self.parsed.depth):
+              cur_forced_output_gates.append(self.propagated_output_gates[p_index])
+            # conjunction of all the gates:
+            self.gates_generator.and_gate(cur_forced_output_gates)
+          else:
+            # we propagate to last step and check the white goal:
+            self.encoding.append(['# propagating to the last: '])
+            self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+          complete_propogation_gate = self.gates_generator.output_gate
           # only when valid and stopped we check the goal condition:
           self.gates_generator.and_gate([valid_move_output_gate,self.move_variables[reverse_index][5][0]])
           stopped_valid_gate = self.gates_generator.output_gate
           self.gates_generator.if_then_gate(stopped_valid_gate, [complete_propogation_gate, self.white_goal_output_gate])
           stopped_implication_gate = self.gates_generator.output_gate
-          if (self.parsed.args.force_white_player_invalid_or_stop == 1):
-            # if invalid or stopped
-            self.gates_generator.or_gate([-valid_move_output_gate, self.move_variables[reverse_index][5][0]])
-            # then we propagate to the end:
-            self.gates_generator.if_then_gate(self.gates_generator.output_gate,complete_propogation_gate)
-            invalid_or_stopped_gate = self.gates_generator.output_gate
-            # conjunction with this round of constraints:
-            self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, stopped_implication_gate,invalid_or_stopped_gate])
-          else:
-            # conjunction with this round of constraints:
-            self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, stopped_implication_gate])
+          # conjunction with this round of constraints:
+          self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, stopped_implication_gate])
         else:
-          if (self.parsed.args.force_white_player_invalid_or_stop == 1):
-            # if invalid then propagate, there is not stopping here:
-            self.gates_generator.if_then_gate(-valid_move_output_gate, complete_propogation_gate)
-            invalid_propagatinon_gate = self.gates_generator.output_gate
-            self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, invalid_propagatinon_gate])
-          else:
-            # conjunction with this round of constraints:
-            self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate])
+          # conjunction with this round of constraints:
+          self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate])
 
 
         cur_outgate = self.gates_generator.output_gate
@@ -1260,7 +1243,17 @@ class BlackWhiteNestedIndexBased:
         self.gates_generator.or_gate([self.move_variables[reverse_index][3][0], cur_outgate])
         negated_implication_gate = self.gates_generator.output_gate
         # propagate to the last step and imply black goal:
-        self.gates_generator.if_then_gate(self.move_variables[reverse_index][3][0], [complete_propogation_gate, self.black_goal_output_gate])
+
+        if (self.parsed.args.force_black_player_stop == 1):
+          cur_forced_output_gates = []
+          self.encoding.append(['# propagating all further predicates: '])
+          for p_index in range(reverse_index+1,self.parsed.depth):
+            cur_forced_output_gates.append(self.propagated_output_gates[p_index])
+          # conjunction of all the gates:
+          self.gates_generator.and_gate(cur_forced_output_gates)
+        else:
+          self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
+        self.gates_generator.if_then_gate(self.move_variables[reverse_index][3][0], [self.gates_generator.output_gate, self.black_goal_output_gate])
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
         self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], negated_implication_gate, unnegated_implication_gate])
@@ -1534,7 +1527,7 @@ class BlackWhiteNestedIndexBased:
 
     self.generate_strong_linear_constraints()
 
-    if (self.parsed.args.force_black_player_stop == 1 or self.parsed.args.force_white_player_stop == 1 or self.parsed.args.force_white_player_invalid_or_stop == 1):
+    if (self.parsed.args.force_black_player_stop == 1 or self.parsed.args.force_white_player_stop == 1):
       self.forced_propagation()
 
     self.generate_final_gate()
