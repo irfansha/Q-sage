@@ -188,11 +188,26 @@ def combine(args):
   f_combined_file.write("#boardsize\n")
   f_combined_file.write(' '.join(p_parsed_dict['#boardsize'][0]) + '\n')
   f_combined_file.write("#blackinitials\n")
-  for b_init in p_parsed_dict['#blackinitials']:
-    f_combined_file.write(b_init[0] + "\n")
+  if (len(p_parsed_dict["#init"]) > 0):
+    split_pos = p_parsed_dict["#init"][0]
+    for var in split_pos:
+      if ("black" in var):
+        clean_var = var.strip("black(").strip(")")
+        assert(" " not in var)
+        x,y = clean_var.split(",")
+        f_combined_file.write(chr(ord('a') + int(x) -1) + y + "\n")
+    #for b_init in p_parsed_dict['#blackinitials']:
+    #  f_combined_file.write(b_init[0] + "\n")
   f_combined_file.write("#whiteinitials\n")
-  for b_init in p_parsed_dict['#whiteinitials']:
-    f_combined_file.write(b_init[0] + "\n")
+  if (len(p_parsed_dict["#init"]) > 0):
+    for var in split_pos:
+      if ("white" in var):
+        clean_var = var.strip("white(").strip(")")
+        assert(" " not in var)
+        x,y = clean_var.split(",")
+        f_combined_file.write(chr(ord('a') + int(x) -1) + y + "\n")
+    #for b_init in p_parsed_dict['#whiteinitials']:
+    #  f_combined_file.write(b_init[0] + "\n")
   f_combined_file.write("#depth\n")
   f_combined_file.write(p_parsed_dict['#depth'][0][0] + "\n")
 
