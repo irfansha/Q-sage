@@ -51,13 +51,14 @@ if __name__ == '__main__':
                                   nib = nested index based (grid games)
                                   dnib = double nested index based (grid games)
                                   bwnib = black white nested index based (grid games)
+                                  cfbwnib =bwnib with complete propagation (grid games)
                                   wgttt = witness based gttt)'''),default = 'pg')
   parser.add_argument("--game_type", help=textwrap.dedent('''
                                   games (for specific optimizations):
-                                  hex = hex game (default)
+                                  hex = hex game
                                   ttt = tic-tac-toe
                                   gomuku = gomuku
-                                  general = general game, for index based'''),default = 'hex')
+                                  general = general game, for index based (default)'''),default = 'general')
   parser.add_argument("--goal_length", help="Goal line length for games such as tic-tac-toe and gomuku, default 3", type=int,default = 3)
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
@@ -103,8 +104,9 @@ if __name__ == '__main__':
   parser.add_argument("--remove_unreachable_nodes", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--tight_neighbour_pruning", type=int, help="[0/1], default 0" ,default = 0)
   parser.add_argument("--tight_neighbours_with_distances", type=int, help="computer tight neighbours with distances, less powerful but also less overhead [0/1], default 0" ,default = 0)
-  parser.add_argument("--force_black_player_stop", type=int, help="[0/1], default 0 once black player stops the game, rest of the predicates are forced to open" ,default = 0)
-  parser.add_argument("--force_white_player_stop", type=int, help="[0/1], default 0 once white player stops the game, rest of the predicates are forced to open" ,default = 0)
+  parser.add_argument("--force_black_player_stop", type=int, help="[0/1], default 0 once black player stops the game, rest of the predicates are propagated" ,default = 0)
+  parser.add_argument("--force_white_player_stop", type=int, help="[0/1], default 0 once white player stops the game, rest of the predicates are propagated" ,default = 0)
+  parser.add_argument("--force_white_player_invalid_or_stop", type=int, help="[0/1], default 0 once white player stops the game or makes invalid move, rest of the predicates are propagated" ,default = 0)
   parser.add_argument("--sort_internal_gates", type=int, help="[0/1], default 0 by sorting we create unique gates might be helpful" ,default = 0)
   parser.add_argument("--preprocessing", type = int, help=textwrap.dedent('''
                                        Preprocessing:

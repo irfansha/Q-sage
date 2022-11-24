@@ -21,6 +21,7 @@ from q_encodings.iterative_squaring_witness_based import \
     IterativeSquaringWitnessBased as iswb
 from q_encodings.nested_index_based import NestedIndexBased as nib
 from q_encodings.black_white_nested_index_based import BlackWhiteNestedIndexBased as bwnib
+from q_encodings.completed_forced_prop_bwnib import CompleteForcedPropBwnib as cfbwnib
 from q_encodings.no_transitions_path_based import \
     NoTransitionsPathBasedGoal as ntpbg
 from q_encodings.path_based_goal import PathBasedGoal as pbg
@@ -120,6 +121,10 @@ def generate_encoding(parsed_instance):
     if (parsed_instance.args.debug > -1):
       print("Generating Black White Nested Index Based Encoding")
     encoding = bwnib(parsed_instance)
+  elif (parsed_instance.args.e == 'cfbwnib' and parsed_instance.args.game_type == "general"):
+    if (parsed_instance.args.debug > -1):
+      print("Generating Completed Forced Black White Nested Index Based Encoding")
+    encoding = cfbwnib(parsed_instance)
   elif (parsed_instance.args.e == 'cp'):
     if (parsed_instance.args.debug > -1):
       print("Generating Compact Positional encoding")
