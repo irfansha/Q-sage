@@ -103,13 +103,14 @@ class GatesGen:
 
     step_output_gates = []
 
+    #print(first_vars,second_vars)
     # If the number of vars is inequal then we need to change the equality gates,
     # we simly negate all the extra variables:
     while (len(temp_first_vars) != len(temp_second_vars)):
       if (len(temp_first_vars) < len(temp_second_vars)):
         cur_var = temp_second_vars.pop(0)
       elif(len(temp_second_vars) < len(temp_first_vars)):
-        cur_var = temp_second_vars.pop(0)
+        cur_var = temp_first_vars.pop(0)
       step_output_gates.append(-cur_var)
 
     for i in range(len(temp_first_vars)):

@@ -114,7 +114,9 @@ class Action:
     original_line_split = original_line[1:-1].replace(", ",",").split(" ")
     for condition in original_line_split:
       if ('NOT' not in condition):
-        self.positive_preconditions.append(condition)
+        # we do not want empty preconditions:
+        if(len(condition) != 0):
+          self.positive_preconditions.append(condition)
       else:
         condition = condition.strip("NOT(")[:-1]
         self.negative_preconditions.append(condition)
@@ -136,6 +138,20 @@ class Action:
       else:
         condition = condition.strip("NOT(")[:-1]
         self.negative_effects.append(condition)
+
+    # In positive effects, we can have counter functions
+    # we add the bounds of counter to positive preconditions:
+    for eff in self.positive_effects:
+      # for now assuming there is only increment:
+      if ("inc" in eff):
+        assert(" " not in eff)
+        # considering only parameters:
+        clean_param = int(eff[7:-1])
+        # adding the bound for increment function as precondition.
+        # this way we do not need special variables for bounds:
+        # adding 1 to the bound since, we can play in the upper row for connect4:
+        # Note: check here if problem with counter bounds:
+        self.positive_preconditions.append("lt(?c," + str(parsed.counter_bound-clean_param + 1) + ")")
 
 
   def __str__(self):

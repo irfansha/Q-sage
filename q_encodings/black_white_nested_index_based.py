@@ -119,6 +119,22 @@ class BlackWhiteNestedIndexBased:
         # sending "None" to handle the bounds properly:
         return "None"
 
+  def generate_counter_index_constraint(self, variables, constraint_pair):
+    self.encoding.append(['# computing counter bounds for constraints,' + str(constraint_pair) +' :'])
+    assert("?c" in constraint_pair[0])
+    # if lessthan bound is max counter and powers of 2, we use lessthan-and-equal to:
+    if (self.parsed.counter_bound == int(constraint_pair[1]) and int(constraint_pair[1]) == math.pow(self.num_counter_vars,2)):
+      lsc.add_circuit(self.gates_generator, variables, int(constraint_pair[1])-1)
+      lessthan_output_gate = self.gates_generator.output_gate
+      # equal-to gate with num-1:
+      binary_format_gates = self.generate_binary_format(variables,int(constraint_pair[1])-1)
+      self.gates_generator.and_gate(binary_format_gates)
+      binary_output_gate = self.gates_generator.output_gate
+      # disjunction will be lessthan-or-equal circuit:
+      self.gates_generator.or_gate([lessthan_output_gate,binary_output_gate])
+    else:
+      lsc.add_circuit(self.gates_generator, variables, int(constraint_pair[1]))
+    return self.gates_generator.output_gate
 
   # returns, equality gates with forall variables for both x and y indexes (after computing addition and subtraciton where necessary):
   # we reduces both indexes by 1, so that indexes are consistent:
@@ -144,6 +160,9 @@ class BlackWhiteNestedIndexBased:
       result_x_variables = addc.subtractor_circuit(self.gates_generator,x_variables,num_to_sub)
     elif ('?x' in constraint[0]):
       result_x_variables = x_variables
+    # we allow counter to be an index, assuming that x_variables are simply counter variables:
+    elif('?c' in constraint[1]):
+      result_x_variables = x_variables
     else:
       x_value = int(constraint[0]) - 1
     self.encoding.append(['# computing y variables for constraints,' + str(constraint) +' add/sub/none:'])
@@ -162,11 +181,14 @@ class BlackWhiteNestedIndexBased:
       result_y_variables = addc.subtractor_circuit(self.gates_generator,y_variables,num_to_sub)
     elif('?y' in constraint[1]):
       result_y_variables = y_variables
+    # we allow counter to be an index, assuming that y_variables are simply counter variables:
+    elif('?c' in constraint[1]):
+      result_y_variables = y_variables
     else:
       y_value = int(constraint[1]) - 1
 
     # we also handle if the parameter is a constant:
-    if ("?x" in constraint[0]):
+    if ("?x" in constraint[0] or "?c" in constraint[0]):
       # computing equality constraints with forall variables:
       # generating constraint for new x, which is equality with x parameter of forall variables:
       self.encoding.append(['# new x constraint equality gate with forall x variables: '])
@@ -179,7 +201,7 @@ class BlackWhiteNestedIndexBased:
       self.gates_generator.and_gate(x_constraint_binary_format)
       x_output_gate = self.gates_generator.output_gate
 
-    if ("?y" in constraint[1]):
+    if ("?y" in constraint[1] or "?c" in constraint[1]):
       # generating constraint for new y, which is equality with y parameter of forall variables:
       self.encoding.append(['# new y constraint equality gate with forall y variables: '])
       self.gates_generator.complete_equality_gate(result_y_variables,self.forall_position_variables[1])
@@ -193,6 +215,26 @@ class BlackWhiteNestedIndexBased:
 
     # conjunction of both equallity gates:
     self.gates_generator.and_gate([x_output_gate, y_output_gate])
+    return self.gates_generator.output_gate
+
+  # takes time step and generates equalities with forall variables only for ?x and ?y variables if available,
+  # returns equality output gate:
+  def generate_counter_forall_equality_gate(self,time_step):
+    # computing equality output gates:
+    counter_equality_gates = []
+    if (self.parsed.x_flag == 1):
+      self.gates_generator.complete_equality_gate(self.move_variables[time_step][1], self.forall_position_variables[0])
+      counter_equality_gates.append(self.gates_generator.output_gate)
+    else:
+      assert(len(self.move_variables[time_step][1]) == 0)
+    if (self.parsed.y_flag == 1):
+      self.gates_generator.complete_equality_gate(self.move_variables[time_step][2], self.forall_position_variables[1])
+      counter_equality_gates.append(self.gates_generator.output_gate)
+    else:
+      assert(len(self.move_variables[time_step][2]) == 0)
+    # if there is counter then atleast one of the variables are presented:
+    assert(len(counter_equality_gates) != 0)
+    self.gates_generator.and_gate(counter_equality_gates)
     return self.gates_generator.output_gate
 
   # takes equality output gate with forall variables and a predicate to generate if-then constraint depending on the sign:
@@ -357,6 +399,15 @@ class BlackWhiteNestedIndexBased:
     self.quantifier_block.append(['# Forall index variables: '])
     self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in forall_index_variables) + ')'])
 
+
+    # if counter is available:
+    # TODO: can be moved to one level up, might be efficient:
+    if (self.parsed.counter_flag == 1):
+      self.quantifier_block.append(['# Counter variables: '])
+      for i in range(self.parsed.depth+1):
+        self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in self.counter_variables[i]) + ')'])
+
+
     # Finally predicate variables for each time step:
     self.quantifier_block.append(['# Predicate variables: '])
     for i in range(self.parsed.depth+1):
@@ -410,6 +461,11 @@ class BlackWhiteNestedIndexBased:
       temp_then_constraint_output_gates = []
       # generate positive index bound constraints:
       for index_constraint in self.parsed.black_action_list[i].positive_indexbounds:
+        # we only add bounds if variables are allocated:
+        if (self.parsed.x_flag != 1 and "?x" in index_constraint):
+          continue
+        if (self.parsed.y_flag != 1 and "?y" in index_constraint):
+          continue
         self.encoding.append(['# less than constraints for positive index bounds:'])
         # generating constraints for corresponding index variables:
         # no spaces for sake of correct parsing:
@@ -422,6 +478,11 @@ class BlackWhiteNestedIndexBased:
         #print(self.parsed.black_action_list[i],index_constraint, bound)
       # generate negative index bound constraints:
       for index_constraint in self.parsed.black_action_list[i].negative_indexbounds:
+        # we only add bounds if variables are allocated:
+        if (self.parsed.x_flag != 1 and "?x" in index_constraint):
+          continue
+        if (self.parsed.y_flag != 1 and "?y" in index_constraint):
+          continue
         self.encoding.append(['# less than constraints for negative index bounds:'])
         # generating constraints for corresponding index variables:
         # no spaces for sake of correct parsing:
@@ -442,8 +503,14 @@ class BlackWhiteNestedIndexBased:
         split_precondition = precondition.strip(")").split("(")
         predicate = split_precondition[0]
         constraint_pair = split_precondition[1].split(",")
-        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"pos"))
+        # if we have counter bound index, we compute it directly:
+        if ("lt" in predicate and "?c" in constraint_pair):
+          self.encoding.append(['# counter bound constraints with ' + str(constraint_pair[1]) + ":"])
+          bound_result = self.generate_counter_index_constraint(self.counter_variables[time_step], constraint_pair)
+          temp_then_constraint_output_gates.append(bound_result)
+        else:
+          cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+          temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"pos"))
       # constraints for negative precondition:
       for precondition in self.parsed.black_action_list[i].negative_preconditions:
         # no spaces for sake of correct parsing:
@@ -464,10 +531,39 @@ class BlackWhiteNestedIndexBased:
         split_effect = effect.strip(")").split("(")
         predicate = split_effect[0]
         constraint_pair = split_effect[1].split(",")
-        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-        touched_position_output_gates.append(cur_equality_output_gate)
-        # time step + 1 because these are effects:
-        temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
+        #print(predicate, constraint_pair)
+        # for now we assume only increment exists:
+        # we handle the increment function separately:
+        if ("inc" == predicate):
+          #print(predicate,constraint_pair)
+          # if parameters are equal to forall variables, then we increment the counter in those branches:
+          counter_forall_equality_gate = self.generate_counter_forall_equality_gate(time_step)
+          # first incrementing current counter:
+          self.encoding.append(['# adder circuit for counter increment:'])
+          increased_counter_variables = addc.adder_circuit(self.gates_generator,self.counter_variables[time_step],int(constraint_pair[1]))
+          # complete equality with next time step counter variables, i.e., increasing counter:
+          self.gates_generator.complete_equality_gate(self.counter_variables[time_step+1], increased_counter_variables)
+          counter_increased_equality_gate = self.gates_generator.output_gate
+          # implying the counter increased gate with counter forall equality gate:
+          self.gates_generator.if_then_gate(counter_forall_equality_gate,counter_increased_equality_gate)
+          temp_then_constraint_output_gates.append(self.gates_generator.output_gate)
+
+          # we also propagate for all the other branches,
+          # since we only have function once, it is easier to do it:
+          # first equality gate for counter variables:
+          self.gates_generator.complete_equality_gate(self.counter_variables[time_step],self.counter_variables[time_step+1])
+          self.gates_generator.if_then_gate(-counter_forall_equality_gate, self.gates_generator.output_gate)
+          temp_then_constraint_output_gates.append(self.gates_generator.output_gate)
+        else:
+          if ("?c" == constraint_pair[0]):
+            cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.counter_variables[time_step], self.move_variables[time_step][2], constraint_pair)
+          elif ("?c" == constraint_pair[1]):
+            cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.counter_variables[time_step], constraint_pair)
+          else:
+            cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+          touched_position_output_gates.append(cur_equality_output_gate)
+          # time step + 1 because these are effects:
+          temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
       # constraints for postive effects:
       for effect in self.parsed.black_action_list[i].negative_effects:
         # no spaces for sake of correct parsing:
@@ -554,6 +650,11 @@ class BlackWhiteNestedIndexBased:
       lessthan_constraint_output_gates = []
       # generate positive index bound constraints:
       for index_constraint in self.parsed.white_action_list[i].positive_indexbounds:
+        # we only add bounds if variables are allocated:
+        if (self.parsed.x_flag != 1 and "?x" in index_constraint):
+          continue
+        if (self.parsed.y_flag != 1 and "?y" in index_constraint):
+          continue
         self.encoding.append(['# less than constraints for positive index bounds:'])
         # generating constraints for corresponding index variables:
         # no spaces for sake of correct parsing:
@@ -565,6 +666,11 @@ class BlackWhiteNestedIndexBased:
           lessthan_constraint_output_gates.append(bound_result)
       # generate negative index bound constraints:
       for index_constraint in self.parsed.white_action_list[i].negative_indexbounds:
+        # we only add bounds if variables are allocated:
+        if (self.parsed.x_flag != 1 and "?x" in index_constraint):
+          continue
+        if (self.parsed.y_flag != 1 and "?y" in index_constraint):
+          continue
         self.encoding.append(['# less than constraints for negative index bounds:'])
         # generating constraints for corresponding index variables:
         # no spaces for sake of correct parsing:
@@ -620,17 +726,35 @@ class BlackWhiteNestedIndexBased:
         split_precondition = precondition.strip(")").split("(")
         predicate = split_precondition[0]
         constraint_pair = split_precondition[1].split(",")
-        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-        cur_precondition_pos_then_gate = self.generate_then_predicate_constraint(predicate, time_step,"pos")
-        # if the branch is equality branch, then boolean variables must be same as then gate:
-        # generate if then constraint with the precondition boolean variable:
-        temp_cur_precondition_bool =  temp_precondition_boolean_variables.pop(0)
-        # single equality gate between the bool and the output gate:
-        self.gates_generator.single_equality_gate(cur_precondition_pos_then_gate, temp_cur_precondition_bool)
-        # if then constraints, in the specific branch:
-        self.gates_generator.or_gate([-cur_action_binary_output_gate,-cur_equality_output_gate, self.gates_generator.output_gate])
-        #self.transition_step_output_gates.append(self.gates_generator.output_gate)
-        current_transition_step_output_gates.append(self.gates_generator.output_gate)
+        # if we have counter bound index, we compute it directly:
+        if ("lt" in predicate and "?c" in constraint_pair):
+          self.encoding.append(['# counter bound constraints:'])
+          bound_result = self.generate_counter_index_constraint(self.counter_variables[time_step], constraint_pair)
+          # if the branch is equality branch, then boolean variables must be same as then gate:
+          # generate if then constraint with the precondition boolean variable:
+          temp_cur_precondition_bool =  temp_precondition_boolean_variables.pop(0)
+          # single equality gate between precondition var and bound:
+          self.gates_generator.single_equality_gate(bound_result, temp_cur_precondition_bool)
+          bool_equality_gate_counter = self.gates_generator.output_gate
+
+          # computing equality output gates:
+          cur_equality_output_gate = self.generate_counter_forall_equality_gate(time_step)
+          # if then constraints, in the specific branch:
+          self.gates_generator.or_gate([-cur_action_binary_output_gate,-cur_equality_output_gate, bool_equality_gate_counter])
+          #self.transition_step_output_gates.append(self.gates_generator.output_gate)
+          current_transition_step_output_gates.append(self.gates_generator.output_gate)
+        else:
+          cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+          cur_precondition_pos_then_gate = self.generate_then_predicate_constraint(predicate, time_step,"pos")
+          # if the branch is equality branch, then boolean variables must be same as then gate:
+          # generate if then constraint with the precondition boolean variable:
+          temp_cur_precondition_bool =  temp_precondition_boolean_variables.pop(0)
+          # single equality gate between the bool and the output gate:
+          self.gates_generator.single_equality_gate(cur_precondition_pos_then_gate, temp_cur_precondition_bool)
+          # if then constraints, in the specific branch:
+          self.gates_generator.or_gate([-cur_action_binary_output_gate,-cur_equality_output_gate, self.gates_generator.output_gate])
+          #self.transition_step_output_gates.append(self.gates_generator.output_gate)
+          current_transition_step_output_gates.append(self.gates_generator.output_gate)
       # constraints for negative precondition:
       for precondition in self.parsed.white_action_list[i].negative_preconditions:
         # no spaces for sake of correct parsing:
@@ -685,10 +809,38 @@ class BlackWhiteNestedIndexBased:
         split_effect = effect.strip(")").split("(")
         predicate = split_effect[0]
         constraint_pair = split_effect[1].split(",")
-        cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-        touched_position_output_gates.append(cur_equality_output_gate)
-        # time step + 1 because these are effects:
-        then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
+        # for now we assume only increment exists:
+        # we handle the increment function separately:
+        if ("inc" == predicate):
+          #print(predicate,constraint_pair)
+          # if parameters are equal to forall variables, then we increment the counter in those branches:
+          counter_forall_equality_gate = self.generate_counter_forall_equality_gate(time_step)
+          # first incrementing current counter:
+          self.encoding.append(['# adder circuit for counter increment:'])
+          increased_counter_variables = addc.adder_circuit(self.gates_generator,self.counter_variables[time_step],int(constraint_pair[1]))
+          # complete equality with next time step counter variables, i.e., increasing counter:
+          self.gates_generator.complete_equality_gate(self.counter_variables[time_step+1], increased_counter_variables)
+          counter_increased_equality_gate = self.gates_generator.output_gate
+          # implying the counter increased gate with counter forall equality gate:
+          self.gates_generator.if_then_gate(counter_forall_equality_gate,counter_increased_equality_gate)
+          then_constraint_output_gates.append(self.gates_generator.output_gate)
+
+          # we also propagate for all the other branches,
+          # since we only have function once, it is easier to do it:
+          # first equality gate for counter variables:
+          self.gates_generator.complete_equality_gate(self.counter_variables[time_step],self.counter_variables[time_step+1])
+          self.gates_generator.if_then_gate(-counter_forall_equality_gate, self.gates_generator.output_gate)
+          then_constraint_output_gates.append(self.gates_generator.output_gate)
+        else:
+          if ("?c" == constraint_pair[0]):
+            cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.counter_variables[time_step], self.move_variables[time_step][2], constraint_pair)
+          elif ("?c" == constraint_pair[1]):
+            cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.counter_variables[time_step], constraint_pair)
+          else:
+            cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
+            touched_position_output_gates.append(cur_equality_output_gate)
+             # time step + 1 because these are effects:
+            then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
       # constraints for postive effects:
       for effect in self.parsed.white_action_list[i].negative_effects:
         # no spaces for sake of correct parsing:
@@ -935,13 +1087,32 @@ class BlackWhiteNestedIndexBased:
         self.gates_generator.or_gate([self.gates_generator.output_gate, -self.predicate_variables[0][0]])
         initial_step_output_gates.append(self.gates_generator.output_gate)
 
-    # Now final output gate for the initial state:
-    if (len(initial_step_output_gates) != 0):
-      self.gates_generator.and_gate(initial_step_output_gates)
-      self.initial_output_gate = self.gates_generator.output_gate
+
+    if (self.parsed.counter_flag == 0):
+      # Now final output gate for the initial state:
+      if (len(initial_step_output_gates) != 0):
+        self.gates_generator.and_gate(initial_step_output_gates)
+        self.initial_output_gate = self.gates_generator.output_gate
+      else:
+        # we set every position to unoccupied:
+        self.initial_output_gate = -self.predicate_variables[0][0]
     else:
-      # we set every position to unoccupied:
-      self.initial_output_gate = -self.predicate_variables[0][0]
+      # we first set the counter to 0:
+      temp_counter_zero_vars = []
+      for var in self.counter_variables[0]:
+        temp_counter_zero_vars.append(-var)
+      self.gates_generator.and_gate(temp_counter_zero_vars)
+      counter_zero_gate = self.gates_generator.output_gate
+      if (len(initial_step_output_gates) != 0):
+        self.gates_generator.and_gate(initial_step_output_gates)
+        # conjunction with counter zero gate:
+        self.gates_generator.and_gate([counter_zero_gate,self.gates_generator.output_gate])
+        self.initial_output_gate = self.gates_generator.output_gate
+      else:
+        # conjunction with counter zero gate:
+        self.gates_generator.and_gate([counter_zero_gate,-self.predicate_variables[0][0]])
+        # we set every position to unoccupied:
+        self.initial_output_gate = self.gates_generator.output_gate
 
 
 
@@ -1348,8 +1519,15 @@ class BlackWhiteNestedIndexBased:
         # same as black actions, we only generate new action variables if there are more than 1 actions, no need for extra variables if only one action:
         temp_list.append(self.encoding_variables.get_vars(self.num_white_action_variables))
       # Action parameter variables, these are essentially x,y indexes for the action chosen:
-      temp_list.append(self.encoding_variables.get_vars(self.num_x_index_variables))
-      temp_list.append(self.encoding_variables.get_vars(self.num_y_index_variables))
+      # if ?x is used in the actions:
+      if (self.parsed.x_flag == 1):
+        temp_list.append(self.encoding_variables.get_vars(self.num_x_index_variables))
+      else:
+        temp_list.append([])
+      if (self.parsed.y_flag == 1):
+        temp_list.append(self.encoding_variables.get_vars(self.num_y_index_variables))
+      else:
+        temp_list.append([])
       # now appending game stop variable and illegal moves for black and white respective, if the game is maker-maker
       # for maker-breaker game these variables are not need, however it is not handled yet:
       temp_list.append(self.encoding_variables.get_vars(1))
@@ -1496,6 +1674,14 @@ class BlackWhiteNestedIndexBased:
 
     if (parsed.args.debug == 1):
       print("Forall position variables: ",self.forall_position_variables)
+
+
+    # allocating counter variables:
+    if (self.parsed.counter_flag == 1):
+      self.num_counter_vars = int(math.ceil(math.log2(self.parsed.counter_bound)))
+      self.counter_variables = []
+      for i in range(parsed.depth+1):
+        self.counter_variables.append(self.encoding_variables.get_vars(self.num_counter_vars))
 
     # Allocating predicate variables, two variables are used one is occupied and
     # other color (but implicitly) for each time step:

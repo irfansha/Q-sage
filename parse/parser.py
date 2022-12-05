@@ -187,6 +187,11 @@ def combine(args):
   f_combined_file = open(args.problem, 'w')
   f_combined_file.write("#boardsize\n")
   f_combined_file.write(' '.join(p_parsed_dict['#boardsize'][0]) + '\n')
+  # if counterbound is present then we add:
+  if ('#counterbound' in p_parsed_dict):
+    f_combined_file.write("#counterbound\n")
+    f_combined_file.write(str(int(p_parsed_dict["#counterbound"][0][0])) + "\n")
+
   f_combined_file.write("#blackinitials\n")
   if (len(p_parsed_dict["#init"]) > 0):
     split_pos = p_parsed_dict["#init"][0]
@@ -675,6 +680,16 @@ class Parse:
         if (args.debug == 1):
           print("Board size", self.xmax, self.ymax)
 
+      if ('#counterbound' in self.parsed_dict):
+        self.counter_bound = int(self.parsed_dict["#counterbound"][0][0])
+        self.counter_flag = 1
+        #print(self.counter_bound)
+      else:
+        self.counter_flag = 0
+
+      # first assuming that both ?x and ?y does not exist, then we update when looking at the actions:
+      self.x_flag = 0
+      self.y_flag = 0
 
       # reading black actions:
       self.black_action_list = []
@@ -694,6 +709,14 @@ class Parse:
       # handiling the final action:
       cur_action = action_gen.Action(self,one_action_lines)
       self.black_action_list.append(cur_action)
+
+      # setting x and y flags:
+      # assuming counter is used in both black and white actions:
+      for action in self.black_action_list:
+        if ("?x" in action.parameters):
+          self.x_flag = 1
+        if ("?y" in action.parameters):
+          self.y_flag = 1
 
       if (args.debug == 1):
         for action in self.black_action_list:
@@ -852,7 +875,7 @@ class Parse:
         last_constraint = self.white_goal_constraints[i][-1]
         if (len(self.white_goal_constraints[i]) < max_white_goal_len):
           # asserting it is an index bound:
-          assert('lt' in last_constraint)
+          #assert('lt' in last_constraint)
           num_iter = max_white_goal_len - len(self.white_goal_constraints[i])
           # repeately appending the last constraint:
           for j in range(num_iter):
