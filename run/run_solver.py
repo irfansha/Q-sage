@@ -71,18 +71,21 @@ def run_single_solver(encoding):
         # looking at the 0 time step, x variables:
         x_index_string += str(sol_map[encoding.move_variables[0][1][i]])
       x_index = int(x_index_string, 2)
-      y_index_string = ''
-      # computing y index value:
-      for i in range(encoding.num_y_index_variables):
-        # looking at the 0 time step, and y variables:
-        y_index_string += str(sol_map[encoding.move_variables[0][2][i]])
-      y_index = int(y_index_string, 2)
-      # x_index is mapped to character starting from 'a' and
-      # y index is increased by 1 to match the indexes:
-      #winning_move = chr(ord('a')+x_index) + str(y_index + 1)
-      #print("First winning move: " + str(winning_action) + "(" + str(winning_move) + ")")
-      # simply printing the proper index:
-      print("First winning move: " + str(winning_action) + "(" + str(x_index+1) + "," + str(y_index+1) + ")")
+      # if we do not have y variables, we do not need to give it in the action:
+      # can be applicable for x vars, but for now only y vars:
+      if (encoding.parsed.y_flag == 1):
+        y_index_string = ''
+        # computing y index value:
+        for i in range(encoding.num_y_index_variables):
+          # looking at the 0 time step, and y variables:
+          y_index_string += str(sol_map[encoding.move_variables[0][2][i]])
+        y_index = int(y_index_string, 2)
+        # simply printing the proper index:
+        print("First winning move: " + str(winning_action) + "(" + str(x_index+1) + "," + str(y_index+1) + ")")
+      else:
+        # simply print the move with x:
+        print("First winning move: " + str(winning_action) + "(" + str(x_index+1) + ")")
+
 
     else:
       # if already solved, just print any open position:

@@ -213,6 +213,15 @@ def combine(args):
         f_combined_file.write(chr(ord('a') + int(x) -1) + y + "\n")
     #for b_init in p_parsed_dict['#whiteinitials']:
     #  f_combined_file.write(b_init[0] + "\n")
+  # adding counter information:
+  f_combined_file.write("#counterinitials\n")
+  if (len(p_parsed_dict["#init"]) > 0):
+    for var in split_pos:
+      if ("set" in var):
+        clean_var = var.strip("set(").strip(")")
+        assert(" " not in var)
+        f_combined_file.write(" ".join(clean_var.split(","))+"\n")
+
   f_combined_file.write("#depth\n")
   f_combined_file.write(p_parsed_dict['#depth'][0][0] + "\n")
 
@@ -671,6 +680,28 @@ class Parse:
         y_index = int(initial[0][1:]) - 1
         self.black_initial_positions.append((x_index,y_index))
 
+      # counter initial values:
+      self.counter_initials = []
+      for c_initial in self.parsed_dict['#counterinitials']:
+        # x and y indices, we subtract 1 to adjust indices:
+        #print(c_initial)
+        temp_list = []
+        if ("?" not in c_initial[0]):
+          temp_list.append(int(c_initial[0])-1)
+        else:
+          temp_list.append(c_initial[0])
+        if ("?" not in c_initial[1]):
+          temp_list.append(int(c_initial[1])-1)
+        else:
+          temp_list.append(c_initial[1])
+          # counter value is never a parameter:
+        assert("?" not in c_initial[2])
+        temp_list.append(int(c_initial[2]) - 1)
+        self.counter_initials.append(temp_list)
+
+      if (args.debug == 1):
+        print("Counter initials: ")
+        print(self.counter_initials)
       # reading the x and y axis lengths:
       if(args.ignore_file_boardsize == 0):
         self.xmax, self.ymax = int(self.parsed_dict['#boardsize'][0][0]), int(self.parsed_dict['#boardsize'][0][1])

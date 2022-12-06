@@ -507,7 +507,11 @@ class BlackWhiteNestedIndexBased:
         if ("lt" in predicate and "?c" in constraint_pair):
           self.encoding.append(['# counter bound constraints with ' + str(constraint_pair[1]) + ":"])
           bound_result = self.generate_counter_index_constraint(self.counter_variables[time_step], constraint_pair)
-          temp_then_constraint_output_gates.append(bound_result)
+
+          # only when the x parameters are true then we imply the bound result:
+          bound_branch_condition_gate = self.generate_counter_forall_equality_gate(time_step)
+          self.gates_generator.if_then_gate(bound_branch_condition_gate,bound_result)
+          temp_then_constraint_output_gates.append(self.gates_generator.output_gate)
         else:
           cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
           temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step,"pos"))
@@ -819,16 +823,20 @@ class BlackWhiteNestedIndexBased:
           self.encoding.append(['# adder circuit for counter increment:'])
           increased_counter_variables = addc.adder_circuit(self.gates_generator,self.counter_variables[time_step],int(constraint_pair[1]))
           # complete equality with next time step counter variables, i.e., increasing counter:
+          self.encoding.append(['# equality gate for next counter vars and increased counter:'])
           self.gates_generator.complete_equality_gate(self.counter_variables[time_step+1], increased_counter_variables)
           counter_increased_equality_gate = self.gates_generator.output_gate
           # implying the counter increased gate with counter forall equality gate:
+          self.encoding.append(['# if then gate for increased equality:'])
           self.gates_generator.if_then_gate(counter_forall_equality_gate,counter_increased_equality_gate)
           then_constraint_output_gates.append(self.gates_generator.output_gate)
 
           # we also propagate for all the other branches,
           # since we only have function once, it is easier to do it:
           # first equality gate for counter variables:
+          self.encoding.append(['# counter propagation equality gate:'])
           self.gates_generator.complete_equality_gate(self.counter_variables[time_step],self.counter_variables[time_step+1])
+          self.encoding.append(['# in all other branches we propagate counter:'])
           self.gates_generator.if_then_gate(-counter_forall_equality_gate, self.gates_generator.output_gate)
           then_constraint_output_gates.append(self.gates_generator.output_gate)
         else:
@@ -838,9 +846,9 @@ class BlackWhiteNestedIndexBased:
             cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.counter_variables[time_step], constraint_pair)
           else:
             cur_equality_output_gate = self.generate_position_equalities_with_adder_and_subtractors(self.move_variables[time_step][1], self.move_variables[time_step][2], constraint_pair)
-            touched_position_output_gates.append(cur_equality_output_gate)
-             # time step + 1 because these are effects:
-            then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
+          touched_position_output_gates.append(cur_equality_output_gate)
+          # time step + 1 because these are effects:
+          then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
       # constraints for postive effects:
       for effect in self.parsed.white_action_list[i].negative_effects:
         # no spaces for sake of correct parsing:
@@ -911,6 +919,12 @@ class BlackWhiteNestedIndexBased:
     self.encoding.append(['# propagation constraints:'])
     self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
     current_transition_step_output_gates.append(self.gates_generator.output_gate)
+
+    # counter propagation:
+    if (self.parsed.counter_flag == 1):
+      self.encoding.append(['# propagation counter constraints:'])
+      self.gates_generator.complete_equality_gate(self.counter_variables[time_step], self.counter_variables[time_step+1])
+      current_transition_step_output_gates.append(self.gates_generator.output_gate)
 
     # only at the end, we set the conjunction to step output gate:
     self.gates_generator.and_gate(current_transition_step_output_gates)
@@ -1097,20 +1111,58 @@ class BlackWhiteNestedIndexBased:
         # we set every position to unoccupied:
         self.initial_output_gate = -self.predicate_variables[0][0]
     else:
+      self.encoding.append(['# setting proper counter values: '])
       # we first set the counter to 0:
       temp_counter_zero_vars = []
       for var in self.counter_variables[0]:
         temp_counter_zero_vars.append(-var)
       self.gates_generator.and_gate(temp_counter_zero_vars)
       counter_zero_gate = self.gates_generator.output_gate
+
+      # now implying in each branch if individual counters are available:
+      if(len(self.parsed.counter_initials) == 0):
+        final_counter_output_gate = counter_zero_gate
+      else:
+        step_counter_implication_gates = []
+        touched_if_conditions = []
+        for c_initial in self.parsed.counter_initials:
+          # for now only assuming counters are only set for rows, can be updated later:
+          assert(c_initial[1] == "?y")
+          # binary gate for forall x varaibles and then implication:
+          binary_format_forall_x = self.generate_binary_format(self.forall_position_variables[0],c_initial[0])
+          self.gates_generator.and_gate(binary_format_forall_x)
+          forall_x_output_gate = self.gates_generator.output_gate
+          # adding this forall value to touched conditions:
+          if (forall_x_output_gate not in touched_if_conditions):
+            touched_if_conditions.append(forall_x_output_gate)
+          binary_format_counter_value = self.generate_binary_format(self.counter_variables[0],c_initial[2])
+          self.gates_generator.and_gate(binary_format_counter_value)
+          counter_value = self.gates_generator.output_gate
+
+          # implying the right counter value:
+          self.gates_generator.if_then_gate(forall_x_output_gate,counter_value)
+          step_counter_implication_gates.append(self.gates_generator.output_gate)
+        # conjunction for implied counter gates:
+        self.gates_generator.and_gate(step_counter_implication_gates)
+        all_implied_counter_output_gate = self.gates_generator.output_gate
+
+        # for the not-touched branches, we set to counteer to 0:
+        self.gates_generator.or_gate(touched_if_conditions)
+        self.gates_generator.if_then_gate(-self.gates_generator.output_gate,counter_zero_gate)
+        not_implied_counter_output_gate = self.gates_generator.output_gate
+
+        # conjunction of both gives us, the final counter gate:
+        self.gates_generator.and_gate([all_implied_counter_output_gate,not_implied_counter_output_gate])
+        final_counter_output_gate = self.gates_generator.output_gate
+
       if (len(initial_step_output_gates) != 0):
         self.gates_generator.and_gate(initial_step_output_gates)
         # conjunction with counter zero gate:
-        self.gates_generator.and_gate([counter_zero_gate,self.gates_generator.output_gate])
+        self.gates_generator.and_gate([final_counter_output_gate,self.gates_generator.output_gate])
         self.initial_output_gate = self.gates_generator.output_gate
       else:
         # conjunction with counter zero gate:
-        self.gates_generator.and_gate([counter_zero_gate,-self.predicate_variables[0][0]])
+        self.gates_generator.and_gate([final_counter_output_gate,-self.predicate_variables[0][0]])
         # we set every position to unoccupied:
         self.initial_output_gate = self.gates_generator.output_gate
 
