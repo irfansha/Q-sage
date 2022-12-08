@@ -52,8 +52,8 @@ class GatesGen:
   # TODO: if single length we can return with out gate:
   def and_gate(self, current_list):
     list_key = self.clean_list(current_list)
-    if(len(list_key)>4):
-      print(len(list_key))
+    #if(len(list_key)>4):
+    #  print(len(list_key))
     #key = ('and', tuple(current_list))
     key = ('and', tuple(list_key))
     if key in self.gate_reuse_map:
