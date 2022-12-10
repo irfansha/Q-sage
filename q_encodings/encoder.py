@@ -25,6 +25,7 @@ from q_encodings.completed_forced_prop_bwnib import CompleteForcedPropBwnib as c
 from q_encodings.no_transitions_path_based import \
     NoTransitionsPathBasedGoal as ntpbg
 from q_encodings.path_based_goal import PathBasedGoal as pbg
+from q_encodings.implicit_board_implicit_goal_nested import ImplicitBoardImplicitGoalNested as ibign
 from q_encodings.tictactoe import TicTacToe as ttt
 
 
@@ -89,6 +90,10 @@ def generate_encoding(parsed_instance):
     if (parsed_instance.args.debug > -1):
       print("Generating path based goal encoding")
     encoding = pbg(parsed_instance)
+  elif (parsed_instance.args.e == 'ibign'):
+    if (parsed_instance.args.debug > -1):
+      print("Generating nested implicit board implicit goal nested encoding")
+    encoding = ibign(parsed_instance)
   elif (parsed_instance.args.e == 'cpg'):
     if (parsed_instance.args.debug > -1):
       print("Generating compact path based goal encoding")
