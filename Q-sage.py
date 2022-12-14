@@ -39,6 +39,7 @@ if __name__ == '__main__':
                                   encoding types:
                                   pg = path based goal (ungrounded)
                                   ibign = implicit board implicit goal nested (ungrounded)
+                                  nt = nested traversal hex (semi-grounded)
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time
@@ -60,7 +61,7 @@ if __name__ == '__main__':
                                   hex = hex game
                                   ttt = tic-tac-toe
                                   gomuku = gomuku
-                                  general = general game, for index based (default)'''),default = 'general')
+                                  general = general game, for index based (default)'''),default = 'hex')
   parser.add_argument("--goal_length", help="Goal line length for games such as tic-tac-toe and gomuku, default 3", type=int,default = 3)
   parser.add_argument("--run", type=int, help=textwrap.dedent('''
                                Three levels of execution:
