@@ -40,6 +40,7 @@ if __name__ == '__main__':
                                   pg = path based goal (ungrounded)
                                   ibign = implicit board implicit goal nested (ungrounded)
                                   nt = nested traversal hex (semi-grounded)
+                                  nlt = nested lifted traversal hex (ungrounded)
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time

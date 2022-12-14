@@ -27,6 +27,7 @@ from q_encodings.no_transitions_path_based import \
 from q_encodings.path_based_goal import PathBasedGoal as pbg
 from q_encodings.implicit_board_implicit_goal_nested import ImplicitBoardImplicitGoalNested as ibign
 from q_encodings.nested_traversal import NestedTraversal as nt
+from q_encodings.nested_lifted_traversal import NestedLiftedTraversal as nlt
 from q_encodings.tictactoe import TicTacToe as ttt
 
 
@@ -99,6 +100,10 @@ def generate_encoding(parsed_instance):
     if (parsed_instance.args.debug > -1):
       print("Generating nested traversal encoding")
     encoding = nt(parsed_instance)
+  elif (parsed_instance.args.e == 'nlt'):
+    if (parsed_instance.args.debug > -1):
+      print("Generating nested lifted traversal encoding")
+    encoding = nlt(parsed_instance)
   elif (parsed_instance.args.e == 'cpg'):
     if (parsed_instance.args.debug > -1):
       print("Generating compact path based goal encoding")
