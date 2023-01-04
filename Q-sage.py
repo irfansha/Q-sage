@@ -40,7 +40,7 @@ if __name__ == '__main__':
                                   pg = path based goal (ungrounded)
                                   ibign = implicit board implicit goal nested (ungrounded)
                                   nt = nested traversal hex (semi-grounded)
-                                  nlt = nested lifted traversal hex (ungrounded)
+                                  pgt = non-nested transversal (semi-grounded)
                                   cpg = compact path based goal (ungrounded)
                                   gg = grounded goal encoding
                                   ggt = grounded goal with time
@@ -48,7 +48,7 @@ if __name__ == '__main__':
                                   ew = explicit goal witness based
                                   iw = iteratice squaring witness based
                                   ttt = tictactoe
-                                  cp = compact positional
+                                  cp = compact positional (ungrounded)
                                   cgcp = compact goal compact positional
                                   ntpg = path based goal, without transition function
                                   ib = index based (grid games)
