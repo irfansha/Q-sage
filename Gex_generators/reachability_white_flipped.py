@@ -101,5 +101,5 @@ if __name__ == '__main__':
   #=====================================================================================================================================
   # Running the final Gex transformation:
 
-  wb_gex_command = "python3 transform_hex_board.py --output_format egf --problem temp_white_flip_bhex.pg --drop_start_end_board_edges 0"
+  wb_gex_command = "python3 transform_hex_board.py --output_format gex --problem temp_white_flip_bhex.pg --drop_start_end_board_edges 0"
   os.system(wb_gex_command)
