@@ -10,8 +10,6 @@ def circuit_viz(encoding):
 
   nodes = []
 
-  in_out_vars_dict = {}
-
   for line in encoding.encoding:
     if (len(line) > 1):
       gate_type = line[0]
@@ -31,14 +29,6 @@ def circuit_viz(encoding):
             nodes.append(non_neg_var)
             net.add_node(non_neg_var, label=str(non_neg_var))
           net.add_edge(non_neg_var,out_var, color="red")
-          #----------------------------------------------
-          # we remember the outgoing edges:
-          if (non_neg_var not in in_out_vars_dict):
-            # second array is outvariables
-            in_out_vars_dict[non_neg_var] = [[],[out_var]]
-          else:
-            in_out_vars_dict[non_neg_var][1].append(out_var)
-          #----------------------------------------------
         else:
           # first setting nodes if not available:
           if (in_var not in nodes):
@@ -46,21 +36,7 @@ def circuit_viz(encoding):
             net.add_node(in_var, label=str(in_var))
           net.add_edge(in_var,out_var, color="blue")
           #----------------------------------------------
-          # we remember the outgoing edges:
-          if (in_var not in in_out_vars_dict):
-            # second array is outvariables
-            in_out_vars_dict[in_var] = [[],[out_var]]
-          else:
-            in_out_vars_dict[in_var][1].append(out_var)
-          #----------------------------------------------
   #out_vars_dict.sorted()
-  sorted_in_out_vars_dict = dict(sorted(in_out_vars_dict.items()))
-  count = 0
-  for key,value in sorted_in_out_vars_dict.items():
-    if (len(value[1]) == 1):
-      #print(key, value)
-      count = count + 1
-  #print(count)
 
   #net.show_buttons(filter_=['physics','layout', 'edges'])
   #'''
