@@ -130,16 +130,26 @@ if __name__ == '__main__':
 
   depth = int(parsed_dict["#depth"][0][0])
 
+  # for now we assume y_vars hold by default:
+  y_vars = 1
+
   action_vars = []
 
   for cur_act_var in parsed_dict["#actionvars"]:
     single_action = []
     for single_var_lst in cur_act_var:
-      cur_int_lst = single_var_lst.strip("[").strip("]").split(",")
-      cur_int_lst = [int(x) for x in cur_int_lst]
-      single_action.append(cur_int_lst)
+      if (len(single_var_lst) != 0):
+        cur_int_lst = single_var_lst.strip("[").strip("]").split(",")
+        # handling empty parameters:
+        if ([""] != cur_int_lst):
+          #print(cur_int_lst, len(cur_int_lst))
+          cur_int_lst = [int(x) for x in cur_int_lst]
+          single_action.append(cur_int_lst)
+        else:
+          y_vars = 0
+          single_action.append([])
     action_vars.append(single_action)
-  #print(action_vars)
+  print(action_vars)
 
   symb_pos_x, symb_pos_y = parsed_dict["#symbolicpos"][0]
   symb_pos_x_list = symb_pos_x.strip("[").strip("]").split(",")
@@ -212,13 +222,20 @@ if __name__ == '__main__':
       cur_action_name = parsed_dict["#blackactions"][int(action_name_bin,2)][0].split("(")[0]
 
       move_x_bin = get_binary_string(action_vars[k][1], cur_move_model)
-      move_y_bin = get_binary_string(action_vars[k][2], cur_move_model)
+      if (y_vars != 0):
+        move_y_bin = get_binary_string(action_vars[k][2], cur_move_model)
 
+      #print(move_y_bin)
       #print("\nmove played by black:", cur_action_name+ "(" +get_index(int(move_x_bin,2), int(move_y_bin,2)) + ")")
-      print("\nmove played by black:", cur_action_name+ "(" +str(int(move_x_bin,2)+1)+ "," + str(int(move_y_bin,2)+1) + ")")
-
-      for i in range(3):
-        moves_played_vars.extend(get_model_assignmet(action_vars[k][i], cur_move_model))
+      # for now handling connect4 only column moves:
+      if (y_vars != 0):
+        print("\nMove played by black:", cur_action_name+ "(" +str(int(move_x_bin,2)+1)+ "," + str(int(move_y_bin,2)+1) + ")")
+        for i in range(3):
+          moves_played_vars.extend(get_model_assignmet(action_vars[k][i], cur_move_model))
+      else:
+        print("\nMove played by black:", cur_action_name+ "(" +str(int(move_x_bin,2)+1) + ")")
+        for i in range(3):
+          moves_played_vars.extend(get_model_assignmet(action_vars[k][i], cur_move_model))
       #print(moves_played_vars)
     # if white player (for now user), then we get the move from terminal:
     elif (k < depth):
@@ -237,7 +254,8 @@ if __name__ == '__main__':
       #white_move_index_y = int(white_move_index[1:]) - 1
       white_move_indices = white_move.strip(")").split("(")[1].split(",")
       white_move_index_x = int(white_move_indices[0])-1
-      white_move_index_y = int(white_move_indices[1])-1
+      if (y_vars != 0):
+        white_move_index_y = int(white_move_indices[1])-1
 
 
       #print(white_move_index_x, white_move_index_y)
@@ -248,7 +266,8 @@ if __name__ == '__main__':
       if (len(parsed_dict["#whiteactions"]) > 1):
         white_move_assignment.extend(generate_binary_format(action_vars[k][0], white_action_name_index))
       white_move_assignment.extend(generate_binary_format(action_vars[k][1], white_move_index_x))
-      white_move_assignment.extend(generate_binary_format(action_vars[k][2], white_move_index_y))
+      if (y_vars != 0):
+        white_move_assignment.extend(generate_binary_format(action_vars[k][2], white_move_index_y))
 
       #print(white_move_assignment)
       # adding the white move assignment to the moves played for later assumptions:
