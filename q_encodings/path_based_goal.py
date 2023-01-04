@@ -6,6 +6,7 @@ import math
 
 import utils.lessthen_cir as lsc
 from utils.gates import GatesGen as ggen
+from utils.unique_gates import GatesGen as uggen
 from utils.variables_dispatcher import VarDispatcher as vd
 
 
@@ -644,7 +645,12 @@ class PathBasedGoal:
       self.generate_only_dqdimacs_prefix()
 
 
-    self.gates_generator = ggen(self.encoding_variables, self.encoding)
+    #self.gates_generator = ggen(self.encoding_variables, self.encoding)
+
+    if (self.parsed.args.sort_internal_gates == 0):
+      self.gates_generator = ggen(self.encoding_variables, self.encoding)
+    else:
+      self.gates_generator = uggen(self.encoding_variables, self.encoding)
 
     # Generating d steps i.e., which includes black and white constraints:
     self.generate_d_transitions()
