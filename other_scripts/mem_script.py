@@ -1,26 +1,20 @@
-#stats_file_paths = ["explicit_gex_symbolic_stats","explicit_gex_witness_stats",
-#                    "implicit_gex_symbolic_1_hour_stats","implicit_gex_symbolic_3_hour_stats",
-#                    "implicit_gex_witness_1_hour_stats","implicit_gex_witness_3_hour_stats"]
+import argparse
 
-#stats_file_paths = ["03_08_22_SW_stats.txt", "03_08_22_SWB_stats.txt", "03_08_22_SW_dis_stats.txt", "03_08_22_SWB_dis_stats.txt"]
+# Main:
+if __name__ == '__main__':
+  text = "Takes a hex board"
+  parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument("--input", help="stats file path")
+  parser.add_argument("--output", help="output file path")
+  args = parser.parse_args()
 
-#stats_file_paths = ["03_08_champ_27_SWL_stats.txt", "03_08_champ_27_LL_stats.txt", "03_08_champ_27_EBL_stats.txt", "03_08_champ_27_EBWD_stats.txt"]
 
-#stats_file_paths = ["08_08_game2291873_SWL_stats.txt", "08_08_game2291873_LL_stats.txt", "08_08_game2291873_EBL_stats.txt", "08_08_game2291873_EBWD_stats.txt"]
-
-#stats_file_paths = ["09_08_champ_27_data_EBWD-R-Gex_stats.txt", "09_08_game2291873_EBWD-R-Gex_stats.txt", "AAAI_second_run_data_09_08_EBWD-R-Gex_stats.txt"]
-
-stats_file_paths = ["stats.txt"]
-
-#stats_file_paths = ["explicit_gex_symbolic_stats", "explicit_gex_witness_stats"]
-
-for i in range(1):
   # Now filling up the stats dictionary:
-  f_stats = open(stats_file_paths[i], "r")
+  f_stats = open(args.input, "r")
   stats_lines = f_stats.readlines()
   f_stats.close()
 
-  f_new_file = open("parsed_" + stats_file_paths[i] + ".R","w")
+  f_new_file = open(args.output,"w")
 
   # We gather max memory and time taken:
   max_mem = 0
