@@ -40,12 +40,7 @@ if __name__ == '__main__':
 print("#boardsize")
 print(str(int(len(parsed_dict['#positions'][0]))) + " 1")
 #print(str(int(math.sqrt(len(parsed_dict['#positions'][0])))) + " " + str(int(math.sqrt(len(parsed_dict['#positions'][0])))))
-print("#blackinitials")
-for var in parsed_dict['#blackinitials']:
-  print(var[0])
-print("#whiteinitials")
-for var in parsed_dict['#whiteinitials']:
-  print(var[0])
+print("#init")
 print("#depth")
 print(len(parsed_dict['#times'][0]))
 #print("#blackactions\n%action 1\n:action occupy\n:parameters (?x, ?y)\n:indexbounds (ge(?x, xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))\n:precondition (open(?x,?y))\n:effect (black(?x,?y))\n#whiteactions\n%action 1\n:action occupy\n:parameters (?x, ?y)\n:indexbounds (ge(?x, xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))\n:precondition (open(?x,?y))\n:effect (white(?x,?y))\n#blackgoal")
@@ -57,10 +52,18 @@ for win in parsed_dict['#blackwins']:
     cur_string += 'black('+ str(ind+1) + ",1) "
   print(cur_string)
 print("#whitegoal")
-#for win in parsed_dict['#whitewins']:
-#  cur_string = ''
-#  for pos in win:
-#    x = ord(pos[0])-96
-#    y = int(pos[1:])
-#    cur_string += 'white('+ str(x) + "," + str(y) + ") "
+for win in parsed_dict['#whitewins']:
+  if ((len(parsed_dict['#times'][0])-1)/2 < len(win)):
+    continue
+  cur_string = ''
+  valid = 1
+  for pos in win:
+    # we do not careabotu positions that are not in black wins:
+    if (pos not in parsed_dict['#positions'][0]):
+      valid = 0
+      break
+    ind = parsed_dict['#positions'][0].index(pos)
+    cur_string += 'white('+ str(ind+1) + ",1) "
+  if (valid == 1):
+    print(cur_string)
 #  print(cur_string) #=====================================================================================================================================

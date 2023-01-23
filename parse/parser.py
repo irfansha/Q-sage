@@ -461,6 +461,8 @@ class Parse:
         position = self.rearranged_positions.index(single_vertex)
         self.end_boarder.append(position)
 
+      # maximum branching in neighbours:
+      self.max_neighbours = 0
 
       self.neighbour_dict = {}
       for neighbour_list in self.parsed_dict['#neighbours']:
@@ -475,6 +477,8 @@ class Parse:
             temp_list.append(neighbour)
         if (len(temp_list)  != 0):
           self.neighbour_dict[cur_position] = temp_list
+          if (self.max_neighbours < len(temp_list)):
+            self.max_neighbours = len(temp_list)
 
       # Generating tight neighbours from distances directly:
       if (args.tight_neighbours_with_distances == 1 and args.e == 'cp' and args.tight_neighbour_pruning == 1):
@@ -506,6 +510,7 @@ class Parse:
         print("Black initial positions: ", self.black_initial_positions)
         print("White initial positions: ", self.white_initial_positions)
         print("Neighbour dict: ", self.neighbour_dict)
+        print("Max Neighbours: ", self.max_neighbours)
         print("Start boarder: ", self.start_boarder)
         print("End boarder: ", self.end_boarder)
 
