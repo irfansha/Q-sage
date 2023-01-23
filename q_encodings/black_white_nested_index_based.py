@@ -1237,6 +1237,7 @@ class BlackWhiteNestedIndexBased:
     white_goal_step_output_gates = []
     # generating white goal constraints if maker-maker game:
     if (self.makermaker_game == 1):
+      self.encoding.append(["# ------------------------------------------------------------------------"])
       self.encoding.append(['# White goal constraints: '])
       # if only one constraint and one goal in white, we consider as a seperate case, we do not need to allocate new variables:
       if (self.num_white_goal_constraints == 1 and self.white_single_goal_num_constraints == 1):
@@ -1365,6 +1366,90 @@ class BlackWhiteNestedIndexBased:
     self.white_goal_output_gate = self.gates_generator.output_gate
 
 
+  # invariant gate:
+  def generate_invariant_gate(self):
+    invariant_step_output_gates = []
+    self.encoding.append(["# ------------------------------------------------------------------------"])
+    #self.encoding.append(['# Goal state: '])
+    #================================================================================================================================================================================
+    # generating invariant constraints:
+    self.encoding.append(['# Invariant constraints: '])
+    # for now number of black goal constraints and invariants are same:
+    for single_conjunction_index in range(self.num_black_goal_constraints):
+      single_conjunction = self.parsed.invariant_constraints[single_conjunction_index]
+      if (self.num_black_goal_constraints > 1):
+        # if condition using the boolean variables to chose one of the disjunction constraints:
+        temp_binary_variables = self.generate_binary_format(self.disjunction_goal_boolean_variables, single_conjunction_index)
+        self.gates_generator.and_gate(temp_binary_variables)
+        if_disjunction_output_gate = self.gates_generator.output_gate
+      single_constraint_output_gates = []
+      # for each constraint in the goal:
+      for constraint in single_conjunction:
+        if ("False" in constraint):
+          #print(constraint)
+          # empty or gate is false:
+          self.gates_generator.or_gate([])
+          single_constraint_output_gates.append(self.gates_generator.output_gate)
+        elif ("nlt" in constraint):
+          assert(" " not in constraint)
+          # passing x variables and y variables along with index constraint:
+          bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
+
+          if (bound_result != 'None'):
+            # negative bound so negation:
+            single_constraint_output_gates.append(-bound_result)
+        elif ("lt" in constraint):
+          assert(" " not in constraint)
+          # passing x variables and y variables along with index constraint:
+          bound_result = self.generate_index_constraint(self.black_goal_index_variables[0], self.black_goal_index_variables[1], constraint)
+
+          if (bound_result != 'None'):
+            single_constraint_output_gates.append(bound_result)
+        else:
+          if("NOT" in constraint or "not" in constraint):
+            negated = True
+            trimmed_constraint = constraint[5:-2]
+          else:
+            negated = False
+            trimmed_constraint = constraint
+          split_condition = trimmed_constraint.strip(")").split("(")
+          predicate = split_condition[0]
+          constraint_pair = split_condition[1].split(",")
+          #print(constraint_pair, constraint, trimmed_constraint)
+          # we need to handle any adders and subtractors if both variables are present:
+          cur_equality_gate = self.generate_position_equalities_with_adder_and_subtractors(self.black_goal_index_variables[0],self.black_goal_index_variables[1], constraint_pair)
+          # for now no negations in goal condition:
+          if (negated==True):
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"neg")
+            #print("negated")
+          else:
+            cur_constraint_gate = self.generate_if_then_predicate_constraint(cur_equality_gate, predicate, self.parsed.depth ,"pos")
+          single_constraint_output_gates.append(cur_constraint_gate)
+
+      # conjunction for single constraint output gates:
+      self.gates_generator.and_gate(single_constraint_output_gates)
+      # if then gate with the choosing variables and conjunction of the single goal constraint variables:
+      if (self.num_black_goal_constraints > 1):
+        self.gates_generator.if_then_gate(if_disjunction_output_gate, self.gates_generator.output_gate)
+      # if variables are not present due to single goal constraint, we simply add the conjunction:
+      invariant_step_output_gates.append(self.gates_generator.output_gate)
+
+    # if the number of disjunction is not the max upper limit, we need less than constraint:
+    if (self.num_black_goal_constraints > 1):
+      if (self.disjunction_goal_upper_limit != self.num_black_goal_constraints):
+        lsc.add_circuit(self.gates_generator, self.disjunction_goal_boolean_variables, self.num_black_goal_constraints)
+        invariant_step_output_gates.append(self.gates_generator.output_gate)
+
+    #----------------------------------------------------------------------------------------------------------------
+    # Final goal gate:
+    self.encoding.append(['# And gate for invariant constraints, at index '+ str(self.parsed.depth)])
+    self.gates_generator.and_gate(invariant_step_output_gates)
+    self.invariant_output_gate = self.gates_generator.output_gate
+
+
+
+
+
   # propagation gates at each time step:
   def forced_propagation(self):
 
@@ -1432,7 +1517,10 @@ class BlackWhiteNestedIndexBased:
           # only when valid and stopped we check the goal condition:
           self.gates_generator.and_gate([valid_move_output_gate,self.move_variables[reverse_index][5][0]])
           stopped_valid_gate = self.gates_generator.output_gate
-          self.gates_generator.if_then_gate(stopped_valid_gate, [complete_propogation_gate, self.white_goal_output_gate])
+          if (self.parsed.invariant_flag == 1):
+            self.gates_generator.if_then_gate(stopped_valid_gate, [complete_propogation_gate, self.white_goal_output_gate, self.invariant_output_gate])
+          else:
+            self.gates_generator.if_then_gate(stopped_valid_gate, [complete_propogation_gate, self.white_goal_output_gate])
           stopped_implication_gate = self.gates_generator.output_gate
           # conjunction with this round of constraints:
           self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], not_stopped_implication_gate, stopped_implication_gate])
@@ -1746,6 +1834,9 @@ class BlackWhiteNestedIndexBased:
     self.generate_black_goal_gate()
 
     self.generate_white_goal_gate()
+
+    if (self.parsed.invariant_flag == 1):
+      self.generate_invariant_gate()
 
     self.generate_strong_linear_constraints()
 
