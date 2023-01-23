@@ -434,15 +434,6 @@ class BlackWhiteNestedIndexBased:
     self.gates_generator.complete_equality_gate(self.predicate_variables[time_step], self.predicate_variables[time_step+1])
     propagation_output_gate = self.gates_generator.output_gate
 
-    '''
-    # if game stop variable is true in previous black turn, then the state is simply propagated:
-    if (time_step > 0):
-      self.encoding.append(['# if then constraints for the propagation:'])
-      # even single boolean for game stop variable is a list in our data structure:
-      self.gates_generator.if_then_gate(self.move_variables[time_step - 2][3][0], propagation_output_gate)
-      #self.transition_step_output_gates.append(self.gates_generator.output_gate)
-      current_transition_step_output_gates.append(self.gates_generator.output_gate)
-    '''
 
     # for each action we generate constraints:
     for i in range(self.num_black_actions):
@@ -450,13 +441,6 @@ class BlackWhiteNestedIndexBased:
       # generate binary constraint for current action index:
       binary_format_clause = self.generate_binary_format(self.move_variables[time_step][0],i)
       self.gates_generator.and_gate(binary_format_clause)
-      '''
-      # apparently just removing this redundant gates makes a huge difference:
-      # XXX testcase for bloqqer preprocessing, huge difference in file sizes:
-      temp_if_condition_output_gates.append(self.gates_generator.output_gate)
-      # final if condition for current action:
-      self.gates_generator.and_gate(temp_if_condition_output_gates)
-      '''
       final_if_condition_output_gate = self.gates_generator.output_gate
       temp_then_constraint_output_gates = []
       # generate positive index bound constraints:
