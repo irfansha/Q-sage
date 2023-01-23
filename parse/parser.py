@@ -294,6 +294,16 @@ def combine(args):
     f_combined_file.write("#blackturn\n")
     f_combined_file.write(str(p_parsed_dict["#blackturn"][0][0]))
 
+  if ("#invariant" in p_parsed_dict):
+    f_combined_file.write("#invariant\n")
+    for goal in p_parsed_dict["#invariant"]:
+      # copy for index computation:
+      cur_temp_goal = list(goal)
+      index_list, no_computation = compute_index_bounds(cur_temp_goal)
+      # we do not need indexes if there is no computation at all, for now:
+      if (no_computation == 0):
+        cur_temp_goal.extend(index_list)
+      f_combined_file.write(" ".join(cur_temp_goal) + "\n")
 
 class Parse:
 
@@ -842,6 +852,70 @@ class Parse:
 
           # ========================================================
         self.black_goal_constraints.append(temp_list)
+
+      self.invariant_flag = 0
+
+      if ('#invariant' in self.parsed_dict):
+        # we set the flag if invariants are present:
+        self.invariant_flag = 1
+        # Reading black and white goal constraints:
+        self.invariant_constraints = []
+
+        for line in self.parsed_dict['#invariant']:
+          temp_list = []
+          for constraint in line:
+            # replacing xmin with 1 and xmax with xmax from input:
+            constraint = constraint.replace('xmin','1')
+            constraint = constraint.replace('xmax',str(self.xmax))
+            # replacing ymin with 1 and ymax with ymax from input:
+            constraint = constraint.replace('ymin','1')
+            constraint = constraint.replace('ymax',str(self.ymax))
+
+            # removing spaces:
+            constraint = constraint.replace(' ','')
+            # ========================================================
+            # computing the sum/diff in goal constriants:
+            if (constraint[:2] == 'le'):
+              # computing the addition and subtraction:
+              bound_computation = constraint.strip(")").split(",")[-1]
+              #print(bound_computation, constraint)
+              result = compute(bound_computation)
+              # we do not want negative numbers or zero for less than operator:
+              assert((result) > 0)
+              # replacing with the computed result:
+              constraint = constraint.replace(bound_computation, str(result))
+              # after changes now it is lessthan operator:
+              constraint = constraint.replace('le', 'lt')
+              if (result != 0):
+                temp_list.append(constraint)
+              # assert no addition and subtraction present in the string:
+              assert('+' not in constraint)
+              assert('-' not in constraint)
+            elif(constraint[:2] == 'ge'):
+              bound_computation = constraint.strip(")").split(",")[-1]
+              result = compute(bound_computation)
+              result = result - 1
+              # we do not want negative numbers or zero for less than operator:
+              # replacing with the computed result -1, since we substract 1 for ge case:
+              constraint = constraint.replace(bound_computation, str(result))
+              # after changes now it is not lessthan operator:
+              constraint = constraint.replace('ge', 'nlt')
+              if (result != 0):
+                temp_list.append(constraint)
+              # assert no addition and subtraction present in the string:
+              assert('+' not in constraint)
+              assert('-' not in constraint)
+            else:
+              # no computation is needed:
+              temp_list.append(constraint)
+
+            # ========================================================
+          self.invariant_constraints.append(temp_list)
+        #print(self.invariant_constraints)
+        # for now assuming that the number of invariants are same as the number of black goal conditions:
+        assert(len(self.black_goal_constraints) == len(self.invariant_constraints))
+
+
 
       # asserting there is no computation in the goal state for now:
       # assert("+" not in self.black_goal_constraints[0])
