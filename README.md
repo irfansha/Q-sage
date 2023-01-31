@@ -17,6 +17,18 @@ _Input:_  pg format positional game inputs for Hex like games.
 
 _Output:_  generates a qbf instances that encodes the existence of bounded winning strategy
 
+## Interactive game play:
+
+You can play Hex game with QBF solver using the following command:
+
+
+    python3 interactive_play.py --problem Benchmarks/B-Hex/hein_04_3x3-05.pg
+
+Sample output:
+
+![smaple_play](https://user-images.githubusercontent.com/37924323/215714804-6fff96c3-21b7-44c1-951f-15587202581f.png)
+
+
 ## Non-Positional Games:
 ## Usage:
 TBU
