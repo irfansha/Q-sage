@@ -147,7 +147,7 @@ if __name__ == '__main__':
   parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
 
   args = parser.parse_args()
-  print(args)
+  #print(args)
 
   # Reading the input problem file
   parsed_dict = parse(args.problem)
