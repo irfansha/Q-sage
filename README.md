@@ -27,7 +27,7 @@ For visualization of qcir encoding generated, we use pyvis.network
 
 Install using:
 
-    sudo pip install pyvis.network
+    pip install pyvis
 
 ## Author:
 
