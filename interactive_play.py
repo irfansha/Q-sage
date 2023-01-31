@@ -5,6 +5,8 @@ import math
 import random
 import subprocess
 import textwrap
+from pathlib import Path
+import os
 
 
 def parse(problem_path):
@@ -131,8 +133,7 @@ if __name__ == '__main__':
   parser.add_argument("--seed", help="seed value for random generater (default 0)", type=int,default = 0)
   parser.add_argument("-e", help=textwrap.dedent('''
                                   encoding to run by Q-sage:
-                                  gg = grounded goal encoding
-                                  ggt = grounded goal with time'''),default = 'gg')
+                                  pg = positional games'''),default = 'pg')
   parser.add_argument("--renumber_positions", type=int, help=textwrap.dedent('''
                                        renumber positions for tighter lessthan constraints:
                                        0 = None
@@ -143,7 +144,7 @@ if __name__ == '__main__':
                                        in = let forall restrictions in each if condition
                                        out = forall restrictions outside the transition functions
                                        none = no restrictions (default)'''), default = 'none')
-  parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 1", type=int,default = 1)
+  parser.add_argument("--ignore_file_depth", help="Ignore time stamps in input file and enforce user depth, default 0", type=int,default = 0)
 
   args = parser.parse_args()
   print(args)
@@ -175,6 +176,9 @@ if __name__ == '__main__':
   # Repeat the loop of running until either winning configuration is reached
   while (depth > 0):
     temp_input_file = "intermediate_files/interactive_problem_file"
+    if not Path("./intermediate_files").is_dir():
+      print("Creating new directory for intermediate files.")
+      os.mkdir("./intermediate_files")
     # Writing to temporary intermediate file:
     print_to_file(temp_input_file, parsed_dict, args)
     command = "python3 Q-sage.py --run 2 --ignore_file_depth 1 --depth " + str(depth) + ' --restricted_position_constraints ' + str(args.restricted_position_constraints) + ' --renumber_positions ' + str(args.renumber_positions)  + ' --forall_move_restrictions ' + args.forall_move_restrictions + ' -e ' + args.e + " --problem " + temp_input_file + " > intermediate_files/interactive_output"
