@@ -21,11 +21,11 @@ class RunDepqbfCert():
       # 10, 20 are statuses for SAT and UNSAT:
       if ("exit status 10" not in str(e) and "exit status 20"  not in str(e)):
         print("Error from solver :", e, e.output)
-      else:
-        if ("exit status 10" in str(e)):
-          cur_string = self.output_sat_string
-        else:
-          cur_string = self.output_unsat_string
+      #else:
+       # if ("exit status 10" in str(e)):
+       #   cur_string = self.output_sat_string
+       # else:
+       #   cur_string = self.output_unsat_string
 
     if (self.cert_gen == 1):
       #cert_generation_command = self.cert_gen_path + " " + cur_string + " --aiger-ascii --simplify intermediate_files/depqbf_qrp_trace.qrp > " + self.cert_path
@@ -93,8 +93,10 @@ class RunDepqbfCert():
     self.cert_path = args.certificate_out
 
     # certificate output gate string:
+    '''
     self.output_sat_string = encoding.output_sat_index_string
     self.output_unsat_string = encoding.output_unsat_index_string
+    '''
 
     self.run_depqbf_cert()
     if (self.cert_gen == 1):
