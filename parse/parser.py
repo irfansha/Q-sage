@@ -278,6 +278,9 @@ def combine(args):
     if (no_computation == 0):
       cur_temp_goal.extend(index_list)
     f_combined_file.write(" ".join(cur_temp_goal) + "\n")
+  if (len(p_parsed_dict["#blackgoal"]) == 0):
+    # handling empty black goals with False:
+    f_combined_file.write("False\n")
   f_combined_file.write("#whitegoal\n")
   for goal in p_parsed_dict["#whitegoal"]:
     # copy for index computation:
