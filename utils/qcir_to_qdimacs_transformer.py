@@ -168,6 +168,7 @@ if __name__ == '__main__':
   qcir_lines = f.readlines()
   f.close()
 
+  split_lines = []
   matrix_lines = []
   # cannot be 0, but initializing to 0:
   output_gate = 0
@@ -180,6 +181,9 @@ if __name__ == '__main__':
     # we ignore if comment or empty line:
     if (line == ""):
       continue
+    # maintaining the split information:
+    elif("# cs" in line):
+      split_lines.append(line[2:])
     elif(line[0] == "#"):
       continue
     # if exists/forall in the line then it is part of matrix:
@@ -215,6 +219,10 @@ if __name__ == '__main__':
 
   # write the cnf encoding:
   f = open(args.output_file,"w")
+
+  for line in split_lines:
+    f.write(line)
+
   # writing the header line:
   f.write("p cnf " + str(max_var) + " " + str(num_clauses) + "\n")
 

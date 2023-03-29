@@ -270,6 +270,9 @@ def combine(args):
   for goal in p_parsed_dict["#blackgoal"]:
     # copy for index computation:
     cur_temp_goal = list(goal)
+    # if () braces are used, we prune them:
+    if (cur_temp_goal[0][0] == "(" and cur_temp_goal[0][-1] == ")" ):
+      cur_temp_goal[0] = cur_temp_goal[0][1:-1]
     index_list, no_computation = compute_index_bounds(cur_temp_goal)
     # we do not need indexes if there is no computation at all, for now:
     if (no_computation == 0):
@@ -279,6 +282,9 @@ def combine(args):
   for goal in p_parsed_dict["#whitegoal"]:
     # copy for index computation:
     cur_temp_goal = list(goal)
+    # if () braces are used, we prune them:
+    if (cur_temp_goal[0][0] == "(" and cur_temp_goal[0][-1] == ")" ):
+      cur_temp_goal[0] = cur_temp_goal[0][1:-1]
     index_list, no_computation = compute_index_bounds(cur_temp_goal)
     # we do not need indexes if there is no computation at all, for now:
     if (no_computation == 0):

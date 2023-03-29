@@ -3,6 +3,12 @@
 from pyvis.network import Network
 #import networkx as nx
 
+def check_if_white(encoding,var):
+  for i in range(len(encoding.move_variables)):
+    if (i%2==1):
+      if (var in encoding.move_variables[i]):
+        return True
+  return False
 
 def circuit_viz(encoding):
 
@@ -27,13 +33,21 @@ def circuit_viz(encoding):
           # first setting nodes if not available:
           if (non_neg_var not in nodes):
             nodes.append(non_neg_var)
-            net.add_node(non_neg_var, label=str(non_neg_var))
+            #net.add_node(non_neg_var, label=str(non_neg_var))
+            if (check_if_white(encoding,non_neg_var)):
+              net.add_node(non_neg_var, label=str(non_neg_var),color="red")
+            else:
+              net.add_node(non_neg_var, label=str(non_neg_var))
           net.add_edge(non_neg_var,out_var, color="red")
         else:
           # first setting nodes if not available:
           if (in_var not in nodes):
             nodes.append(in_var)
-            net.add_node(in_var, label=str(in_var))
+            #net.add_node(in_var, label=str(in_var))
+            if(check_if_white(encoding,in_var)):
+              net.add_node(in_var, label=str(in_var),color="red")
+            else:
+              net.add_node(in_var, label=str(in_var))
           net.add_edge(in_var,out_var, color="blue")
           #----------------------------------------------
   #out_vars_dict.sorted()

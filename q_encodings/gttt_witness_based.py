@@ -75,6 +75,10 @@ class GtttWitnessBased:
 
     # Move variables following time variables:
     self.quantifier_block.append(['# Move variables: '])
+
+    for i in range(self.parsed.depth):
+      self.quantifier_block.append(['# cs int [ ' + ' '.join(str(x) for x in self.move_variables[i]) + ' ] < ' + str(self.parsed.num_available_moves)])
+
     for i in range(self.parsed.depth):
       # starts with 0 and even is black (i.e., existential moves):
       if (i % 2 == 0):
@@ -211,7 +215,6 @@ class GtttWitnessBased:
         first_black_output_gates.append(self.gates_generator.output_gate)
       # disjunction of first black output gates:
       self.gates_generator.or_gate(first_black_output_gates)
-
     self.step_output_gates.append(self.gates_generator.output_gate)
 
     # Final conjunction:
