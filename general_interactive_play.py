@@ -110,8 +110,8 @@ def run_sat_solver(m, assm):
 if __name__ == '__main__':
   text = "Given a certificate and meta input for a game, plays interactively and checks if the winning condition is satisfied/n handle both ascii-aiger and cnf formats for certificates"
   parser = argparse.ArgumentParser(description=text,formatter_class=argparse.RawTextHelpFormatter)
-  parser.add_argument("--certificate_path", help="certificate path", default = 'intermediate_files/certificate')
-  parser.add_argument("--meta_path", help="meta information for game file path", default = 'intermediate_files/viz_meta_out')
+  parser.add_argument("--certificate_path", help="certificate path", default = 'testcases/index_general_certificates/httt_4_4_tic/certificate.cnf')
+  parser.add_argument("--meta_path", help="meta information for game file path", default = 'testcases/index_general_certificates/httt_4_4_tic/viz_meta_out')
   parser.add_argument("--player", help=textwrap.dedent('''
                                   player type:
                                   user = interactive user play (default)
