@@ -36,8 +36,16 @@ Sample output:
 
 
 ## Non-Positional Games:
+Given a GDDL model (domain+problem) file, one could use the following command to generate the corresponding QBF encoding for existence of winning strategy:
 ## Usage:
-TBU
+Example: to generate a breakthrough instance:
+
+    python3 Q-sage.py --game_type general -e bwnib --ib_domain Benchmarks/SAT2023_GDDL/GDDL_models/breakthrough/domain.ig --ib_problem Benchmarks/SAT2023_GDDL/GDDL_models/breakthrough/2x4_13.ig --encoding_out [path-to-out-file]
+
+We also provide interactive play for general grid games.
+For a demo of interactive validation of a 4x4 httt tic winning strategy:
+
+    python3 general_interactive_play.py
 
 
 ## Dependencies:
