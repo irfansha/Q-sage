@@ -142,6 +142,7 @@ def combine(args):
   # reading white actions:
   white_action_list = []
   count  = 0
+  max_predconditions = 0
   # initializing step action lines:
   one_action_lines = []
   for line in parsed_dict['#whiteactions']:
@@ -153,6 +154,10 @@ def combine(args):
     # with or without resetting we need to read the current line:
     one_action_lines.append(line)
     count = count + 1
+    # we need to know the maximum number of preconditions needed:
+    if (count == 3):
+      if (len(line) -1 > max_predconditions):
+        max_predconditions = len(line) -1
   # handiling the final action:
   white_action_list.append(one_action_lines)
   #'''
@@ -239,7 +244,9 @@ def combine(args):
     index_list, no_computation = compute_index_bounds(temp_cur_constraints)
     # printing the action lines:
     f_combined_file.write(" ".join(black_action_list[i][0]) + "\n")
-    f_combined_file.write(" ".join(black_action_list[i][1]) + "\n")
+    # for now harding coding the spaces between the parameters:
+    assert(":parameters" == black_action_list[i][1][0])
+    f_combined_file.write(":parameters (?x, ?y)\n")
     # adding index bounds here:
     f_combined_file.write(":indexbounds ("+" ".join(index_list) + ")\n")
     f_combined_file.write(" ".join(black_action_list[i][2]) + "\n")
@@ -260,10 +267,26 @@ def combine(args):
     index_list, no_computation = compute_index_bounds(temp_cur_constraints)
     # printing the action lines:
     f_combined_file.write(" ".join(white_action_list[i][0]) + "\n")
-    f_combined_file.write(" ".join(white_action_list[i][1]) + "\n")
+    # for now harding coding the spaces between the parameters:
+    assert(":parameters" == white_action_list[i][1][0])
+    f_combined_file.write(":parameters (?x, ?y)\n")
     # adding index bounds here:
     f_combined_file.write(":indexbounds ("+" ".join(index_list) + ")\n")
-    f_combined_file.write(" ".join(white_action_list[i][2]) + "\n")
+    # white precondition must always be of maximum length:
+    if (max_predconditions > len(white_action_list[i][2])-1):
+      assert(":precondition" == white_action_list[i][2][0])
+      conditions = list(white_action_list[i][2][1:])
+      # pruning brakets if available:
+      if conditions[0][0] == '(' and conditions[-1][-1] == ')':
+        conditions[0] = conditions[0][1:]
+        conditions[-1] = conditions[-1][:-1]
+      # simple padding the last condition to fill the length:
+      last_condition = conditions[-1]
+      while (len(conditions) < max_predconditions):
+        conditions.append(last_condition)
+      f_combined_file.write(":precondition ("+" ".join(conditions) + ")\n")
+    else:
+      f_combined_file.write(" ".join(white_action_list[i][2]) + "\n")
     f_combined_file.write(" ".join(white_action_list[i][3]) + "\n")
 
   f_combined_file.write("#blackgoal\n")
@@ -271,8 +294,9 @@ def combine(args):
     # copy for index computation:
     cur_temp_goal = list(goal)
     # if () braces are used, we prune them:
-    if (cur_temp_goal[0][0] == "(" and cur_temp_goal[0][-1] == ")" ):
-      cur_temp_goal[0] = cur_temp_goal[0][1:-1]
+    if (cur_temp_goal[0][0] == "(" and cur_temp_goal[-1][-1] == ")" ):
+      cur_temp_goal[0] = cur_temp_goal[0][1:]
+      cur_temp_goal[-1] = cur_temp_goal[-1][:-1]
     index_list, no_computation = compute_index_bounds(cur_temp_goal)
     # we do not need indexes if there is no computation at all, for now:
     if (no_computation == 0):
@@ -286,8 +310,9 @@ def combine(args):
     # copy for index computation:
     cur_temp_goal = list(goal)
     # if () braces are used, we prune them:
-    if (cur_temp_goal[0][0] == "(" and cur_temp_goal[0][-1] == ")" ):
-      cur_temp_goal[0] = cur_temp_goal[0][1:-1]
+    if (cur_temp_goal[0][0] == "(" and cur_temp_goal[-1][-1] == ")" ):
+      cur_temp_goal[0] = cur_temp_goal[0][1:]
+      cur_temp_goal[-1] = cur_temp_goal[-1][:-1]
     index_list, no_computation = compute_index_bounds(cur_temp_goal)
     # we do not need indexes if there is no computation at all, for now:
     if (no_computation == 0):
