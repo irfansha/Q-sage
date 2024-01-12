@@ -122,18 +122,7 @@ class BlackWhiteNestedIndexBased:
   def generate_counter_index_constraint(self, variables, constraint_pair):
     self.encoding.append(['# computing counter bounds for constraints,' + str(constraint_pair) +' :'])
     assert("?c" in constraint_pair[0])
-    # if lessthan bound is max counter and powers of 2, we use lessthan-and-equal to:
-    if (self.parsed.counter_bound == int(constraint_pair[1]) and int(constraint_pair[1]) == math.pow(self.num_counter_vars,2)):
-      lsc.add_circuit(self.gates_generator, variables, int(constraint_pair[1])-1)
-      lessthan_output_gate = self.gates_generator.output_gate
-      # equal-to gate with num-1:
-      binary_format_gates = self.generate_binary_format(variables,int(constraint_pair[1])-1)
-      self.gates_generator.and_gate(binary_format_gates)
-      binary_output_gate = self.gates_generator.output_gate
-      # disjunction will be lessthan-or-equal circuit:
-      self.gates_generator.or_gate([lessthan_output_gate,binary_output_gate])
-    else:
-      lsc.add_circuit(self.gates_generator, variables, int(constraint_pair[1]))
+    lsc.add_circuit(self.gates_generator, variables, int(constraint_pair[1]))
     return self.gates_generator.output_gate
 
   # returns, equality gates with forall variables for both x and y indexes (after computing addition and subtraciton where necessary):
@@ -1803,6 +1792,14 @@ class BlackWhiteNestedIndexBased:
     # allocating counter variables:
     if (self.parsed.counter_flag == 1):
       self.num_counter_vars = int(math.ceil(math.log2(self.parsed.counter_bound)))
+      # if number of counter vars is 1, then the counter value is upto 2:
+      if (self.num_counter_vars == 1):
+        self.counter_upper_bound = 2
+      else:
+        self.counter_upper_bound = int(math.pow(self.num_counter_vars,2))
+      # if bound is powers of 2, then we add one more variable for overflow:
+      if (self.parsed.counter_bound == self.counter_upper_bound):
+        self.num_counter_vars = self.num_counter_vars + 1
       self.counter_variables = []
       for i in range(parsed.depth+1):
         self.counter_variables.append(self.encoding_variables.get_vars(self.num_counter_vars))
