@@ -1,0 +1,8 @@
+#boardsize
+2 1
+#init
+#depth
+3
+#blackgoal
+black(1,1) black(2,1) 
+#whitegoal

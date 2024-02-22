@@ -1,0 +1,11 @@
+#boardsize
+5 1
+#init
+#depth
+5
+#blackgoal
+black(1,1) black(2,1) 
+black(1,1) black(3,1) black(4,1) 
+black(2,1) black(3,1) black(5,1) 
+black(3,1) black(4,1) black(5,1) 
+#whitegoal
