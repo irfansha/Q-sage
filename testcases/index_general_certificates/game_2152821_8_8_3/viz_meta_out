@@ -1,0 +1,26 @@
+#boardsize
+8 8
+#depth
+3
+#blackactions
+forward(?x,?y)
+left-diagonal(?x,?y)
+right-diagonal(?x,?y)
+#whiteactions
+forward(?x,?y)
+left-diagonal(?x,?y)
+right-diagonal(?x,?y)
+win-stay(?x,?y)
+#actionvars
+[1,2] [3,4,5] [6,7,8]
+[10,11] [12,13,14] [15,16,17]
+[21,22] [23,24,25] [26,27,28]
+#symbolicpos
+[33,34,35] [36,37,38]
+#statevars
+39 40
+41 42
+43 44
+45 46
+#goalvar
+509
