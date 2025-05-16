@@ -239,13 +239,8 @@ class BlackWhiteNestedIndexBased:
       # if then constraint:
       self.encoding.append(['# if then constraint for white predicate:'])
     #======================================== NoGO ============================
-    # I attempted to make changes from here TODO
-    elif (predicate == 'bw'):
-      self.encoding.append(['# BW variable'])
-      self.gates_generator.and_gate(
-        [self.win_variables[math.floor((time_step-1)/2)][0]]
-        )
-    elif (predicate == 'ww'):
+    # we handled win variables explicitly:
+    elif (predicate == 'bw' or predicate == 'ww'):
       pass
     #======================================== NoGO ============================
     else:
@@ -343,7 +338,7 @@ class BlackWhiteNestedIndexBased:
         self.quantifier_block.append(['forall(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
         # if illegal move is present, then it is existential:
         if (len(self.move_variables[i][3]) != 0):
-          self.quantifier_block.append(['# white illegal variable: '])
+          self.quantifier_block.append(['# white legal bound variable: '])
           self.quantifier_block.append(['exists(' + str(self.move_variables[i][3][0]) + ')'])
         # the extra boolean variables are also existential:
         self.quantifier_block.append(['# indicator variables, specifying which position is voilated in illegal move: '])
@@ -632,7 +627,6 @@ class BlackWhiteNestedIndexBased:
     #================================================================================================
 
     bound_variable_output_gates = []
-
     # If the number actions are not powers of 2, then we need a less than circuit:
     if (self.upperlimit_white_actions != self.num_white_actions):
       self.encoding.append(['# less than constraints for white moves:'])
@@ -695,7 +689,9 @@ class BlackWhiteNestedIndexBased:
 
     self.encoding.append(['# conjunction for all the bound constraints:'])
     # conjunction of the bound constraint output gates:
-    assert(len(bound_variable_output_gates) != 0)
+    # Note: turns out you can have no bound variable output gates when the lower bounds and upper bounds are exactly zero:
+    # TODO: investigate later if something break:
+    #assert(len(bound_variable_output_gates) != 0)
     self.gates_generator.and_gate(bound_variable_output_gates)
     final_bound_output_gate = self.gates_generator.output_gate
 
@@ -778,7 +774,13 @@ class BlackWhiteNestedIndexBased:
         self.gates_generator.or_gate([-cur_action_binary_output_gate,-cur_equality_output_gate, self.gates_generator.output_gate])
         #self.transition_step_output_gates.append(self.gates_generator.output_gate)
         current_transition_step_output_gates.append(self.gates_generator.output_gate)
-      # asserting that we use all the boolean vars, only for breakthrough/knightthrough:
+      # For the remaining dangling boolean variables, we force them to true:
+      while(len(temp_precondition_boolean_variables) != 0):
+        temp_cur_precondition_bool =  temp_precondition_boolean_variables.pop(0)
+        # if then constraints, for specific action:
+        self.gates_generator.or_gate([-cur_action_binary_output_gate, temp_cur_precondition_bool])
+        current_transition_step_output_gates.append(self.gates_generator.output_gate)
+      # asserting that we use all the boolean vars:
       assert(len(temp_precondition_boolean_variables) == 0)
 
     #'''
@@ -874,7 +876,6 @@ class BlackWhiteNestedIndexBased:
       #======================================== NoGO ===========================
       # creating forbidden win gate:
       if "forbidden" in self.parsed.white_action_list[i].action_name:
-        assert(False)
         self.encoding.append(['# det er forbidden action'])
         self.gates_generator.or_gate([])
         # adding to the then output gates:

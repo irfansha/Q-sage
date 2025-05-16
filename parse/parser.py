@@ -944,7 +944,7 @@ class Parse:
           eff = eff1.strip("\n").strip(" ").split(" ")
           singular_action_line.append(eff)
           act = action_gen.Action(self, singular_action_line)
-          print(act)
+          #print(act)
 
           self.black_action_list.append(act)
 
@@ -984,7 +984,7 @@ class Parse:
           eff = eff1.strip("\n").strip(" ").split(" ")
           singular_action_line.append(eff)
           act = action_gen.Action(self, singular_action_line)
-          print(act)
+          #print(act)
  
           self.white_action_list.append(act)
 
