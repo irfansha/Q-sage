@@ -238,11 +238,6 @@ class BlackWhiteNestedIndexBased:
       self.gates_generator.and_gate([self.predicate_variables[time_step][0], self.predicate_variables[time_step][1]])
       # if then constraint:
       self.encoding.append(['# if then constraint for white predicate:'])
-    #======================================== NoGO ============================
-    # we handled win variables explicitly:
-    elif (predicate == 'bw' or predicate == 'ww'):
-      pass
-    #======================================== NoGO ============================
     else:
       assert(predicate == 'open')
       # if the predicate is open then we set the cur predicate variable to open:
@@ -513,6 +508,9 @@ class BlackWhiteNestedIndexBased:
 
       # constraints for postive effects:
       for effect in self.parsed.black_action_list[i].positive_effects:
+        # we do not need any effects, if we are applying forbidden moves:
+        if ("forbidden" in self.parsed.black_action_list[i].action_name):
+          continue
         # no spaces for sake of correct parsing:
         assert(" " not in effect)
         split_effect = effect.strip(")").split("(")
@@ -553,6 +551,9 @@ class BlackWhiteNestedIndexBased:
           temp_then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
       # constraints for postive effects:
       for effect in self.parsed.black_action_list[i].negative_effects:
+        # we do not need any effects, if we are applying forbidden moves:
+        if ("forbidden" in self.parsed.black_action_list[i].action_name):
+          continue
         # no spaces for sake of correct parsing:
         assert(" " not in effect)
         split_effect = effect.strip(")").split("(")
@@ -811,6 +812,9 @@ class BlackWhiteNestedIndexBased:
 
       # constraints for postive effects:
       for effect in self.parsed.white_action_list[i].positive_effects:
+        # we do not need any effects, if we are applying forbidden moves:
+        if ("forbidden" in self.parsed.white_action_list[i].action_name):
+          continue
         # no spaces for sake of correct parsing:
         assert(" " not in effect)
         split_effect = effect.strip(")").split("(")
@@ -854,6 +858,9 @@ class BlackWhiteNestedIndexBased:
           then_constraint_output_gates.append(self.generate_if_then_predicate_constraint(cur_equality_output_gate,predicate, time_step + 1,"pos"))
       # constraints for postive effects:
       for effect in self.parsed.white_action_list[i].negative_effects:
+        # we do not need any effects, if we are applying forbidden moves:
+        if ("forbidden" in self.parsed.white_action_list[i].action_name):
+          continue
         # no spaces for sake of correct parsing:
         assert(" " not in effect)
         split_effect = effect.strip(")").split("(")
