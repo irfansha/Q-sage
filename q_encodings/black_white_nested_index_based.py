@@ -1584,14 +1584,12 @@ class BlackWhiteNestedIndexBased:
           self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
         propagation_output_gate =  self.gates_generator.output_gate
         self.gates_generator.and_gate([propagation_output_gate, self.black_goal_output_gate])
-        print([propagation_output_gate, self.black_goal_output_gate])
         # black goal is now conjunction with the propagation, consistent with the paper:
         propagated_black_goal_output_gate = self.gates_generator.output_gate
 
         #======================================== NoGO ============================
         self.encoding.append(['# NOGO extension, unnegated implication with disjuction of goal and win variable: '])
         self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate, self.win_variables[reverse_index][0]])
-        print([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate, self.win_variables[reverse_index][0]])
         #======================================== NoGO ============================
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
