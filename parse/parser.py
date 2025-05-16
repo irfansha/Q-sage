@@ -339,6 +339,29 @@ def combine(args):
         cur_temp_goal.extend(index_list)
       f_combined_file.write(" ".join(cur_temp_goal) + "\n")
 
+  if ("#blackwinpatterns" in p_parsed_dict):
+    f_combined_file.write("#blackwinpatterns\n")
+    for goal in p_parsed_dict["#blackwinpatterns"]:
+      # copy for index computation:
+      cur_temp_goal = list(goal)
+      index_list, no_computation = compute_index_bounds(cur_temp_goal)
+      # we do not need indexes if there is no computation at all, for now:
+      if (no_computation == 0):
+        cur_temp_goal.extend(index_list)
+      f_combined_file.write(" ".join(cur_temp_goal) + "\n")
+
+  if ("#whitewinpatterns" in p_parsed_dict):
+    f_combined_file.write("#whitewinpatterns\n")
+    for goal in p_parsed_dict["#whitewinpatterns"]:
+      # copy for index computation:
+      cur_temp_goal = list(goal)
+      index_list, no_computation = compute_index_bounds(cur_temp_goal)
+      # we do not need indexes if there is no computation at all, for now:
+      if (no_computation == 0):
+        cur_temp_goal.extend(index_list)
+      f_combined_file.write(" ".join(cur_temp_goal) + "\n")
+
+
 class Parse:
 
   # Parses domain and problem file:
@@ -886,6 +909,96 @@ class Parse:
 
           # ========================================================
         self.black_goal_constraints.append(temp_list)
+
+      self.black_win_flag = 0
+
+      self.black_win_boards = []
+      singular_action_line = []
+      if ('#blackwinpatterns' in self.parsed_dict):
+        # there are forbidden boards
+        self.black_win_flag = 1
+        # get the list of lists
+        for i, line in enumerate(self.parsed_dict['#blackwinpatterns']):
+          strin1 = ":action forbidden" + str(i)
+          upstring = strin1.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(upstring)
+          string2 = ":parameters (?x, ?y)"
+          upstring2 = string2.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(upstring2)
+
+          idx = ":indexbounds (ge(?x,xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))"
+          idx_bound = idx.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(idx_bound)
+
+          string = ":precondition ("
+          for j, k in enumerate(line):
+            string += k
+            if j+1 != len(line):
+              string += " "
+          finalstring = string + ")"
+          here = finalstring.strip("\n").strip(" ").split(" ")
+
+          singular_action_line.append(here)
+
+          eff1 = ":effect (bw(?x, ?y))"
+          eff = eff1.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(eff)
+          act = action_gen.Action(self, singular_action_line)
+          print(act)
+
+          self.black_action_list.append(act)
+
+          singular_action_line = []
+
+      self.white_win_flag = 0
+
+      self.white_win_boards = []
+      singular_action_line = []
+      if ('#whitewinpatterns' in self.parsed_dict):
+        # there are forbidden boards
+        self.white_win_flag = 1
+        # get the list of lists
+        for i, line in enumerate(self.parsed_dict['#whitewinpatterns']):
+          strin1 = ":action forbidden" + str(i)
+          upstring = strin1.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(upstring)
+          string2 = ":parameters (?x, ?y)"
+          upstring2 = string2.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(upstring2)
+
+          idx = ":indexbounds (ge(?x,xmin) le(?x,xmax) ge(?y,ymin) le(?y,ymax))"
+          idx_bound = idx.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(idx_bound)
+
+          string = ":precondition ("
+          for j, k in enumerate(line):
+            string += k
+            if j+1 != len(line):
+              string += " "
+          finalstring = string + ")"
+          here = finalstring.strip("\n").strip(" ").split(" ")
+
+          singular_action_line.append(here)
+
+          eff1 = ":effect (ww(?x, ?y))"
+          eff = eff1.strip("\n").strip(" ").split(" ")
+          singular_action_line.append(eff)
+          act = action_gen.Action(self, singular_action_line)
+          print(act)
+ 
+          self.white_action_list.append(act)
+
+          singular_action_line = []
+      self.max_white_preconditions = 0
+      for action in self.white_action_list:
+        if (self.max_white_preconditions < (len(action.positive_preconditions) + len(action.negative_preconditions))):
+          self.max_white_preconditions = (
+            len(action.positive_preconditions) + len(action.negative_preconditions))
+
+
+      print("max number of preconditions in white actions",
+          self.max_white_preconditions)
+
 
       self.invariant_flag = 0
 
