@@ -307,7 +307,7 @@ class BlackWhiteNestedIndexBased:
         self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
         #======================================== NoGO ============================
         # this is for the bw variable
-        self.quantifier_block.append(['# There exists winning variables for black'])
+        self.quantifier_block.append(['# NOGO extension : winning variable for black'])
         self.quantifier_block.append([f'exists({self.win_variables[math.floor(i/2)][0]})'])
         #======================================== NoGO ============================
       else:
@@ -594,7 +594,7 @@ class BlackWhiteNestedIndexBased:
       else:
         self.encoding.append(['# Black win false'])
         black_win_var = -int(self.win_variables[math.floor(time_step/2)][0])
-      self.encoding.append(['# Kommentar'])
+      self.encoding.append(['# NoGO extension, forbidden implication'])
       self.gates_generator.if_then_gate(final_if_condition_output_gate, black_win_var)
       current_transition_step_output_gates.append(self.gates_generator.output_gate)
       #======================================== NoGO ============================
@@ -874,6 +874,7 @@ class BlackWhiteNestedIndexBased:
       #======================================== NoGO ===========================
       # creating forbidden win gate:
       if "forbidden" in self.parsed.white_action_list[i].action_name:
+        assert(False)
         self.encoding.append(['# det er forbidden action'])
         self.gates_generator.or_gate([])
         # adding to the then output gates:
@@ -1492,14 +1493,15 @@ class BlackWhiteNestedIndexBased:
     self.encoding.append(['# Nested gates: '])
 
     #======================================== NoGO ============================
+    self.encoding.append(['# NOGO extension, disjuction of goal and win variable: '])
     self.gates_generator.or_gate([self.black_goal_output_gate, self.win_variables[-1][0]])
     # updating goal to the disjunction of goal and win variable:
-    self.black_goal_output_gate = self.gates_generator.output_gate
+    disjunction_black_goal_output_gate = self.gates_generator.output_gate
     #======================================== NoGO ============================
 
     #'''
     # starting with goal gate and last black gate:
-    self.gates_generator.and_gate([self.transition_step_output_gates[-1], self.black_goal_output_gate])
+    self.gates_generator.and_gate([self.transition_step_output_gates[-1], disjunction_black_goal_output_gate])
     cur_outgate = self.gates_generator.output_gate
     #print("and", cur_outgate)
 
@@ -1581,13 +1583,16 @@ class BlackWhiteNestedIndexBased:
         else:
           self.gates_generator.complete_equality_gate(self.predicate_variables[reverse_index+1],self.predicate_variables[self.parsed.depth])
         propagation_output_gate =  self.gates_generator.output_gate
+        self.gates_generator.and_gate([propagation_output_gate, self.black_goal_output_gate])
+        print([propagation_output_gate, self.black_goal_output_gate])
+        # black goal is now conjunction with the propagation, consistent with the paper:
+        propagated_black_goal_output_gate = self.gates_generator.output_gate
 
         #======================================== NoGO ============================
-        self.gates_generator.or_gate([self.black_goal_output_gate, self.win_variables[reverse_index][0]])
-        self.black_goal_output_gate = self.gates_generator.output_gate
+        self.encoding.append(['# NOGO extension, unnegated implication with disjuction of goal and win variable: '])
+        self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate, self.win_variables[reverse_index][0]])
+        print([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate, self.win_variables[reverse_index][0]])
         #======================================== NoGO ============================
-
-        self.gates_generator.if_then_gate(self.move_variables[reverse_index][3][0], [propagation_output_gate, self.black_goal_output_gate])
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
         self.gates_generator.and_gate([self.transition_step_output_gates[reverse_index], negated_implication_gate, unnegated_implication_gate])
