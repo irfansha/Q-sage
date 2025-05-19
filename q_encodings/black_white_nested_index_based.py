@@ -297,8 +297,9 @@ class BlackWhiteNestedIndexBased:
         self.quantifier_block.append(['exists(' + ', '.join(str(x) for x in cur_all_action_vars) + ')'])
         #======================================== NoGO ============================
         # this is for the bw variable
-        self.quantifier_block.append(['# NOGO extension : winning variable for black'])
-        self.quantifier_block.append([f'exists({self.win_variables[math.floor(i/2)][0]})'])
+        if self.parsed.black_win_flag == 1:
+          self.quantifier_block.append(['# NOGO extension : winning variable for black'])
+          self.quantifier_block.append([f'exists({self.win_variables[i]})'])
         #======================================== NoGO ============================
       else:
 
@@ -583,16 +584,17 @@ class BlackWhiteNestedIndexBased:
       current_transition_step_output_gates.append(self.gates_generator.output_gate)
 
       #======================================== NoGO ===========================
-      black_win_var = 0
-      if ("forbidden" in self.parsed.black_action_list[i].action_name):
-        self.encoding.append(['# Black win true'])
-        black_win_var = int(self.win_variables[math.floor(time_step/2)][0])
-      else:
-        self.encoding.append(['# Black win false'])
-        black_win_var = -int(self.win_variables[math.floor(time_step/2)][0])
-      self.encoding.append(['# NoGO extension, forbidden implication'])
-      self.gates_generator.if_then_gate(final_if_condition_output_gate, black_win_var)
-      current_transition_step_output_gates.append(self.gates_generator.output_gate)
+      if self.parsed.black_win_flag == 1:
+        black_win_var = 0
+        if ("forbidden" in self.parsed.black_action_list[i].action_name):
+          self.encoding.append(['# Black win true'])
+          black_win_var = int(self.win_variables[time_step])
+        else:
+          self.encoding.append(['# Black win false'])
+          black_win_var = -int(self.win_variables[time_step])
+        self.encoding.append(['# NoGO extension, forbidden implication'])
+        self.gates_generator.if_then_gate(final_if_condition_output_gate, black_win_var)
+        current_transition_step_output_gates.append(self.gates_generator.output_gate)
       #======================================== NoGO ============================
 
     # only at the end, we set the conjunction to step output gate:
@@ -1501,10 +1503,13 @@ class BlackWhiteNestedIndexBased:
     self.encoding.append(['# Nested gates: '])
 
     #======================================== NoGO ============================
-    self.encoding.append(['# NOGO extension, disjuction of goal and win variable: '])
-    self.gates_generator.or_gate([self.black_goal_output_gate, self.win_variables[-1][0]])
-    # updating goal to the disjunction of goal and win variable:
-    disjunction_black_goal_output_gate = self.gates_generator.output_gate
+    if self.parsed.black_win_flag == 1:
+      self.encoding.append(['# NOGO extension, disjuction of goal and win variable: '])
+      self.gates_generator.or_gate([self.black_goal_output_gate, self.win_variables[-1]])
+      # updating goal to the disjunction of goal and win variable:
+      disjunction_black_goal_output_gate = self.gates_generator.output_gate
+    else:
+      disjunction_black_goal_output_gate = self.black_goal_output_gate
     #======================================== NoGO ============================
 
     #'''
@@ -1597,7 +1602,10 @@ class BlackWhiteNestedIndexBased:
 
         #======================================== NoGO ============================
         self.encoding.append(['# NOGO extension, unnegated implication with disjuction of goal and win variable: '])
-        self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate, self.win_variables[reverse_index][0]])
+        if self.parsed.black_win_flag == 1:
+          self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate, self.win_variables[reverse_index]])
+        else:
+          self.gates_generator.or_gate([-self.move_variables[reverse_index][3][0], propagated_black_goal_output_gate])
         #======================================== NoGO ============================
         unnegated_implication_gate = self.gates_generator.output_gate
         # conjunction with this round of constraints:
@@ -1715,9 +1723,13 @@ class BlackWhiteNestedIndexBased:
         if (self.makermaker_game == 1):
           temp_list.append(self.encoding_variables.get_vars(1))
       #======================================== NoGO ============================
-      if i % 2 == 0:
-        # generate bw for the action
-        self.win_variables.append(self.encoding_variables.get_vars(1))
+      if self.parsed.black_win_flag:
+        if i % 2 == 0 :
+          # generate bw for the action
+          self.win_variables.append(self.encoding_variables.get_vars(1)[0])
+        else:
+          # for white we do not add any variables, but dummy None:
+          self.win_variables.append(None)
       #======================================== NoGO ============================
       self.move_variables.append(temp_list)
 

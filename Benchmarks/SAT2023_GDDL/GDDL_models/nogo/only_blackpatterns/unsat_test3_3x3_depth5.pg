@@ -1,0 +1,14 @@
+#boardsize
+3 3
+#init
+
+#depth
+5
+
+#blackgoal
+False
+
+#whitegoal
+
+#blackwinpatterns
+white(3,1) black(2,3) white(3,3) black(3,2) 
